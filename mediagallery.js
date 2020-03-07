@@ -26,7 +26,7 @@
  * 2020-02-23 JJK   Re-working as a single collection of folders under the
  *                  parent Media directory
  * 2020-02-29 JJK   Working on the audio player and playlist, and moving
- *                  files to a /mediagallery folder (to make a better library)
+ *                  files to a media gallery folder (to make a better library)
  *                  Introduced a MediaRootDir
  * 2020-03-05 JJK   Adding ability to copy URL for folders for links to share
  * 2020-03-07 JJK   Adding handling of PDF docs
@@ -51,6 +51,7 @@ var mgallery = (function(){
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
     // default is Media/
     var MediaRootDir = "Media/";
+    var MediaGalleryRootDir = "MediaGallery/";
     // When executing from within PHP files, add this to the front of URI paths to get to the parent directory
     var phpRootReset = "../"
 
@@ -60,7 +61,7 @@ var mgallery = (function(){
     var MediaBreadcrumbsId = "MediaBreadcrumbs";
     var MediaFoldersId = "MediaFolders";
     var MediaThumbnailsId = "MediaThumbnails";
-    var BlueimpGalleryId = "blueimpGalleryModal";
+    var BlueimpGalleryId = "blueimp-gallery";
     var MediaFolderLinkClass = "MediaFolderLink";
 
     //=================================================================================================================
@@ -175,7 +176,7 @@ var mgallery = (function(){
         $menuHeader.text(dirName);
 
         //Pass in sort (0 for alpha photos and 1 for years) ???
-        $.getJSON("mediagallery/getDirList.php", "dir=" + phpRootReset + MediaRootDir + dirName, function (dirList) {
+        $.getJSON(MediaGalleryRootDir+"getDirList.php", "dir=" + phpRootReset + MediaRootDir + dirName, function (dirList) {
             var htmlStr = '';
             var panelContent = '';
             var panelCollapseIn = "";
@@ -268,7 +269,7 @@ var mgallery = (function(){
 
         //console.log("getDirList dirName = " + phpRootReset + MediaRootDir + dirName);
 
-        $.getJSON("mediagallery/getDirList.php", "dir=" + phpRootReset + MediaRootDir + dirName, function (dirList) {
+        $.getJSON(MediaGalleryRootDir +"getDirList.php", "dir=" + phpRootReset + MediaRootDir + dirName, function (dirList) {
             // loop through the list and display thumbnails in a div
             var periodPos = 0;
             var fileExt = '';
@@ -304,6 +305,7 @@ var mgallery = (function(){
                         
                         $('<a/>')
                             .append($('<img>').prop('src', MediaRootDir + photosThumbDir + '/' + dir.filename).prop('class', "img-thumbnail"))
+                            .prop('href', filePath)
                             .prop('title', dir.filename)
                             .appendTo($thumbnailContainer);
 
@@ -320,7 +322,7 @@ var mgallery = (function(){
                     } else if (dir.filename == "youtube.txt") {
                         // Get the list of youtube ids
                         var cPos = 0;
-                        $.getJSON("mediagallery/getVideoList.php", "file=" + phpRootReset + filePath, function (videoList) {
+                        $.getJSON(MediaGalleryRootDir +"getVideoList.php", "file=" + phpRootReset + filePath, function (videoList) {
                             var videoId = '';
                             var videoName = '';
                             $.each(videoList, function (index, videoStr) {
@@ -387,6 +389,8 @@ var mgallery = (function(){
             
             // if there were any docs, build a table of the filelinks and append to the Thumbnails container
             if (docFiles) {
+                $thumbnailContainer.empty();
+
                 // append the tbody to the table, adn the table to the thumbnail container
                 var $doclistTable = $('<table>')
                     .prop('class', 'table table-condensed');
@@ -394,6 +398,8 @@ var mgallery = (function(){
                 $doclistTable.appendTo($thumbnailContainer);
             }
             else if (audioFiles) {
+                $thumbnailContainer.empty();
+
                 // if there were any MP3's, build a player with the playlist of MP3's
                 $('<h5>').attr('id', 'SongTitle')
                     .attr('style','font-weight: bold')
