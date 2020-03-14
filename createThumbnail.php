@@ -7,12 +7,21 @@
  *----------------------------------------------------------------------------
  * Modification History
  * 2019-02-14 JJK	Initial version
+ * 2020-03-14 JJK   Added a MediaRootDir include to define variables
  *============================================================================*/
 define("LOG_FILE", "./createThumbnail.log");
 
+include 'MediaRootDir.php';
 include 'secrets.php';
 
 try {
+    /*
+        $rootDir = $phpRootReset . $MediaRootDir;
+	if (isset($_GET["dir"])) { 
+        $rootDir = $rootDir . $_GET["dir"];
+    } 
+    */
+
 	$uid = getParamVal("UID");
 	if ($uid != $APIguid) {
 		return;

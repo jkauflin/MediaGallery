@@ -15,7 +15,9 @@
  * 					separate directories
  * 2016-12-27 JJK   Modified the logging to check operation
  * 2017-05-21 JJK   Modified to only run late at night
+ * 2020-03-14 JJK   Added a MediaRootDir include to define variables
  *============================================================================*/
+include 'MediaRootDir.php';
 define("LOG_FILE", "./createThumbnails.log");
 
 //*** JJK Note: Can't do this because the recursion on a large set of work will cause it
@@ -25,6 +27,13 @@ define("LOG_FILE", "./createThumbnails.log");
 
 $outputArray = array();
 try {
+        /*
+        $rootDir = $phpRootReset . $MediaRootDir;
+	if (isset($_GET["dir"])) { 
+        $rootDir = $rootDir . $_GET["dir"];
+    } 
+    */
+
 	// Default root
 	$rootDir = 'jjkPhotos';
 	if (isset($_GET["dir"])) {

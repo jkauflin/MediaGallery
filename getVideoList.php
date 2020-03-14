@@ -6,13 +6,15 @@
  *----------------------------------------------------------------------------
  * Modification History
  * 2014-04-04 JJK 	Initial version to return a list of video ids
+ * 2020-03-14 JJK   Added a MediaRootDir include to define variables
  *============================================================================*/
+include 'MediaRootDir.php';
 
 $lines = array();
 try {
-	$fileURL = '';				
+    $fileURL = $phpRootReset;				
 	if (isset($_GET["file"])) { 
-		$fileURL = $_GET["file"];
+		$fileURL = $fileURL . $_GET["file"];
 		if (file_exists($fileURL)) {
 			$lines = file($fileURL);		
 		}

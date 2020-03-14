@@ -30,6 +30,7 @@
  *                  Introduced a MediaRootDir
  * 2020-03-05 JJK   Adding ability to copy URL for folders for links to share
  * 2020-03-07 JJK   Adding handling of PDF docs
+ * 2020-03-14 JJK   Modified to get the Media root dir from a PHP file
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -50,10 +51,8 @@ var mgallery = (function(){
     // Get these from configuration at some point
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
     // default is Media/
-    var MediaRootDir = "Media/";
+    var MediaRootDir = "";
     var MediaGalleryRootDir = "MediaGallery/";
-    // When executing from within PHP files, add this to the front of URI paths to get to the parent directory
-    var phpRootReset = "../"
 
     var MediaPageId = "MediaPage";
     var MediaHeaderId = "MediaHeader";
@@ -73,6 +72,23 @@ var mgallery = (function(){
     var $folderContainer = $document.find("#"+MediaFoldersId);
     var $thumbnailContainer = $document.find("#"+MediaThumbnailsId);
     var $blueimpGallery = $document.find("#"+BlueimpGalleryId);
+
+    // Get the Media root dir from the PHP when the page loads
+    $.get(MediaGalleryRootDir + "getMediaRootDir.php", function (inMediaRootDir) {
+        MediaRootDir = inMediaRootDir;
+        //console.log("MediaRootDir = " + MediaRootDir);
+    }).fail(function (jqXHR, textStatus, exception) {
+        console.log("getJSON getDirList failed, textStatus = " + textStatus);
+        console.log("Exception = " + exception);
+    });
+
+    // Get random photos (within /Media/images)
+    $.get(MediaGalleryRootDir + "getRandomImage.php", "rootDir=Home", function (photoURL) {
+        $("#HomePhoto").attr("src", photoURL);
+    });
+    $.get(MediaGalleryRootDir + "getRandomImage.php", "rootDir=Current", function (photoURL) {
+        $("#CurrentPhoto").attr("src", photoURL);
+    });
 
     //=================================================================================================================
     // Bind events
@@ -176,7 +192,7 @@ var mgallery = (function(){
         $menuHeader.text(dirName);
 
         //Pass in sort (0 for alpha photos and 1 for years) ???
-        $.getJSON(MediaGalleryRootDir+"getDirList.php", "dir=" + phpRootReset + MediaRootDir + dirName, function (dirList) {
+        $.getJSON(MediaGalleryRootDir+"getDirList.php", "dir=" + dirName, function (dirList) {
             var htmlStr = '';
             var panelContent = '';
             var panelCollapseIn = "";
@@ -269,7 +285,7 @@ var mgallery = (function(){
 
         //console.log("getDirList dirName = " + phpRootReset + MediaRootDir + dirName);
 
-        $.getJSON(MediaGalleryRootDir +"getDirList.php", "dir=" + phpRootReset + MediaRootDir + dirName, function (dirList) {
+        $.getJSON(MediaGalleryRootDir +"getDirList.php", "dir=" + dirName, function (dirList) {
             // loop through the list and display thumbnails in a div
             var periodPos = 0;
             var fileExt = '';
@@ -322,7 +338,7 @@ var mgallery = (function(){
                     } else if (dir.filename == "youtube.txt") {
                         // Get the list of youtube ids
                         var cPos = 0;
-                        $.getJSON(MediaGalleryRootDir +"getVideoList.php", "file=" + phpRootReset + filePath, function (videoList) {
+                        $.getJSON(MediaGalleryRootDir +"getVideoList.php", "file=" + filePath, function (videoList) {
                             var videoId = '';
                             var videoName = '';
                             $.each(videoList, function (index, videoStr) {
@@ -441,6 +457,7 @@ var mgallery = (function(){
             console.log("Exception = " + exception);
         });
  
+
     } // function displayThumbnails(dirName) {
 
     function setBreadcrumbs(dirName) {

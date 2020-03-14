@@ -8,23 +8,21 @@
  * 2014-04-03 JJK 	Initial version to return a directory list
  * 2019-01-12 JJK	Introduced a DirRec and turned the top level as a 
  * 					proper array (to solve the order problem)
- * 2020-02-29 JJK   Removed the top level restrict (assume the library 
- *                  configures the root media dir and searches are 
- *                  restricted to that)
+ * 2020-03-14 JJK   Added a MediaRootDir include to define variables
  *============================================================================*/
+include 'MediaRootDir.php';
 
 class DirRec
 {
 	public $filename;
-	//public $fileURL;
 	public $contents;
 }
 										
 $outputArray = array();
 try {
-    $rootDir = '';				
+    $rootDir = $phpRootReset . $MediaRootDir;
 	if (isset($_GET["dir"])) { 
-        $rootDir = $_GET["dir"];
+        $rootDir = $rootDir . $_GET["dir"];
 	} 
 
 	$sort = '0';				
