@@ -318,7 +318,7 @@ var mgallery = (function(){
                         // Call a PHP routine to check for the Thumbnail and Smaller, and create if needed
                         // (change this to just an Admin function if it takes too long)
                         $.get(MediaGalleryRootDir + "createThumbnail.php", "subPath=" + dirName + '/' + "&file=" + dir.filename, function (result) {
-                            console.log("Create Thumbnail, result = " + result);
+                            //console.log("Create Thumbnail, result = " + result);
                         }).fail(function (jqXHR, textStatus, exception) {
                             console.log("get createThumbnail failed, textStatus = " + textStatus);
                             console.log("Exception = " + exception);
