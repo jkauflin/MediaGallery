@@ -31,6 +31,8 @@
  * 2020-03-05 JJK   Adding ability to copy URL for folders for links to share
  * 2020-03-07 JJK   Adding handling of PDF docs
  * 2020-03-14 JJK   Modified to get the Media root dir from a PHP file
+ * 2020-03-21 JJK   Modified to call createThumbnail if thumbnail or 
+ *                  smaller image is missing
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -283,8 +285,6 @@ var mgallery = (function(){
         var photosThumbDir = photosThumbsRoot + subPath;
         var photosSmallerDir = photosSmallerRoot + subPath;
 
-        //console.log("getDirList dirName = " + phpRootReset + MediaRootDir + dirName);
-
         $.getJSON(MediaGalleryRootDir +"getDirList.php", "dir=" + dirName, function (dirList) {
             // loop through the list and display thumbnails in a div
             var periodPos = 0;
@@ -314,11 +314,17 @@ var mgallery = (function(){
                     // Process if the file is an image
                     if (fileExt == "JPG" || fileExt == "JPEG" || fileExt == "GIF") {
                         // If not a directory, add the photo to the gallery link list
-                        // Just assume the thumbnail image will be there for now
-                        
+
+                        // Call a PHP routine to check for the Thumbnail and Smaller, and create if needed
+                        // (change this to just an Admin function if it takes too long)
+                        $.get(MediaGalleryRootDir + "createThumbnail.php", "subPath=" + dirName + '/' + "&file=" + dir.filename, function (result) {
+                            console.log("Create Thumbnail, result = " + result);
+                        }).fail(function (jqXHR, textStatus, exception) {
+                            console.log("get createThumbnail failed, textStatus = " + textStatus);
+                            console.log("Exception = " + exception);
+                        });
+
                         filePath = MediaRootDir + photosSmallerDir + '/' + dir.filename;
-                        // *** add code to create thumbnails or smaller if not there???
-                        
                         $('<a/>')
                             .append($('<img>').prop('src', MediaRootDir + photosThumbDir + '/' + dir.filename).prop('class', "img-thumbnail"))
                             .prop('href', filePath)
@@ -390,7 +396,7 @@ var mgallery = (function(){
                     // If a directory, add the name with the folder icon
                     if (dir.filename.indexOf("images") >= 0 || dir.filename.indexOf("Smaller") >= 0 ||
                         dir.filename.indexOf("Thumbs") >= 0) {
-                            // Ignore this folder
+                            // Ignore folders with images, Smaller, or Thumbs in the name
                     } else {
                         //console.log("Folder container, dir.filename = " + dir.filename);
                         $('<a>').attr('data-dir', dirName + '/' + dir.filename)
