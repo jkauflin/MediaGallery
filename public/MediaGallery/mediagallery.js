@@ -230,9 +230,9 @@ var mgallery = (function(){
 
                 var panel = $('<div>').prop('class', 'panel panel-default').append(
                     $('<div>').prop('class', 'panel-heading').append(
-                        $('<h4>').prop('class', 'panel-title').append(
-                            $('<a>').attr('data-toggle', 'collapse').attr('data-parent', '#accordion').attr('href', "#collapse"+(index + 1))
-                                .text(dir.filename)
+                        $('<h5>').prop('class', 'panel-title').attr('style','font-size:1em;')
+                        .append($('<a>').attr('data-toggle', 'collapse').attr('data-parent', '#accordion').attr('href', "#collapse"+(index + 1))
+                            .text(dir.filename)
                         )
                     )
                 );
