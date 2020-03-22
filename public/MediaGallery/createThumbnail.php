@@ -9,25 +9,42 @@
  * 2019-02-14 JJK	Initial version
  * 2020-03-14 JJK   Added a MediaRootDir include to define variables
  * 2020-03-21 JJK   Adjusted to get the paths right
+ * 2020-03-22 JJK   Added ability for directory in addition to single file
  *============================================================================*/
 include 'MediaRootDir.php';
 define("LOG_FILE", "./createThumbnail.log");
 
 try {
     $fileSubPath = getParamVal("subPath");
-	$file = getParamVal("file");
-    
-    $fullPath = $phpRootReset . $MediaRootDir . $fileSubPath . $file;
+    $file = getParamVal("file");
+    $dirRoot = $phpRootReset . $MediaRootDir;
+    $fullDirPath = $dirRoot . $fileSubPath;
+    $fullFilePath = $fullDirPath . $file;
     //error_log(date('[m-d H:i:s] '). 'file = ' . $fullPath . PHP_EOL, 3, LOG_FILE);
+
+    //if (is_dir($fileURL)) {
     
-	// Check if the file exists
-	if (!file_exists($fullPath)) {
-        //echo 'File not found, file = ' . $fullPath;
-		return;
-	}
+    if ($file == "") {
 
-	echo processFile($fileSubPath,$file);
+        $files = scandir($fullDirPath);
+        $fileURL = '';
+        foreach($files as $tempFile)  {
+            // Make sure it is a valid directory
+            if ($tempFile == "." || $tempFile == "..") {
+                continue;
+            }
 
+            // look for image files
+            //error_log(date('[m-d H:i:s] '). '*** file = ' . $tempFile . PHP_EOL, 3, LOG_FILE);
+            processFile($dirRoot, $fileSubPath, $tempFile);
+
+        }
+
+    } else {
+        processFile($dirRoot, $fileSubPath, $file);
+    }
+    
+    echo 'done';
 }
 catch (Exception $e) {
 	//echo 'An error occured: ' .  $e->message;
@@ -37,11 +54,10 @@ catch (Exception $e) {
 return;
 
 
-function processFile($fileSubPath,$file) {
-    include 'MediaRootDir.php';
+function processFile($dirRoot, $fileSubPath, $file) {
     $status = 'Already exists';
-    
-    $fileNameAndPath = $phpRootReset . $MediaRootDir . $fileSubPath . $file;
+    $fileNameAndPath = $dirRoot . $fileSubPath . $file;
+    //error_log(date('[m-d H:i:s] '). '$fileNameAndPath = ' . $fileNameAndPath . PHP_EOL, 3, LOG_FILE);
 
 	$dirParts = explode("/", $fileSubPath);
 	//error_log(date('[m-d H:i:s] '). '$dirParts[0] = ' . $dirParts[0] . PHP_EOL, 3, LOG_FILE);
@@ -56,9 +72,9 @@ function processFile($fileSubPath,$file) {
 	//error_log(date('[m-d H:i:s] '). '$file = ' . $file . PHP_EOL, 3, LOG_FILE);
 
 	// Set roots for separate Thumbs and Smaller files
-	$thumbRoot = $phpRootReset . $MediaRootDir . $dirParts[0] . 'Thumbs';
+	$thumbRoot = $dirRoot . $dirParts[0] . 'Thumbs';
 	makedirs($thumbRoot);
-	$smallerRoot = $phpRootReset . $MediaRootDir . $dirParts[0] . 'Smaller';
+	$smallerRoot = $dirRoot . $dirParts[0] . 'Smaller';
 	makedirs($smallerRoot);
 	
 	$fileNamePart = '';

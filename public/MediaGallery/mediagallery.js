@@ -60,6 +60,7 @@ var mgallery = (function(){
     var MediaHeaderId = "MediaHeader";
     var MediaMenuId = "MediaMenu";
     var MediaConfigId = "MediaConfig";
+    var MediaConfigButton = "MediaConfigButton";
     var MediaBreadcrumbsId = "MediaBreadcrumbs";
     var MediaFoldersId = "MediaFolders";
     var MediaThumbnailsId = "MediaThumbnails";
@@ -168,10 +169,15 @@ var mgallery = (function(){
     };
 
     // Config button
-    $document.on("click", "." + MediaFolderLinkClass, function () {
+    $document.on("click", "#" + MediaConfigButton, function () {
         var $this = $(this);
-        //console.log("Click on MediaFolderLink, data-dir = " + $this.attr('data-dir'));
-        //displayThumbnails($this.attr('data-dir'));
+        //console.log("Click on MediaConfig, data-dir = " + $this.attr('data-dir'));
+        $.get(MediaGalleryRootDir + "createThumbnail.php", "subPath=" + $this.attr('data-dir'), function (result) {
+            //console.log("Create Thumbnail, result = " + result);
+        }).fail(function (jqXHR, textStatus, exception) {
+            console.log("get createThumbnail failed, textStatus = " + textStatus);
+            console.log("Exception = " + exception);
+        });
     });	
 
     //=====================================================================================
@@ -295,13 +301,16 @@ var mgallery = (function(){
         var photosThumbDir = photosThumbsRoot + subPath;
         var photosSmallerDir = photosSmallerRoot + subPath;
 
-        $('<a>').attr('data-dir', dirName)
-        .attr('href', "#")
-        .prop('class', '' + MediaFolderLinkClass)
-        .attr('style', '')
-        .append($('<i>').prop('class', "fa fa-2x fa-gear"))
-        .appendTo($configContainer);
+        var MediaConfigId = "MediaConfig";
 
+        // Add a Config button
+        $('<a>').attr('id', MediaConfigButton)
+            .attr('data-dir', dirName)
+            .attr('href', "#")
+            .append($('<i>').prop('class', "fa fa-2x fa-gear"))
+            .appendTo($configContainer);
+
+        // Get a list of files in the data directory
         $.getJSON(MediaGalleryRootDir +"getDirList.php", "dir=" + dirName, function (dirList) {
             // loop through the list and display thumbnails in a div
             var periodPos = 0;
