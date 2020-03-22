@@ -31,8 +31,8 @@
  * 2020-03-05 JJK   Adding ability to copy URL for folders for links to share
  * 2020-03-07 JJK   Adding handling of PDF docs
  * 2020-03-14 JJK   Modified to get the Media root dir from a PHP file
- * 2020-03-21 JJK   Modified to call createThumbnail if thumbnail or 
- *                  smaller image is missing
+ * 2020-03-21 JJK   Added a MediaConfig button to execute a createThumbnail
+ *                  on a media directory (if thumbnails are missing)
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -59,6 +59,7 @@ var mgallery = (function(){
     var MediaPageId = "MediaPage";
     var MediaHeaderId = "MediaHeader";
     var MediaMenuId = "MediaMenu";
+    var MediaConfigId = "MediaConfig";
     var MediaBreadcrumbsId = "MediaBreadcrumbs";
     var MediaFoldersId = "MediaFolders";
     var MediaThumbnailsId = "MediaThumbnails";
@@ -70,7 +71,8 @@ var mgallery = (function(){
     var $document = $(document);
     var $menuHeader = $document.find("#"+MediaHeaderId);
     var $menuContainer = $document.find("#"+MediaMenuId);
-    var $breadcrumbContainer = $document.find("#"+MediaBreadcrumbsId);
+    var $configContainer = $document.find("#" + MediaConfigId);
+    var $breadcrumbContainer = $document.find("#" + MediaBreadcrumbsId);
     var $folderContainer = $document.find("#"+MediaFoldersId);
     var $thumbnailContainer = $document.find("#"+MediaThumbnailsId);
     var $blueimpGallery = $document.find("#"+BlueimpGalleryId);
@@ -164,7 +166,14 @@ var mgallery = (function(){
             blueimp.Gallery(links, options);
         }
     };
-    
+
+    // Config button
+    $document.on("click", "." + MediaFolderLinkClass, function () {
+        var $this = $(this);
+        //console.log("Click on MediaFolderLink, data-dir = " + $this.attr('data-dir'));
+        //displayThumbnails($this.attr('data-dir'));
+    });	
+
     //=====================================================================================
     // Default the blueimp gallery controls to borderless fullscreen with no controls
     //=====================================================================================
@@ -264,6 +273,7 @@ var mgallery = (function(){
         setBreadcrumbs(dirName);
         $folderContainer.empty();
         $thumbnailContainer.empty();
+        $configContainer.empty();
 
         // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
         var firstSlashPos = dirName.indexOf("/");
@@ -284,6 +294,13 @@ var mgallery = (function(){
         var photosSmallerRoot = rootDir + "Smaller";
         var photosThumbDir = photosThumbsRoot + subPath;
         var photosSmallerDir = photosSmallerRoot + subPath;
+
+        $('<a>').attr('data-dir', dirName)
+        .attr('href', "#")
+        .prop('class', '' + MediaFolderLinkClass)
+        .attr('style', '')
+        .append($('<i>').prop('class', "fa fa-2x fa-gear"))
+        .appendTo($configContainer);
 
         $.getJSON(MediaGalleryRootDir +"getDirList.php", "dir=" + dirName, function (dirList) {
             // loop through the list and display thumbnails in a div
@@ -317,12 +334,14 @@ var mgallery = (function(){
 
                         // Call a PHP routine to check for the Thumbnail and Smaller, and create if needed
                         // (change this to just an Admin function if it takes too long)
+                        /*
                         $.get(MediaGalleryRootDir + "createThumbnail.php", "subPath=" + dirName + '/' + "&file=" + dir.filename, function (result) {
                             //console.log("Create Thumbnail, result = " + result);
                         }).fail(function (jqXHR, textStatus, exception) {
                             console.log("get createThumbnail failed, textStatus = " + textStatus);
                             console.log("Exception = " + exception);
                         });
+                        */
 
                         filePath = MediaRootDir + photosSmallerDir + '/' + dir.filename;
                         $('<a/>')
