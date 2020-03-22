@@ -168,14 +168,15 @@ var mgallery = (function(){
         }
     };
 
-    // Config button
+    // Respond to Config button clicks
     $document.on("click", "#" + MediaConfigButton, function () {
         var $this = $(this);
         //console.log("Click on MediaConfig, data-dir = " + $this.attr('data-dir'));
-        $.get(MediaGalleryRootDir + "createThumbnail.php", "subPath=" + $this.attr('data-dir'), function (result) {
-            //console.log("Create Thumbnail, result = " + result);
+        // Create thumbnails and smaller photos for images in a directory
+        $.get(MediaGalleryRootDir + "createThumbnails.php", "subPath=" + $this.attr('data-dir'), function (result) {
+            //console.log("createThumbnails, result = " + result);
         }).fail(function (jqXHR, textStatus, exception) {
-            console.log("get createThumbnail failed, textStatus = " + textStatus);
+            console.log("get createThumbnails failed, textStatus = " + textStatus);
             console.log("Exception = " + exception);
         });
     });	
@@ -340,18 +341,6 @@ var mgallery = (function(){
                     // Process if the file is an image
                     if (fileExt == "JPG" || fileExt == "JPEG" || fileExt == "GIF") {
                         // If not a directory, add the photo to the gallery link list
-
-                        // Call a PHP routine to check for the Thumbnail and Smaller, and create if needed
-                        // (change this to just an Admin function if it takes too long)
-                        /*
-                        $.get(MediaGalleryRootDir + "createThumbnail.php", "subPath=" + dirName + '/' + "&file=" + dir.filename, function (result) {
-                            //console.log("Create Thumbnail, result = " + result);
-                        }).fail(function (jqXHR, textStatus, exception) {
-                            console.log("get createThumbnail failed, textStatus = " + textStatus);
-                            console.log("Exception = " + exception);
-                        });
-                        */
-
                         filePath = MediaRootDir + photosSmallerDir + '/' + dir.filename;
                         $('<a/>')
                             .append($('<img>').prop('src', MediaRootDir + photosThumbDir + '/' + dir.filename).prop('class', "img-thumbnail"))
