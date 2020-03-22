@@ -5,32 +5,58 @@ DESCRIPTION:  Test framework web server for the MediaGallery library
 -----------------------------------------------------------------------------
 Modification History
 2020-03-20 JJK  Initial version
+2020-03-22 JJK  Working on FTP and createThumbnails call
 =============================================================================*/
+// Read environment variables from the .env file
+require('dotenv').config();
 
-// Create a web server
+const https = require('https');
+//var getJSON = require('get-json');
+//const url = require('url');
+var dateTime = require('node-datetime');
+
+var Client = require('ftp');
+var fs = require('fs');
+
+var ftpConfig = {
+    host: process.env.FTP_HOST,
+    port: process.env.FTP_PORT,
+    user: process.env.FTP_USER,
+    password: process.env.FTP_PASS
+}
+
+var ftpClient = new Client();
+ftpClient.on('ready', function () {
+    console.log("FTP ready");
+    /*
+    c.put('foo.txt', 'foo.remote-copy.txt', function (err) {
+        if (err) throw err;
+        c.end();
+    });
+    */
+});
+
+ftpClient.connect(ftpConfig);
+
+/*
 const http = require('http');
-const url = require('url');
 const express = require('express');
 var app = express();
 var httpServer = http.createServer(app);
-
 app.use('/',express.static('public'));
-
-// Have the web server listen for requests
-httpServer.listen(3000,function() {
-    console.log("Live at Port 3000 - Let's rock!");
-});
-
 app.use("*", function (req, res) {
     console.log("Not in Public, URL = " + req.url);
     res.sendFile(path + "404.html");
 });
-
 app.use(function (err, req, res, next) {
     console.error(err.stack)
     res.status(500).send('Something broke!')
 })
-
+// Have the web server listen for requests
+httpServer.listen(3000, function () {
+    console.log("Live at Port 3000 - Let's rock!");
+});
+*/
 
 // List all files in a directory in Node.js recursively in a synchronous fashion
 var walkSync = function (dir, filelist) {
@@ -40,23 +66,25 @@ var walkSync = function (dir, filelist) {
     filelist = filelist || [];
     files.forEach(function (file) {
         if (fs.statSync(path.join(dir, file)).isDirectory()) {
-            filelist = walkSync(path.join(dir, file), filelist);
+            //filelist = walkSync(path.join(dir, file), filelist);
+            filelist.push(path.join(dir, file));
         } else {
             // check for image file first???
-            filelist.push(path.join(dir, file));
+            //filelist.push(path.join(dir, file));
         }
     });
     return filelist;
 };
 
-var dir = "E:\\test\\1 John J Kauflin\\2016-to-2022\\2019\\05 - Winter";
-//var fileList = walkSync(dir);
+//var dir = "E:\\jjkPhotos\\1 John J Kauflin\\2016-to-2022\\2020\\01 - Winter";
+var dir = "E:\\jjkPhotos\\1 John J Kauflin\\2016-to-2022\\2019";
+var fileList = walkSync(dir);
 
-/*
-for (var i = 0, len = fl.length; i < len; i++) {
-    console.log("fl[" + i + "] = " + fl[i]);
+
+for (var i = 0, len = fileList.length; i < len; i++) {
+    console.log("fileList[" + i + "] = " + fileList[i]);
 }
-*/
+
 
 var backSlashRegExp = new RegExp("\\\\", "g");
 

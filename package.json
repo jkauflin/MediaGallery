@@ -14,6 +14,14 @@
     "url": "https://github.com/jkauflin/MediaGallery.git"
   },
   "dependencies": {
-    "express": "latest"
+    "node-datetime": "latest",
+    "ftp": "latest",
+    "fs": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "get-json": "latest",
+    "lodash": "latest",
+    "merge": "1.2.1",
+    "url": "^0.11.0"
   }
 }
