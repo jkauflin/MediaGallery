@@ -10,6 +10,15 @@ Modification History
 // Read environment variables from the .env file
 require('dotenv').config();
 
+// General handler for any uncaught exceptions
+process.on('uncaughtException', function (e) {
+    console.log("UncaughtException, error = " + e);
+    console.error(e.stack);
+    // Stop the process
+    // 2017-12-29 JJK - Don't stop for now, just log the error
+    //process.exit(1);
+});
+
 const https = require('https');
 //var getJSON = require('get-json');
 //const url = require('url');
@@ -28,12 +37,24 @@ var ftpConfig = {
 var ftpClient = new Client();
 ftpClient.on('ready', function () {
     console.log("FTP ready");
+
     /*
-    c.put('foo.txt', 'foo.remote-copy.txt', function (err) {
+    ftpClient.list('public_html/Media/', function (err, list) {
         if (err) throw err;
-        c.end();
+        list.map(function (entry) {
+            console.log("entry.name = "+entry.name);
+        });
+        ftpClient.end();
     });
     */
+
+    /*
+    ftpClient.put('foo.txt', 'foo.remote-copy.txt', function (err) {
+        if (err) throw err;
+        ftpClient.end();
+    });
+    */
+
 });
 
 ftpClient.connect(ftpConfig);
@@ -76,8 +97,7 @@ var walkSync = function (dir, filelist) {
     return filelist;
 };
 
-//var dir = "E:\\jjkPhotos\\1 John J Kauflin\\2016-to-2022\\2020\\01 - Winter";
-var dir = "E:\\jjkPhotos\\1 John J Kauflin\\2016-to-2022\\2019";
+var dir = process.env.PHOTOS_DIR;
 var fileList = walkSync(dir);
 
 
