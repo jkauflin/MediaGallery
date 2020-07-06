@@ -18,5 +18,5 @@ yarn-error.log*
 *.log
 ssl/
 package-lock.json
-public/Media
+Media
 .editorconfig
