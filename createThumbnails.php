@@ -22,21 +22,28 @@ define("LOG_FILE", "./createThumbnail.log");
 
 try {
     $subPath = getParamVal("subPath");
+    $inFilePath = getParamVal("filePath");
+
+    if ($inFilePath != "") {
+        $subPath = $inFilePath;
+    }
+
     $dirRoot = $phpRootReset . $MediaRootDir;
     $fullDirPath = $dirRoot . $subPath;
-    //error_log(date('[m-d H:i:s] '). '*** $fullDirPath = ' . $fullDirPath . PHP_EOL, 3, LOG_FILE);
+    error_log(date('[m-d H:i:s] '). '*** $fullDirPath = ' . $fullDirPath . PHP_EOL, 3, LOG_FILE);
 
     if (!file_exists($fullDirPath)) {
-        echo 'Dir does not exist';
+        echo 'Dir/File does not exist, fullDirPath = '. $fullDirPath;
         return;
     }
 
 	$dirParts = explode("/", $subPath);
-	//error_log(date('[m-d H:i:s] '). '$dirParts[0] = ' . $dirParts[0] . PHP_EOL, 3, LOG_FILE);
+	error_log(date('[m-d H:i:s] '). '$dirParts[0] = ' . $dirParts[0] . PHP_EOL, 3, LOG_FILE);
 	// Get the subpath, without the root
 	$subPath2 = implode('/',array_slice($dirParts,1,count($dirParts)-1));
-	//error_log(date('[m-d H:i:s] '). '$subPath2 = ' . $subPath2 . PHP_EOL, 3, LOG_FILE);
+	error_log(date('[m-d H:i:s] '). '$subPath2 = ' . $subPath2 . PHP_EOL, 3, LOG_FILE);
 
+    /*
 	// Set roots for separate Thumbs and Smaller files
 	$thumbRoot = $dirRoot . $dirParts[0] . 'Thumbs';
 	makedirs($thumbRoot);
@@ -49,46 +56,84 @@ try {
     $thumbPath = '';
     $smallerFile = '';
     $smallerPath = '';
-
-    // Loop through all the files in the directory
-    $files = scandir($fullDirPath);
     $fullFilePath = '';
-    foreach($files as $file)  {
-        // Skip invalid files
-        if ($file == "." || $file == "..") {
-            continue;
-        }
+    
+    if ($inFilePath != "") {
+        $fullFilePath = $fullDirPath;
 
-        $fullFilePath = $fullDirPath . '/' . $file;
-        //error_log(date('[m-d H:i:s] '). '$fullFilePath = ' . $fullFilePath . PHP_EOL, 3, LOG_FILE);
+        $fileParts = explode("/", $fullFilePath);
+        $file = $fileParts[count($fileParts)-1];
+        // need the $file
 
-        $parts = explode(".", $file);                   // pull apart the name and dissect by period 
-        if (is_array($parts) && count($parts) > 1) {    // does the dissected array have more than one part 
-            $fileNamePart = $parts[0];
-            $extension = strtoupper(end($parts));       // set to we can see last file extension
-            if ($extension == "JPEG" || $extension == "JPG" || $extension == "PNG" || $extension == "GIF") {
-                // Create a thumbnail of the photo image
-                $thumbPath = $thumbRoot . '/' . $subPath2;
-                $thumbFile = $thumbPath . '/' . $file;
-                makedirs($thumbPath);
-                if (!file_exists($thumbFile)) {
-                    //error_log(date('[m-d H:i:s] '). 'THUMB for ' . $thumbFile . PHP_EOL, 3, LOG_FILE);
-                    createThumbnail($fullFilePath, $thumbFile, 130, 130);
-                }
-                    
-                // Create a medium sized version of the photo image
-                $smallerPath = $smallerRoot . '/' . $subPath2;
-                $smallerFile = $smallerPath . '/' . $file;
-                makedirs($smallerPath);
-                if (!file_exists($smallerFile)) {
-                    //error_log(date('[Y-m-d H:i] '). 'Creating SMALLER for ' . $smallerFile . PHP_EOL, 3, LOG_FILE);
-                    createThumbnail($fullFilePath, $smallerFile, 2000, 2000);
-                }
-                    
-            } //  if ($extension == "JPEG" || $extension == "JPG" || $extension == "PNG" || $extension == "GIF") {
-        } // if (is_array($parts) && count($parts) > 1) {  
+        error_log(date('[m-d H:i:s] '). 'FILE $fullFilePath = ' . $fullFilePath . '$file = ' . $file . PHP_EOL, 3, LOG_FILE);
 
-    } // foreach($files as $file)  {
+            $parts = explode(".", $file);                   // pull apart the name and dissect by period 
+            if (is_array($parts) && count($parts) > 1) {    // does the dissected array have more than one part 
+                $fileNamePart = $parts[0];
+                $extension = strtoupper(end($parts));       // set to we can see last file extension
+                if ($extension == "JPEG" || $extension == "JPG" || $extension == "PNG" || $extension == "GIF") {
+                    // Create a thumbnail of the photo image
+                    $thumbPath = $thumbRoot . '/' . $subPath2;
+                    $thumbFile = $thumbPath . '/' . $file;
+                    makedirs($thumbPath);
+                    if (!file_exists($thumbFile)) {
+                        //error_log(date('[m-d H:i:s] '). 'THUMB for ' . $thumbFile . PHP_EOL, 3, LOG_FILE);
+                        createThumbnail($fullFilePath, $thumbFile, 130, 130);
+                    }
+                        
+                    // Create a medium sized version of the photo image
+                    $smallerPath = $smallerRoot . '/' . $subPath2;
+                    $smallerFile = $smallerPath . '/' . $file;
+                    makedirs($smallerPath);
+                    if (!file_exists($smallerFile)) {
+                        //error_log(date('[Y-m-d H:i] '). 'Creating SMALLER for ' . $smallerFile . PHP_EOL, 3, LOG_FILE);
+                        createThumbnail($fullFilePath, $smallerFile, 2000, 2000);
+                    }
+                        
+                } //  if ($extension == "JPEG" || $extension == "JPG" || $extension == "PNG" || $extension == "GIF") {
+            } // if (is_array($parts) && count($parts) > 1) {  
+
+    } else {
+        // Loop through all the files in the directory
+        $files = scandir($fullDirPath);
+        foreach($files as $file)  {
+            // Skip invalid files
+            if ($file == "." || $file == "..") {
+                continue;
+            }
+
+            $fullFilePath = $fullDirPath . '/' . $file;
+            error_log(date('[m-d H:i:s] '). '$fullFilePath = ' . $fullFilePath . PHP_EOL, 3, LOG_FILE);
+
+            $parts = explode(".", $file);                   // pull apart the name and dissect by period 
+            if (is_array($parts) && count($parts) > 1) {    // does the dissected array have more than one part 
+                $fileNamePart = $parts[0];
+                $extension = strtoupper(end($parts));       // set to we can see last file extension
+                if ($extension == "JPEG" || $extension == "JPG" || $extension == "PNG" || $extension == "GIF") {
+                    // Create a thumbnail of the photo image
+                    $thumbPath = $thumbRoot . '/' . $subPath2;
+                    $thumbFile = $thumbPath . '/' . $file;
+                    makedirs($thumbPath);
+                    if (!file_exists($thumbFile)) {
+                        //error_log(date('[m-d H:i:s] '). 'THUMB for ' . $thumbFile . PHP_EOL, 3, LOG_FILE);
+                        createThumbnail($fullFilePath, $thumbFile, 130, 130);
+                    }
+                        
+                    // Create a medium sized version of the photo image
+                    $smallerPath = $smallerRoot . '/' . $subPath2;
+                    $smallerFile = $smallerPath . '/' . $file;
+                    makedirs($smallerPath);
+                    if (!file_exists($smallerFile)) {
+                        //error_log(date('[Y-m-d H:i] '). 'Creating SMALLER for ' . $smallerFile . PHP_EOL, 3, LOG_FILE);
+                        createThumbnail($fullFilePath, $smallerFile, 2000, 2000);
+                    }
+                        
+                } //  if ($extension == "JPEG" || $extension == "JPG" || $extension == "PNG" || $extension == "GIF") {
+            } // if (is_array($parts) && count($parts) > 1) {  
+
+        } // foreach($files as $file)  {
+    }
+    */
     
     echo 'Success';
 }
