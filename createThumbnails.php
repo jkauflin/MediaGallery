@@ -17,6 +17,7 @@
  * 2020-03-21 JJK   Adjusted to get the paths right
  * 2020-03-22 JJK   Added ability to process a directory
  * 2020-07-07 JJK   Added filePath parameter for individual files
+ * 2020-07-09 JJK   Changed new folder permissions to 755
  *============================================================================*/
 include 'MediaRootDir.php';
 define("LOG_FILE", "./createThumbnail.log");
@@ -208,7 +209,7 @@ function createThumbnail($filepath, $thumbpath, $thumbnail_width, $thumbnail_hei
 }
 
 // Recursive make dir function
-function makedirs($dirpath, $mode=0777) {
+function makedirs($dirpath, $mode=0755) {
 	return is_dir($dirpath) || mkdir($dirpath, $mode, true);
 }
 
