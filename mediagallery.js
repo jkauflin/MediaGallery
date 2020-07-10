@@ -4,6 +4,9 @@
  * DESCRIPTION:  A general media gallery that can organize and display photos,
  *              auido (MP3s), video (YouTube links), and docs (PDF)
  * Photo Gallery implementing blueimp - https://github.com/blueimp/Gallery
+ *
+ * Make sure MediaGalleryRootDir is set correctly in this file
+ * 
  *----------------------------------------------------------------------------
  * Modification History
  * 2016-03-12 JJK   Got bootstrap gallery version of blueimp working
@@ -33,6 +36,8 @@
  * 2020-03-14 JJK   Modified to get the Media root dir from a PHP file
  * 2020-03-21 JJK   Added a MediaConfig button to execute a createThumbnail
  *                  on a media directory (if thumbnails are missing)
+ * 2020-07-10 JJK   Modified to handle folder location under a sub-folder
+ *                  rather than the web root directory
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -54,8 +59,9 @@ var mgallery = (function(){
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
     // default is Media/
     var MediaRootDir = "";
-    var MediaGalleryRootDir = "MediaGallery/";
-
+    var MediaRootFolderCnt = 0;
+    //var MediaGalleryRootDir = "MediaGallery/";
+    var MediaGalleryRootDir = "home/MediaGallery/";
     var MediaPageId = "MediaPage";
     var MediaHeaderId = "MediaHeader";
     var MediaMenuId = "MediaMenu";
@@ -82,6 +88,8 @@ var mgallery = (function(){
     $.get(MediaGalleryRootDir + "getMediaRootDir.php", function (inMediaRootDir) {
         MediaRootDir = inMediaRootDir;
         //console.log("MediaRootDir = " + MediaRootDir);
+        MediaRootFolderCnt = (MediaRootDir.split('/').length - 1);
+        //console.log("MediaRootFolderCnt = " + MediaRootFolderCnt);
     }).fail(function (jqXHR, textStatus, exception) {
         console.log("getJSON getDirList failed, textStatus = " + textStatus);
         console.log("Exception = " + exception);
@@ -108,6 +116,7 @@ var mgallery = (function(){
     $document.on('shown.bs.tab', 'a[data-toggle="tab"]', function () {
         var $this = $(this);
         var dirName = $this.attr('data-dir');
+        //console.log("Click on tab, dirName = "+dirName);
         // When the user clicks on a menu tab, build and display the thumbnails
         // if not coming from a mediaURL and has a defined media dirName
         if (!mediaURI && dirName != undefined) {
@@ -276,13 +285,14 @@ var mgallery = (function(){
 
     // Create breadcrumbs, folder and entity links (for photos, audio, video, etc.)
     function displayThumbnails(dirName) {
-        //console.log("displayThumbnails, dirName = " + dirName);
+        //console.log("in displayThumbnails, dirName = " + dirName);
         setBreadcrumbs(dirName);
         $folderContainer.empty();
         $thumbnailContainer.empty();
         $configContainer.empty();
 
         // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
+//            MediaRootFolderCnt
         var firstSlashPos = dirName.indexOf("/");
         var rootDir = dirName;
         if (firstSlashPos >= 0) {
@@ -290,12 +300,14 @@ var mgallery = (function(){
         } else {
             createMenu(dirName);
         }
+        //console.log("in displayThumbnails, rootDir = " + rootDir);
 
         // Assume the subpath starts at the 1st slash
         var subPath = "";
         if (firstSlashPos >= 0) {
             subPath = dirName.substr(firstSlashPos)
         }
+        //console.log("in displayThumbnails, subPath =" + subPath);
 
         var photosThumbsRoot = rootDir + "Thumbs";
         var photosSmallerRoot = rootDir + "Smaller";
