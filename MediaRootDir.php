@@ -10,10 +10,10 @@
  * 2020-03-14 JJK	Initial version
  * 2020-07-10 JJK   Added extra level to the phpRootReset and home/ to the
  *                  dirs because website it now under subfolder "home"
+ * 2020-07-11 JJK   Getting working under /home
  *============================================================================*/
-$MediaRootDir = "home/Media/";
-$MediaGalleryRootDir = "home/MediaGallery/";
+$MediaRootDir = "Media/";
+$MediaGalleryRootDir = "MediaGallery/";
 // When executing from within PHP files, add this to the front of URI paths to get to the parent directory
-//$phpRootReset = "../";
-$phpRootReset = "../../";
+$phpRootReset = "../";
 ?>

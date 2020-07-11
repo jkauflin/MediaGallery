@@ -60,8 +60,7 @@ var mgallery = (function(){
     // default is Media/
     var MediaRootDir = "";
     var MediaRootFolderCnt = 0;
-    //var MediaGalleryRootDir = "MediaGallery/";
-    var MediaGalleryRootDir = "home/MediaGallery/";
+    var MediaGalleryRootDir = "MediaGallery/";
     var MediaPageId = "MediaPage";
     var MediaHeaderId = "MediaHeader";
     var MediaMenuId = "MediaMenu";
@@ -87,7 +86,7 @@ var mgallery = (function(){
     // Get the Media root dir from the PHP when the page loads
     $.get(MediaGalleryRootDir + "getMediaRootDir.php", function (inMediaRootDir) {
         MediaRootDir = inMediaRootDir;
-        //console.log("MediaRootDir = " + MediaRootDir);
+        console.log("MediaRootDir = " + MediaRootDir);
         MediaRootFolderCnt = (MediaRootDir.split('/').length - 1);
         //console.log("MediaRootFolderCnt = " + MediaRootFolderCnt);
     }).fail(function (jqXHR, textStatus, exception) {
