@@ -29,7 +29,7 @@ try {
     $dirRoot = $phpRootReset . $MediaRootDir;
     $fullDirPath = $dirRoot . $inFilePath;
     //error_log(date('[m-d H:i:s] '). '*** $fullDirPath = ' . $fullDirPath . PHP_EOL, 3, LOG_FILE);
-    $returnValue = 'Exists';
+    $returnValue = 'Not an image';
 
     if (!file_exists($fullDirPath)) {
         //error_log(date('[m-d H:i:s] '). 'File does not exist, fullDirPath = ' . $fullDirPath . PHP_EOL, 3, LOG_FILE);
@@ -74,6 +74,7 @@ try {
         $extension = strtoupper(end($parts));       // set to we can see last file extension
         // Only look at image files
         if ($extension == "JPEG" || $extension == "JPG" || $extension == "PNG" || $extension == "GIF") {
+            $returnValue = 'Exists';
             // Create a thumbnail of the photo image
             $thumbPath = $thumbRoot . '/' . $subPath2;
             $thumbFile = $thumbPath . '/' . $file;
