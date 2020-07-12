@@ -29,6 +29,7 @@ try {
     $dirRoot = $phpRootReset . $MediaRootDir;
     $fullDirPath = $dirRoot . $inFilePath;
     //error_log(date('[m-d H:i:s] '). '*** $fullDirPath = ' . $fullDirPath . PHP_EOL, 3, LOG_FILE);
+    $returnValue = 'Exists';
 
     if (!file_exists($fullDirPath)) {
         //error_log(date('[m-d H:i:s] '). 'File does not exist, fullDirPath = ' . $fullDirPath . PHP_EOL, 3, LOG_FILE);
@@ -80,6 +81,7 @@ try {
             if (!file_exists($thumbFile)) {
                 error_log(date('[m-d H:i:s] '). 'THUMB for ' . $thumbFile . PHP_EOL, 3, LOG_FILE);
                 createThumbnail($fullFilePath, $thumbFile, 130, 130);
+                $returnValue = 'Created';
             }
                         
             // Create a medium sized version of the photo image
@@ -94,7 +96,7 @@ try {
         } //  if ($extension == "JPEG" || $extension == "JPG" || $extension == "PNG" || $extension == "GIF") {
     } // if (is_array($parts) && count($parts) > 1) {  
     
-    echo 'Success';
+    echo $returnValue;
 }
 catch (Exception $e) {
     error_log(date('[m-d H:i:s] '). 'Exception: ' .  $e->message . PHP_EOL, 3, LOG_FILE);
