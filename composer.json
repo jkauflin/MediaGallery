@@ -1,0 +1,19 @@
+{
+    "name": "jkauflin/MediaGallery",
+    "description": "Media Gallery display for photos, videos, music, and docs",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "John J Kauflin",
+            "email": "johnkauflin@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "jkauflin\\MediaGallery\\": "/"
+        }
+    },
+    "require": {}
+}
