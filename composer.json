@@ -1,5 +1,5 @@
 {
-    "name": "jkauflin/jjk-media-gallery",
+    "name": "jkauflin/jjkgallery",
     "description": "Media Gallery display for photos, videos, music, and docs",
     "type": "project",
     "license": "MIT",
@@ -12,7 +12,7 @@
     "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
-            "jkauflin\\jjk-media-gallery\\": "/"
+            "jkauflin\\jjkgallery\\": "/"
         }
     },
     "require": {}
