@@ -8,3 +8,5 @@ Photo gallery is based on https://blueimp.github.io/Gallery/
 Music is straight HTML5 Audio
 
 Video uses a text file with YouTube links
+
+## Getting Started
