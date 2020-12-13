@@ -18,7 +18,7 @@
  * 2020-03-22 JJK   Added ability to process a directory
  * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-require_once 'settings.php';
+require_once '../../../jjkgallerySettings.php';
 define("LOG_FILE", "./createThumbnails.log");
 
 try {

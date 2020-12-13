@@ -9,7 +9,7 @@
  * 2020-03-14 JJK  Added a MediaRootDir include to define variables
  * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-require_once 'settings.php';
+require_once '../../../jjkgallerySettings.php';
 
 $lines = array();
 try {

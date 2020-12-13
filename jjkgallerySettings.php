@@ -9,7 +9,7 @@
  *============================================================================*/
 
 // Set this to include a secrets file from an external (non public-html) file location
-require_once "../../../../external_includes/jjkgallery-Secrets.php";
+//require_once "../../../../external_includes/jjkgallery-Secrets.php";
 
 // The secrets file should include the following variables
 $MediaRootDir = "Media/";

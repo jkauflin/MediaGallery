@@ -22,7 +22,7 @@
  * 2020-07-11 JJK   Corrected bug in filePath logic
  * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-require_once 'settings.php';
+require_once '../../../jjkgallerySettings.php';
 define("LOG_FILE", "./createThumbnail.log");
 
 try {
