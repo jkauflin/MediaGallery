@@ -20,3 +20,4 @@ ssl/
 package-lock.json
 Media
 .editorconfig
+settings.php

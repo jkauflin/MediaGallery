@@ -16,8 +16,9 @@
  * 2020-03-14 JJK   Added a MediaRootDir include to define variables
  * 2020-03-21 JJK   Adjusted to get the paths right
  * 2020-03-22 JJK   Added ability to process a directory
+ * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-include 'MediaRootDir.php';
+require_once 'settings.php';
 define("LOG_FILE", "./createThumbnails.log");
 
 try {

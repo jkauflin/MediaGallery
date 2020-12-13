@@ -20,8 +20,9 @@
  * 2020-07-08 JJK   Split into nail and nails
  * 2020-07-09 JJK   Changed new folder permissions to 755
  * 2020-07-11 JJK   Corrected bug in filePath logic
+ * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-include 'MediaRootDir.php';
+require_once 'settings.php';
 define("LOG_FILE", "./createThumbnail.log");
 
 try {

@@ -9,8 +9,9 @@
  * 2019-01-12 JJK	Introduced a DirRec and turned the top level as a 
  * 					proper array (to solve the order problem)
  * 2020-03-14 JJK   Added a MediaRootDir include to define variables
+ * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-include 'MediaRootDir.php';
+require_once 'settings.php';
 
 class DirRec
 {

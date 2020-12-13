@@ -7,8 +7,9 @@
  * Modification History
  * 2014-11-12 JJK 	Initial version from old displayRandomImages function
  * 2020-03-14 JJK   Added a MediaRootDir include to define variables
+ * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-include 'MediaRootDir.php';
+require_once 'settings.php';
 
 $photoURL = '';
 try {

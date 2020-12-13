@@ -7,7 +7,7 @@
  * Modification History
  * 2020-03-14 JJK	Initial version
  *============================================================================*/
-include 'MediaRootDir.php';
+require_once 'settings.php';
 
 //error_log(date('[Y-m-d H:i] '). '$MediaRootDir = ' . $MediaRootDir . PHP_EOL, 3, 'php.log');
 

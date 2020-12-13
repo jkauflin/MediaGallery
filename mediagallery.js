@@ -5,7 +5,9 @@
  *              auido (MP3s), video (YouTube links), and docs (PDF)
  * Photo Gallery implementing blueimp - https://github.com/blueimp/Gallery
  *
- * Make sure MediaGalleryRootDir is set correctly in this file
+ * Depends on jjkgalleryRoot variable set to the root directory of the 
+ * jjkgallery package, such as:
+ *  var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
  * 
  *----------------------------------------------------------------------------
  * Modification History
@@ -38,6 +40,8 @@
  *                  on a media directory (if thumbnails are missing)
  * 2020-07-10 JJK   Modified to handle folder location under a sub-folder
  *                  rather than the web root directory
+ * 2020-12-12 JJK   Modified to work with bootstrap 4 and as a composer
+ *                  package
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -60,7 +64,6 @@ var mgallery = (function(){
     // default is Media/
     var MediaRootDir = "";
     var MediaRootFolderCnt = 0;
-    var MediaGalleryRootDir = "MediaGallery/";
     var MediaPageId = "MediaPage";
     var MediaHeaderId = "MediaHeader";
     var MediaMenuId = "MediaMenu";
@@ -84,7 +87,7 @@ var mgallery = (function(){
     var $blueimpGallery = $document.find("#"+BlueimpGalleryId);
 
     // Get the Media root dir from the PHP when the page loads
-    $.get(MediaGalleryRootDir + "getMediaRootDir.php", function (inMediaRootDir) {
+    $.get(jjkgalleryRoot + "getMediaRootDir.php", function (inMediaRootDir) {
         MediaRootDir = inMediaRootDir;
         console.log("MediaRootDir = " + MediaRootDir);
         MediaRootFolderCnt = (MediaRootDir.split('/').length - 1);
@@ -95,10 +98,10 @@ var mgallery = (function(){
     });
 
     // Get random photos (within /Media/images)
-    $.get(MediaGalleryRootDir + "getRandomImage.php", "rootDir=Home", function (photoURL) {
+    $.get(jjkgalleryRoot + "getRandomImage.php", "rootDir=Home", function (photoURL) {
         $("#HomePhoto").attr("src", photoURL);
     });
-    $.get(MediaGalleryRootDir + "getRandomImage.php", "rootDir=Current", function (photoURL) {
+    $.get(jjkgalleryRoot + "getRandomImage.php", "rootDir=Current", function (photoURL) {
         $("#CurrentPhoto").attr("src", photoURL);
     });
 
@@ -115,7 +118,7 @@ var mgallery = (function(){
     $document.on('shown.bs.tab', 'a[data-toggle="tab"]', function () {
         var $this = $(this);
         var dirName = $this.attr('data-dir');
-        //console.log("Click on tab, dirName = "+dirName);
+        console.log("Click on tab, dirName = "+dirName);
         // When the user clicks on a menu tab, build and display the thumbnails
         // if not coming from a mediaURL and has a defined media dirName
         if (!mediaURI && dirName != undefined) {
@@ -125,26 +128,30 @@ var mgallery = (function(){
         mediaURI = false;
     });	
 
-    // If there is a data-dir parameter, build and display the Photo page
+    // If there is a data-dir parameter, build and display the page
     var mediaURI = false;
     var dataDirName = 'media-dir';
+    // Look for parameters on the url
     var results = new RegExp('[\?&]' + dataDirName + '=([^&#]*)').exec(window.location.href);
     if (results != null) {
         mediaURI = true;
         var dirName = results[1] || 0;
-        //console.log("mediaURI dirName = " + dirName);
+        console.log("mediaURI dirName = " + dirName);
 
         var firstSlashPos = dirName.indexOf("/");
         var rootDir = dirName;
         if (firstSlashPos >= 0) {
             rootDir = dirName.substr(0, firstSlashPos);
         }
+        console.log("rootDir = "+rootDir);
 
         // Create the root menu and thumbnials for the passed media URI
         createMenu(rootDir);
         displayThumbnails(decodeURIComponent(dirName));
         // Display the correct media tab
-        $document.find('#navbar [data-dir="'+rootDir+'"]').tab('show');
+        //$document.find('#navbar [data-dir="'+rootDir+'"]').tab('show');
+        //$('.nav-tabs a[href="#home"]').tab('show')
+        $('.navbar-nav [data-dir="'+rootDir+'"]').tab('show')
     }
 
     // Add event listeners to the audio player
@@ -181,7 +188,7 @@ var mgallery = (function(){
         var $this = $(this);
         //console.log("Click on MediaConfig, data-dir = " + $this.attr('data-dir'));
         // Create thumbnails and smaller photos for images in a directory
-        $.get(MediaGalleryRootDir + "createThumbnails.php", "subPath=" + $this.attr('data-dir'), function (result) {
+        $.get(jjkgalleryRoot + "createThumbnails.php", "subPath=" + $this.attr('data-dir'), function (result) {
             //console.log("createThumbnails, result = " + result);
         }).fail(function (jqXHR, textStatus, exception) {
             console.log("get createThumbnails failed, textStatus = " + textStatus);
@@ -218,7 +225,7 @@ var mgallery = (function(){
         $menuHeader.text(dirName);
 
         //Pass in sort (0 for alpha photos and 1 for years) ???
-        $.getJSON(MediaGalleryRootDir+"getDirList.php", "dir=" + dirName, function (dirList) {
+        $.getJSON(jjkgalleryRoot+"getDirList.php", "dir=" + dirName, function (dirList) {
             var htmlStr = '';
             var panelContent = '';
             var panelCollapseIn = "";
@@ -284,8 +291,10 @@ var mgallery = (function(){
 
     // Create breadcrumbs, folder and entity links (for photos, audio, video, etc.)
     function displayThumbnails(dirName) {
-        //console.log("in displayThumbnails, dirName = " + dirName);
+        console.log("in displayThumbnails, dirName = " + dirName);
+
         setBreadcrumbs(dirName);
+        
         $folderContainer.empty();
         $thumbnailContainer.empty();
         $configContainer.empty();
@@ -299,14 +308,14 @@ var mgallery = (function(){
         } else {
             createMenu(dirName);
         }
-        //console.log("in displayThumbnails, rootDir = " + rootDir);
+        console.log("in displayThumbnails, rootDir = " + rootDir);
 
         // Assume the subpath starts at the 1st slash
         var subPath = "";
         if (firstSlashPos >= 0) {
             subPath = dirName.substr(firstSlashPos)
         }
-        //console.log("in displayThumbnails, subPath =" + subPath);
+        console.log("in displayThumbnails, subPath =" + subPath);
 
         var photosThumbsRoot = rootDir + "Thumbs";
         var photosSmallerRoot = rootDir + "Smaller";
@@ -323,7 +332,7 @@ var mgallery = (function(){
             .appendTo($configContainer);
 
         // Get a list of files in the data directory
-        $.getJSON(MediaGalleryRootDir +"getDirList.php", "dir=" + dirName, function (dirList) {
+        $.getJSON(jjkgalleryRoot +"getDirList.php", "dir=" + dirName, function (dirList) {
             // loop through the list and display thumbnails in a div
             var periodPos = 0;
             var fileExt = '';
@@ -372,7 +381,7 @@ var mgallery = (function(){
                     } else if (dir.filename == "youtube.txt") {
                         // Get the list of youtube ids
                         var cPos = 0;
-                        $.getJSON(MediaGalleryRootDir +"getVideoList.php", "file=" + filePath, function (videoList) {
+                        $.getJSON(jjkgalleryRoot +"getVideoList.php", "file=" + filePath, function (videoList) {
                             var videoId = '';
                             var videoName = '';
                             $.each(videoList, function (index, videoStr) {
@@ -501,16 +510,18 @@ var mgallery = (function(){
         var urlStr = '';
         $.each(dirArray, function (index, dirName2) {
             if (index == dirArray.length - 1) {
-                $('<li>').prop('class', 'active').html(dirName2).appendTo($breadcrumbContainer);
+                $('<li>').prop('class', 'breadcrumb-item active').html(dirName2).appendTo($breadcrumbContainer);
             } else {
                 if (index == 0) {
                     urlStr += dirName2;
                 } else {
                     urlStr += '/' + dirName2;
                 }
-                $('<li>').append($('<a>').prop('href', '#').html(dirName2).prop('class', MediaFolderLinkClass)
-                    .attr('data-dir', urlStr))
-                    .appendTo($breadcrumbContainer);
+                //console.log("in setBreadcrumbs, urlStr = "+urlStr);
+                $('<li>').prop('class', 'breadcrumb-item')
+                    .append($('<a>').prop('href', '#').html(dirName2).prop('class', MediaFolderLinkClass)
+                        .attr('data-dir', urlStr))
+                .appendTo($breadcrumbContainer);
             }
         });
     } // function setBreadcrumbs(dirName) {

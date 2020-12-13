@@ -5,10 +5,11 @@
  * DESCRIPTION: 
  *----------------------------------------------------------------------------
  * Modification History
- * 2014-04-04 JJK 	Initial version to return a list of video ids
- * 2020-03-14 JJK   Added a MediaRootDir include to define variables
+ * 2014-04-04 JJK  Initial version to return a list of video ids
+ * 2020-03-14 JJK  Added a MediaRootDir include to define variables
+ * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-include 'MediaRootDir.php';
+require_once 'settings.php';
 
 $lines = array();
 try {
