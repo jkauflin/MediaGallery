@@ -40,8 +40,9 @@
  *                  on a media directory (if thumbnails are missing)
  * 2020-07-10 JJK   Modified to handle folder location under a sub-folder
  *                  rather than the web root directory
- * 2020-12-12 JJK   Modified to work with bootstrap 4 and as a composer
- *                  package
+ * 2020-12-12 JJK   Modified to work with bootstrap 4 and as a PHP composer
+ *                  package in packagist
+ * 2020-12-18 JJK   Simplified by just using hard-coded locations
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -59,11 +60,10 @@ var mgallery = (function(){
     audioPlayer.style.outline = '0'
     audioPlayer.style.padding = '0 0 6px 0';
 
-    // Get these from configuration at some point
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
-    // default is Media/
-    var MediaRootDir = "";
-    var MediaRootFolderCnt = 0;
+    var MediaRootDir = "Media/";
+    var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
+
     var MediaPageId = "MediaPage";
     var MediaHeaderId = "MediaHeader";
     var MediaMenuId = "MediaMenu";
@@ -86,18 +86,7 @@ var mgallery = (function(){
     var $thumbnailContainer = $document.find("#"+MediaThumbnailsId);
     var $blueimpGallery = $document.find("#"+BlueimpGalleryId);
 
-    // Get the Media root dir from the PHP when the page loads
-    $.get(jjkgalleryRoot + "getMediaRootDir.php", function (inMediaRootDir) {
-        MediaRootDir = inMediaRootDir;
-        console.log("MediaRootDir = " + MediaRootDir);
-        MediaRootFolderCnt = (MediaRootDir.split('/').length - 1);
-        //console.log("MediaRootFolderCnt = " + MediaRootFolderCnt);
-    }).fail(function (jqXHR, textStatus, exception) {
-        console.log("getJSON getDirList failed, textStatus = " + textStatus);
-        console.log("Exception = " + exception);
-    });
-
-    // Get random photos (within /Media/images)
+    // Get random photos (within /Media/images) when the page loads
     $.get(jjkgalleryRoot + "getRandomImage.php", "rootDir=Home", function (photoURL) {
         $("#HomePhoto").attr("src", photoURL);
     });
@@ -118,7 +107,7 @@ var mgallery = (function(){
     $document.on('shown.bs.tab', 'a[data-toggle="tab"]', function () {
         var $this = $(this);
         var dirName = $this.attr('data-dir');
-        console.log("Click on tab, dirName = "+dirName);
+        //console.log("Click on tab, dirName = "+dirName);
         // When the user clicks on a menu tab, build and display the thumbnails
         // if not coming from a mediaURL and has a defined media dirName
         if (!mediaURI && dirName != undefined) {
@@ -136,21 +125,19 @@ var mgallery = (function(){
     if (results != null) {
         mediaURI = true;
         var dirName = results[1] || 0;
-        console.log("mediaURI dirName = " + dirName);
+        //console.log("mediaURI dirName = " + dirName);
 
         var firstSlashPos = dirName.indexOf("/");
         var rootDir = dirName;
         if (firstSlashPos >= 0) {
             rootDir = dirName.substr(0, firstSlashPos);
         }
-        console.log("rootDir = "+rootDir);
+        //console.log("rootDir = "+rootDir);
 
         // Create the root menu and thumbnials for the passed media URI
         createMenu(rootDir);
         displayThumbnails(decodeURIComponent(dirName));
         // Display the correct media tab
-        //$document.find('#navbar [data-dir="'+rootDir+'"]').tab('show');
-        //$('.nav-tabs a[href="#home"]').tab('show')
         $('.navbar-nav [data-dir="'+rootDir+'"]').tab('show')
     }
 
@@ -190,9 +177,6 @@ var mgallery = (function(){
         // Create thumbnails and smaller photos for images in a directory
         $.get(jjkgalleryRoot + "createThumbnails.php", "subPath=" + $this.attr('data-dir'), function (result) {
             //console.log("createThumbnails, result = " + result);
-        }).fail(function (jqXHR, textStatus, exception) {
-            console.log("get createThumbnails failed, textStatus = " + textStatus);
-            console.log("Exception = " + exception);
         });
     });	
 
@@ -291,8 +275,7 @@ var mgallery = (function(){
 
     // Create breadcrumbs, folder and entity links (for photos, audio, video, etc.)
     function displayThumbnails(dirName) {
-        console.log("in displayThumbnails, dirName = " + dirName);
-
+        //console.log("in displayThumbnails, dirName = " + dirName);
         setBreadcrumbs(dirName);
         
         $folderContainer.empty();
@@ -300,7 +283,6 @@ var mgallery = (function(){
         $configContainer.empty();
 
         // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
-//            MediaRootFolderCnt
         var firstSlashPos = dirName.indexOf("/");
         var rootDir = dirName;
         if (firstSlashPos >= 0) {
@@ -308,14 +290,14 @@ var mgallery = (function(){
         } else {
             createMenu(dirName);
         }
-        console.log("in displayThumbnails, rootDir = " + rootDir);
+        //console.log("in displayThumbnails, rootDir = " + rootDir);
 
         // Assume the subpath starts at the 1st slash
         var subPath = "";
         if (firstSlashPos >= 0) {
             subPath = dirName.substr(firstSlashPos)
         }
-        console.log("in displayThumbnails, subPath =" + subPath);
+        //console.log("in displayThumbnails, subPath =" + subPath);
 
         var photosThumbsRoot = rootDir + "Thumbs";
         var photosSmallerRoot = rootDir + "Smaller";
@@ -495,11 +477,7 @@ var mgallery = (function(){
                 $playlistTable.appendTo($thumbnailContainer);
             }
 
-        }).fail(function (jqXHR, textStatus, exception) {
-            console.log("getJSON getDirList failed, textStatus = " + textStatus);
-            console.log("Exception = " + exception);
         });
- 
 
     } // function displayThumbnails(dirName) {
 

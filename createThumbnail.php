@@ -22,8 +22,12 @@
  * 2020-07-11 JJK   Corrected bug in filePath logic
  * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-require_once '../../../jjkgallerySettings.php';
+//require_once '../../../jjkgallerySettings.php';
 define("LOG_FILE", "./createThumbnail.log");
+
+$phpRootReset = "../../../";
+$MediaRootDir = "Media/";
+
 
 try {
     $inFilePath = getParamVal("filePath");

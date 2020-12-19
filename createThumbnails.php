@@ -18,8 +18,12 @@
  * 2020-03-22 JJK   Added ability to process a directory
  * 2020-12-13 JJK  Modified to use a settings include 
  *============================================================================*/
-require_once '../../../jjkgallerySettings.php';
+//require_once '../../../jjkgallerySettings.php';
 define("LOG_FILE", "./createThumbnails.log");
+
+$phpRootReset = "../../../";
+$MediaRootDir = "Media/";
+
 
 try {
     $subPath = getParamVal("subPath");
