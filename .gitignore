@@ -21,3 +21,4 @@ package-lock.json
 Media
 .editorconfig
 settings.php
+composer.lock

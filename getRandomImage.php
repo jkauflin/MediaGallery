@@ -7,12 +7,10 @@
  * Modification History
  * 2014-11-12 JJK 	Initial version from old displayRandomImages function
  * 2020-03-14 JJK   Added a MediaRootDir include to define variables
- * 2020-12-13 JJK  Modified to use a settings include 
+ * 2020-12-19 JJK   Hard-coded media root and reset levels
  *============================================================================*/
-//require_once '../../../jjkgallerySettings.php';
-
-$phpRootReset = "../../../";
 $MediaRootDir = "Media/";
+$phpRootReset = "../../../";
 
 $photoURL = '';
 try {

@@ -1,6 +1,6 @@
 <?php
 /*==============================================================================
- * (C) Copyright 2014 John J Kauflin, All rights reserved. 
+ * (C) Copyright 2014,2020 John J Kauflin, All rights reserved. 
  *----------------------------------------------------------------------------
  * DESCRIPTION: 
  *----------------------------------------------------------------------------
@@ -9,12 +9,10 @@
  * 2019-01-12 JJK	Introduced a DirRec and turned the top level as a 
  * 					proper array (to solve the order problem)
  * 2020-03-14 JJK   Added a MediaRootDir include to define variables
- * 2020-12-13 JJK  Modified to use a settings include 
+ * 2020-12-19 JJK   Hard-coded media root and reset levels
  *============================================================================*/
-//require_once '../../../jjkgallerySettings.php';
-
-$phpRootReset = "../../../";
 $MediaRootDir = "Media/";
+$phpRootReset = "../../../";
 
 class DirRec
 {

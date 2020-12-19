@@ -5,10 +5,6 @@
  *              auido (MP3s), video (YouTube links), and docs (PDF)
  * Photo Gallery implementing blueimp - https://github.com/blueimp/Gallery
  *
- * Depends on jjkgalleryRoot variable set to the root directory of the 
- * jjkgallery package, such as:
- *  var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
- * 
  *----------------------------------------------------------------------------
  * Modification History
  * 2016-03-12 JJK   Got bootstrap gallery version of blueimp working
@@ -43,6 +39,7 @@
  * 2020-12-12 JJK   Modified to work with bootstrap 4 and as a PHP composer
  *                  package in packagist
  * 2020-12-18 JJK   Simplified by just using hard-coded locations
+ * 2020-12-19 JJK   Music
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -58,7 +55,7 @@ var mgallery = (function(){
     audioPlayer.setAttribute('id', 'AudioPlayer');
     audioPlayer.style.border = '0';
     audioPlayer.style.outline = '0'
-    audioPlayer.style.padding = '0 0 6px 0';
+    audioPlayer.style.padding = '0';
 
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
     var MediaRootDir = "Media/";
@@ -420,9 +417,9 @@ var mgallery = (function(){
                         //console.log("Folder container, dir.filename = " + dir.filename);
                         $('<a>').attr('data-dir', dirName + '/' + dir.filename)
                             .attr('href', "?media-dir=" + dirName + '/' + dir.filename)
-                            .prop('class', 'btn ' + MediaFolderLinkClass)
-                            .attr('style', 'margin-right: 10px; margin-bottom: 10px; border:1px solid; background-color: #d9d9d9; color: black;')
-                            .append($('<span>').prop('class', "glyphicon glyphicon-folder-open").html(' ' + dir.filename))
+                            .prop('class', 'btn mr-2 mb-2 ' + MediaFolderLinkClass)
+                            .attr('style', 'border:1px solid; background-color: #d9d9d9; color: black;')
+                            .append($('<i>').prop('class', "fa fa-folder-open").html(' ' + dir.filename))
                             .appendTo($folderContainer);
                     }
                 }
@@ -434,7 +431,7 @@ var mgallery = (function(){
 
                 // append the tbody to the table, adn the table to the thumbnail container
                 var $doclistTable = $('<table>')
-                    .prop('class', 'table table-condensed');
+                    .prop('class', 'table table-sm');
                 $doclistTbody.appendTo($doclistTable);
                 $doclistTable.appendTo($thumbnailContainer);
             }
@@ -442,37 +439,36 @@ var mgallery = (function(){
                 $thumbnailContainer.empty();
 
                 // if there were any MP3's, build a player with the playlist of MP3's
-                $('<h5>').attr('id', 'SongTitle')
-                    .attr('style','font-weight: bold')
+                $('<h5>').attr('id', 'SongTitle').prop('class', 'font-weight-bold')
                 .appendTo($thumbnailContainer);
                 document.getElementById("MediaThumbnails").appendChild(audioPlayer);
 
                 $('<table>')
                     .attr('id', 'AudioControlsContainer')
-                    .prop('class', 'table table-condensed')
+                    .prop('class', 'table table-sm')
                     .append(
                         $('<tr>').append(
                             $('<td>').append(
                                 $('<a>').attr('id', "AudioPrev")
-                                    .attr('href', "#").append(
-                                        $('<span>').prop('class', 'glyphicon glyphicon-step-backward')
-                                            .attr('style','font-size:1.6em; margin: 8px 5px 5px 0;')
+                                    .attr('href', "#")
+                                    .append(
+                                        $('<i>').prop('class', 'fa fa-step-backward fa-2x m-1')
                                     )
                             ).append(
                                 $('<a>').attr('id', "AudioNext")
-                                    .attr('href', "#").append(
-                                        $('<span>').prop('class', 'glyphicon glyphicon-step-forward')
-                                                .attr('style', 'font-size:1.6em; margin: 8px 5px 5px 0;')
+                                    .attr('href', "#")
+                                    .append(
+                                        $('<i>').prop('class', 'fa fa-step-forward fa-2x m-1')
                                     )
                             )
                         )
                     )
-                    .appendTo($thumbnailContainer);
+                .appendTo($thumbnailContainer);
 
-                // append the tbody to the table, adn the table to the thumbnail container
+                // append the tbody to the table, and the table to the thumbnail container
                 var $playlistTable = $('<table>')
                     .attr('id', 'PlaylistDisplay')
-                    .prop('class', 'table table-condensed');
+                    .prop('class', 'table table-sm');
                 $playlistTbody.appendTo($playlistTable);
                 $playlistTable.appendTo($thumbnailContainer);
             }

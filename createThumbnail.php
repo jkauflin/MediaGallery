@@ -21,12 +21,12 @@
  * 2020-07-09 JJK   Changed new folder permissions to 755
  * 2020-07-11 JJK   Corrected bug in filePath logic
  * 2020-12-13 JJK  Modified to use a settings include 
+ * 2020-12-13 JJK  Modified to use a settings include 
+ * 2020-12-19 JJK   Hard-coded media root and reset levels
  *============================================================================*/
-//require_once '../../../jjkgallerySettings.php';
-define("LOG_FILE", "./createThumbnail.log");
-
-$phpRootReset = "../../../";
 $MediaRootDir = "Media/";
+$phpRootReset = "../../../";
+define("LOG_FILE", "./createThumbnail.log");
 
 
 try {
