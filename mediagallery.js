@@ -39,7 +39,7 @@
  * 2020-12-12 JJK   Modified to work with bootstrap 4 and as a PHP composer
  *                  package in packagist
  * 2020-12-18 JJK   Simplified by just using hard-coded locations
- * 2020-12-19 JJK   Music
+ * 2020-12-19 JJK   Corrected some styling and got the music player working
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -226,7 +226,7 @@ var mgallery = (function(){
 
                 var panel = $('<div>').prop('class', 'panel panel-default').append(
                     $('<div>').prop('class', 'panel-heading').append(
-                        $('<h5>').prop('class', 'panel-title').attr('style','font-size:1em;')
+                        $('<h6>').prop('class', 'panel-title')
                         .append($('<a>').attr('data-toggle', 'collapse').attr('data-parent', '#accordion').attr('href', "#collapse"+(index + 1))
                             .text(dir.filename)
                         )
@@ -244,7 +244,7 @@ var mgallery = (function(){
                         if (index2 == 0) {
                             panelCollapseBodyList.append(
                                 $('<li>').append(
-                                    $('<a>').attr('data-dir', dirName + '/' + dir.filename).attr('href', "#").prop('class', MediaFolderLinkClass)
+                                    $('<a>').attr('data-dir', dirName + '/' + dir.filename).attr('href', "#").prop('class',MediaFolderLinkClass)
                                     .text(dir.filename))
                             );
                         }
@@ -378,7 +378,7 @@ var mgallery = (function(){
                                 if (videoId != '') {
                                     //console.log("videoName = "+videoName+", videoId = "+videoId);
                                     // Add a table with a title above the iframe
-                                    $('<table style="float: left">')
+                                    $('<table>').prop('class','float-left')
                                         .append("<tr><td>" + videoName + "</td></tr>")
                                         .append($('<tr>').append($('<td>')
                                             .append($('<iframe>')
@@ -417,9 +417,10 @@ var mgallery = (function(){
                         //console.log("Folder container, dir.filename = " + dir.filename);
                         $('<a>').attr('data-dir', dirName + '/' + dir.filename)
                             .attr('href', "?media-dir=" + dirName + '/' + dir.filename)
-                            .prop('class', 'btn mr-2 mb-2 ' + MediaFolderLinkClass)
+                            .prop('class', 'btn p-1 mr-2 mb-2 ' + MediaFolderLinkClass)
                             .attr('style', 'border:1px solid; background-color: #d9d9d9; color: black;')
-                            .append($('<i>').prop('class', "fa fa-folder-open").html(' ' + dir.filename))
+                            .html(dir.filename)
+                          //.append($('<i>').prop('class', "fa fa-folder-open").html(' ' + dir.filename))
                             .appendTo($folderContainer);
                     }
                 }
