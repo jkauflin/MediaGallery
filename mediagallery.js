@@ -97,7 +97,7 @@ var mgallery = (function(){
     // Respond to click on a media folder by dynamically building the thumbnail display
     $document.on("click", "."+MediaFolderLinkClass, function () {
         var $this = $(this);
-        console.log("Click on MediaFolderLink, data-dir = " + $this.attr('data-dir'));
+        //console.log("Click on MediaFolderLink, data-dir = " + $this.attr('data-dir'));
         displayThumbnails($this.attr('data-dir'));
     });	
 
@@ -110,6 +110,7 @@ var mgallery = (function(){
         // if not coming from a mediaURL and has a defined media dirName
         if (!mediaURI && dirName != undefined) {
             displayThumbnails(dirName);
+            createMenu(dirName);
         }
         // Reset after responding to the media URI show
         mediaURI = false;
@@ -131,6 +132,7 @@ var mgallery = (function(){
             rootDir = dirName.substr(0, firstSlashPos);
         }
         displayThumbnails(dirName);
+        createMenu(dirName);
         // Display the correct media tab and make it active
         $(".nav-link.active").removeClass("active");
         $('.navbar-nav a[data-dir="'+rootDir+'"]').tab('show')
@@ -198,11 +200,89 @@ var mgallery = (function(){
     //=================================================================================================================
     // Module methods
 
+    // Create a collapsible menu from a directory structure
+    function createMenu(dirName) {
+        //console.log("createMenu, dir=" + dirName);
+        $menuContainer.empty();
+
+        // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
+        var firstSlashPos = dirName.indexOf("/");
+        var rootDir = dirName;
+        if (firstSlashPos >= 0) {
+            rootDir = dirName.substr(0, firstSlashPos);
+        }
+
+        $menuHeader.text(rootDir);
+
+        //Pass in sort (0 for alpha photos and 1 for years) ???
+        $.getJSON(jjkgalleryRoot + "getDirList.php", "dir=" + rootDir, function (dirList) {
+            var itemId = '';
+            var panelItemHeader;
+            var panelItem;
+            var panelItemList;
+            var collapseState = '';
+            var collapseShow = '';
+            $.each(dirList, function (index, dir) {
+                // Skip any non-directory files at this level
+                if (dir.filename.indexOf(".") >= 0) {
+                    return true;
+                }
+                // Make the 1st panel item un-collapsed
+                if (index == 0) {
+                    collapseState = '';
+                    collapseShow = 'show';
+                } else {
+                    collapseState = 'collapsed';
+                    collapseShow = '';
+                }
+
+                // Create the top level panel item
+                itemId = "dir" + (index + 1);
+                panelItemHeader = $('<h6>').append(
+                    $('<a>').prop('class', collapseState).attr('data-toggle', 'collapse')
+                        .attr('href', '#' + itemId)
+                        .text(dir.filename)
+                );
+                panelItem = $('<div>').attr('id', itemId).attr('data-parent', '#' + MediaMenuId).prop('class', 'collapse ' + collapseShow);
+                panelItemList = $('<ul>');
+
+                // Add list entries
+                $.each(dir.contents, function (index2, filename) {
+                    //console.log("create menu, filename = "+filename);
+                    if (filename.indexOf(".") >= 0) {
+                        // If there are only files in the root folder and no other folders, 
+                        // add a link to the root folder (if the first entry is a file)
+                        if (index2 == 0) {
+                            panelItemList.append(
+                                $('<li>').append(
+                                    $('<a>').attr('data-dir', rootDir + '/' + dir.filename).attr('href', "#").prop('class', MediaFolderLinkClass)
+                                        .text(dir.filename))
+                            );
+                        }
+                        return true;
+                    }
+                    // Create a link for the media dir folder
+                    panelItemList.append($('<li>').append(
+                        $('<a>').attr('data-dir', rootDir + '/' + dir.filename + '/' + filename)
+                            .attr('href', "?media-dir=" + rootDir + '/' + dir.filename + '/' + filename)
+                            .prop('class', MediaFolderLinkClass)
+                            .text(filename))
+                    );
+                });
+
+                // Append the item list to the panel item, and the panel item to the menu
+                panelItem.append(panelItemList);
+                $menuContainer.append(panelItemHeader);
+                $menuContainer.append(panelItem);
+            });
+        });
+    } // function createMenu(dirName) {
+
+
     // Create side menu, breadcrumbs, folder and entity links (for photos, audio, video, etc.)
     function displayThumbnails(dirName) {
         //console.log("in displayThumbnails, dirName = " + dirName);
         setBreadcrumbs(dirName);
-        createMenu(dirName);
         
         $folderContainer.empty();
         $thumbnailContainer.empty();
@@ -404,87 +484,6 @@ var mgallery = (function(){
         });
 
     } // function displayThumbnails(dirName) {
-
-    // Create a collapsible menu from a directory structure
-    function createMenu(dirName) {
-        console.log("createMenu, dir=" + dirName);
-        $menuContainer.empty();
-
-        // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
-        var firstSlashPos = dirName.indexOf("/");
-        var rootDir = dirName;
-        if (firstSlashPos >= 0) {
-            rootDir = dirName.substr(0, firstSlashPos);
-        }
-
-        $menuHeader.text(rootDir);
-
-        // Get the sub-folder from the dir after the 1st slash, and use to set the open/shown panel item
-
-        //Pass in sort (0 for alpha photos and 1 for years) ???
-        //$.getJSON(jjkgalleryRoot+"getDirList.php", "dir=" + dirName, function (dirList) {
-        $.getJSON(jjkgalleryRoot+"getDirList.php", "dir=" + rootDir, function (dirList) {
-            var itemId = '';
-            var panelItemHeader;
-            var panelItem;
-            var panelItemList;
-            var collapseState = '';
-            var collapseShow = '';
-            $.each(dirList, function (index, dir) {
-                // Skip any non-directory files at this level
-                if (dir.filename.indexOf(".") >= 0) {
-                    return true;
-                }
-                // Make the 1st panel item un-collapsed
-                if (index == 0) {
-                    collapseState = '';
-                    collapseShow = 'show';
-                } else {
-                    collapseState = 'collapsed';
-                    collapseShow = '';
-                }
-
-                // Create the top level panel item
-                itemId = "dir" + (index + 1);
-                panelItemHeader = $('<h6>').append(
-                        $('<a>').prop('class',collapseState).attr('data-toggle', 'collapse')
-                        .attr('href', '#'+itemId)
-                        .text(dir.filename)
-                    );
-                panelItem = $('<div>').attr('id', itemId).attr('data-parent', '#'+MediaMenuId).prop('class', 'collapse ' + collapseShow);
-                panelItemList = $('<ul>');
-
-                // Add list entries
-                $.each(dir.contents, function (index2, filename) {
-                    //console.log("create menu, filename = "+filename);
-                    if (filename.indexOf(".") >= 0) {
-                        // If there are only files in the root folder and no other folders, 
-                        // add a link to the root folder (if the first entry is a file)
-                        if (index2 == 0) {
-                            panelItemList.append(
-                                $('<li>').append(
-                                    $('<a>').attr('data-dir', rootDir + '/' + dir.filename).attr('href', "#").prop('class',MediaFolderLinkClass)
-                                    .text(dir.filename))
-                            );
-                        }
-                        return true;
-                    }
-                    // Create a link for the media dir folder
-                    panelItemList.append($('<li>').append(
-                        $('<a>').attr('data-dir', rootDir + '/' + dir.filename + '/' + filename)
-                            .attr('href', "?media-dir=" + rootDir + '/' + dir.filename + '/' + filename)
-                            .prop('class', MediaFolderLinkClass)
-                                .text(filename))
-                    );
-                });
-
-                // Append the item list to the panel item, and the panel item to the menu
-                panelItem.append(panelItemList);
-                $menuContainer.append(panelItemHeader);
-                $menuContainer.append(panelItem);
-            });
-        });
-    } // function createMenu(dirName) {
 
     function setBreadcrumbs(dirName) {
         $breadcrumbContainer.empty();
