@@ -41,6 +41,9 @@
  * 2020-12-18 JJK   Simplified by just using hard-coded locations
  * 2020-12-19 JJK   Corrected some styling and got the music player working
  * 2020-12-26 JJK   Updated left menu for bootstrap 4 and link-tiles
+ * 2020-12-29 JJK   Removed media-dir sets in the buttons and links for now
+ *                  (it was confusing the display - I will added functions
+ *                  for copying the link address a different way)
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -105,10 +108,10 @@ var mgallery = (function(){
     $document.on('shown.bs.tab', 'a[data-toggle="tab"]', function () {
         var $this = $(this);
         var dirName = $this.attr('data-dir');
-        //console.log("Click on tab, dirName = "+dirName);
         // When the user clicks on a menu tab, build and display the thumbnails
         // if not coming from a mediaURL and has a defined media dirName
         if (!mediaURI && dirName != undefined) {
+            //console.log("*** Showing a tab (NOT a mediaURI), dirName = "+dirName);
             displayThumbnails(dirName);
             createMenu(dirName);
         }
@@ -124,7 +127,7 @@ var mgallery = (function(){
     if (results != null) {
         mediaURI = true;
         var dirName = results[1] || 0;
-        //console.log("mediaURI dirName = " + dirName);
+        //console.log(">>>>> mediaURI dirName = " + dirName);
         dirName = decodeURIComponent(dirName);
         var firstSlashPos = dirName.indexOf("/");
         var rootDir = dirName;
@@ -264,7 +267,8 @@ var mgallery = (function(){
                     // Create a link for the media dir folder
                     panelItemList.append($('<li>').append(
                         $('<a>').attr('data-dir', rootDir + '/' + dir.filename + '/' + filename)
-                            .attr('href', "?media-dir=" + rootDir + '/' + dir.filename + '/' + filename)
+                            //.attr('href', "?media-dir=" + rootDir + '/' + dir.filename + '/' + filename)
+                            .attr('href', "#")
                             .prop('class', MediaFolderLinkClass)
                             .text(filename))
                     );
@@ -281,7 +285,7 @@ var mgallery = (function(){
 
     // Create side menu, breadcrumbs, folder and entity links (for photos, audio, video, etc.)
     function displayThumbnails(dirName) {
-        //console.log("in displayThumbnails, dirName = " + dirName);
+        //console.log("$$$$$ displayThumbnails, dirName = " + dirName);
         setBreadcrumbs(dirName);
         
         $folderContainer.empty();
@@ -422,13 +426,35 @@ var mgallery = (function(){
                             // Ignore folders with images, Smaller, or Thumbs in the name
                     } else {
                         //console.log("Folder container, dir.filename = " + dir.filename);
+                        /*
                         $('<a>').attr('data-dir', dirName + '/' + dir.filename)
-                            .attr('href', "?media-dir=" + dirName + '/' + dir.filename)
+                            //.attr('href', "?media-dir=" + dirName + '/' + dir.filename)
+                            .attr('href', "#")
                             .prop('class', 'btn p-1 mr-2 mb-2 ' + MediaFolderLinkClass)
                             .attr('style', 'border:1px solid; background-color: #d9d9d9; color: black;')
                             .html(dir.filename)
                           //.append($('<i>').prop('class', "fa fa-folder-open").html(' ' + dir.filename))
                             .appendTo($folderContainer);
+
+                            <button type="button" role="button"></button>
+
+                            object.oncontextmenu = function(){myScript};
+
+                            *** new functions:
+                                copy link address
+                                download full (large) version
+                                see tags and description
+                                edit tags and description
+                        */
+                        $('<button>').attr('data-dir', dirName + '/' + dir.filename)
+                            .attr('type', "button")
+                            .attr('role', "button")
+                            .prop('class', 'btn p-1 mr-2 mb-2 ' + MediaFolderLinkClass)
+                            .attr('style', 'border:1px solid; background-color: #d9d9d9; color: black;')
+                            .html(dir.filename)
+                          //.append($('<i>').prop('class', "fa fa-folder-open").html(' ' + dir.filename))
+                            .appendTo($folderContainer);
+
                     }
                 }
             });
