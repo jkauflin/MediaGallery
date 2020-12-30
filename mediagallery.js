@@ -44,6 +44,8 @@
  * 2020-12-29 JJK   Removed media-dir sets in the buttons and links for now
  *                  (it was confusing the display - I will added functions
  *                  for copying the link address a different way)
+ * 2020-12-30 JJK   Added the media-page class to respond to nav-link and
+ *                  link-tile request (without having to use href)
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -75,6 +77,7 @@ var mgallery = (function(){
     var MediaThumbnailsId = "MediaThumbnails";
     var BlueimpGalleryId = "blueimp-gallery";
     var MediaFolderLinkClass = "MediaFolderLink";
+    var MediaPageLinkClass = "media-page";
 
     //=================================================================================================================
     // Variables cached from the DOM
@@ -100,32 +103,35 @@ var mgallery = (function(){
     // Respond to click on a media folder by dynamically building the thumbnail display
     $document.on("click", "."+MediaFolderLinkClass, function () {
         var $this = $(this);
-        //console.log("Click on MediaFolderLink, data-dir = " + $this.attr('data-dir'));
-        displayThumbnails($this.attr('data-dir'));
+        var dirName = $this.attr('data-dir');
+        //console.log("Click on MediaFolderLink, data-dir = " + dirName);
+        displayThumbnails(dirName);
     });	
 
-    // Respond to click on a bootstrap navigation tab
-    $document.on('shown.bs.tab', 'a[data-toggle="tab"]', function () {
+    $document.on("click", "."+MediaPageLinkClass, function () {
         var $this = $(this);
         var dirName = $this.attr('data-dir');
-        // When the user clicks on a menu tab, build and display the thumbnails
-        // if not coming from a mediaURL and has a defined media dirName
-        if (!mediaURI && dirName != undefined) {
-            //console.log("*** Showing a tab (NOT a mediaURI), dirName = "+dirName);
+        //console.log("Click on MediaPageLinkClass, data-dir = " + dirName);
+        if (dirName != undefined) {
+            var firstSlashPos = dirName.indexOf("/");
+            var rootDir = dirName;
+            if (firstSlashPos >= 0) {
+                rootDir = dirName.substr(0, firstSlashPos);
+            }
             displayThumbnails(dirName);
-            createMenu(dirName);
+            createMenu(rootDir);
+            // Display the correct media tab and make it active
+            $(".nav-link.active").removeClass("active");
+            $('.navbar-nav a[data-dir="'+rootDir+'"]').tab('show')
+            $('.navbar-nav a[data-dir="'+rootDir+'"]').addClass('active');
         }
-        // Reset after responding to the media URI show
-        mediaURI = false;
     });	
 
     // If there is a data-dir parameter, build and display the page
-    var mediaURI = false;
-    var dataDirName = 'media-dir';
+    var dataDirName = 'data-dir';
     // Look for parameters on the url
     var results = new RegExp('[\?&]' + dataDirName + '=([^&#]*)').exec(window.location.href);
     if (results != null) {
-        mediaURI = true;
         var dirName = results[1] || 0;
         //console.log(">>>>> mediaURI dirName = " + dirName);
         dirName = decodeURIComponent(dirName);
@@ -135,7 +141,7 @@ var mgallery = (function(){
             rootDir = dirName.substr(0, firstSlashPos);
         }
         displayThumbnails(dirName);
-        createMenu(dirName);
+        createMenu(rootDir);
         // Display the correct media tab and make it active
         $(".nav-link.active").removeClass("active");
         $('.navbar-nav a[data-dir="'+rootDir+'"]').tab('show')
@@ -427,20 +433,7 @@ var mgallery = (function(){
                     } else {
                         //console.log("Folder container, dir.filename = " + dir.filename);
                         /*
-                        $('<a>').attr('data-dir', dirName + '/' + dir.filename)
-                            //.attr('href', "?media-dir=" + dirName + '/' + dir.filename)
-                            .attr('href', "#")
-                            .prop('class', 'btn p-1 mr-2 mb-2 ' + MediaFolderLinkClass)
-                            .attr('style', 'border:1px solid; background-color: #d9d9d9; color: black;')
-                            .html(dir.filename)
-                          //.append($('<i>').prop('class', "fa fa-folder-open").html(' ' + dir.filename))
-                            .appendTo($folderContainer);
-
-                            <button type="button" role="button"></button>
-
-                            object.oncontextmenu = function(){myScript};
-
-                            *** new functions:
+                            *** new functions?:
                                 copy link address
                                 download full (large) version
                                 see tags and description
