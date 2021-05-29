@@ -46,6 +46,7 @@
  *                  for copying the link address a different way)
  * 2020-12-30 JJK   Added the media-page class to respond to nav-link and
  *                  link-tile request (without having to use href)
+ * 2021-05-27 JJK   Updated audio player display
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -59,9 +60,10 @@ var mgallery = (function(){
     var audioPlayer = document.createElement('audio');
     audioPlayer.setAttribute('controls', true);
     audioPlayer.setAttribute('id', 'AudioPlayer');
+    audioPlayer.setAttribute('style', 'transform: scale(1.1);filter: drop-shadow(2px 3px 3px #333); ');
     audioPlayer.style.border = '0';
     audioPlayer.style.outline = '0'
-    audioPlayer.style.padding = '0';
+    audioPlayer.style.padding = '13px 30px 0 10px';
 
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
     var MediaRootDir = "Media/";
@@ -415,7 +417,8 @@ var mgallery = (function(){
 
                         // add the table rows for the playlist
                         // build a table then append to the thumbnail container
-                        tr = $('<tr>').attr('class', "smalltext");
+                        tr = $('<tr>').attr('class', "small");
+                        //tr = $('<tr>').attr('class', "smalltext");
                         tr.append($('<td>').append($('<a>')
                             .attr('href', "#")
                             .attr('class', "playlistSong")
@@ -459,6 +462,7 @@ var mgallery = (function(){
                 // append the tbody to the table, adn the table to the thumbnail container
                 var $doclistTable = $('<table>')
                     .prop('class', 'table table-sm');
+                    //.prop('class', 'table table-striped table-sm');
                 $doclistTbody.appendTo($doclistTable);
                 $doclistTable.appendTo($thumbnailContainer);
             }
@@ -466,38 +470,38 @@ var mgallery = (function(){
                 $thumbnailContainer.empty();
 
                 // if there were any MP3's, build a player with the playlist of MP3's
-                $('<h5>').attr('id', 'SongTitle').prop('class', 'font-weight-bold')
-                .appendTo($thumbnailContainer);
+                $('<h5>').attr('id', 'SongTitle').prop('class', 'font-weight-bold').appendTo($thumbnailContainer);
+
                 document.getElementById("MediaThumbnails").appendChild(audioPlayer);
 
-                $('<table>')
-                    .attr('id', 'AudioControlsContainer')
-                    .prop('class', 'table table-sm')
-                    .append(
-                        $('<tr>').append(
-                            $('<td>').append(
-                                $('<a>').attr('id', "AudioPrev")
-                                    .attr('href', "#")
-                                    .append(
-                                        $('<i>').prop('class', 'fa fa-step-backward fa-2x m-1')
-                                    )
-                            ).append(
-                                $('<a>').attr('id', "AudioNext")
-                                    .attr('href', "#")
-                                    .append(
-                                        $('<i>').prop('class', 'fa fa-step-forward fa-2x m-1')
-                                    )
-                            )
-                        )
-                    )
-                .appendTo($thumbnailContainer);
+                $('<a>').attr('id', "AudioPrev").attr('href', "#").append($('<i>').prop('class', 'fa fa-step-backward fa-3x '))
+                    .appendTo($thumbnailContainer);
+                $('<a>').attr('id', "AudioNext").attr('href', "#").append($('<i>').prop('class', 'fa fa-step-forward fa-3x ml-3'))
+                    .appendTo($thumbnailContainer);
+
+                // *** build a row with 2 columns - table for playlist, and a column for associated photos
+                //$.getJSON(jjkgalleryRoot +"getDirList.php", "dir=" + dirName, function (dirList) {
+                // *** see if there are photos associated with the album, or the artist
+                /*
+                <div class="row">
+        			<div class="col-sm-5 col-md-3 d-none d-sm-block">
+        			</div>
+        			<div class="col-sm-7 col-md-9">
+                        <div id="MediaConfig" class="float-right m-2"></div>
+                        <div id="MediaThumbnails"></div>
+                    </div>
+        		</div><!-- row -->	                
+                */
 
                 // append the tbody to the table, and the table to the thumbnail container
                 var $playlistTable = $('<table>')
                     .attr('id', 'PlaylistDisplay')
-                    .prop('class', 'table table-sm');
+                    .prop('class', 'table table-sm mt-3');
                 $playlistTbody.appendTo($playlistTable);
                 $playlistTable.appendTo($thumbnailContainer);
+
+                // Load and start playing the 1st song in the list
+                loadSong(0);
             }
 
         });
