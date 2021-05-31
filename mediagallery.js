@@ -47,6 +47,8 @@
  * 2020-12-30 JJK   Added the media-page class to respond to nav-link and
  *                  link-tile request (without having to use href)
  * 2021-05-27 JJK   Updated audio player display
+ * 2021-05-31 JJK   Added 2 columns to audio playlist display and check to
+ *                  display an album image
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -63,7 +65,11 @@ var mgallery = (function(){
     audioPlayer.setAttribute('style', 'transform: scale(1.1);filter: drop-shadow(2px 3px 3px #333); ');
     audioPlayer.style.border = '0';
     audioPlayer.style.outline = '0'
-    audioPlayer.style.padding = '13px 30px 0 10px';
+    //audioPlayer.style.padding = '13px 30px 0 10px';
+    //audioPlayer.style.padding = '13px 30px 40px 10px';
+    //audioPlayer.style.margin = '0';
+    audioPlayer.style.padding = '13px 20px 0 0';
+    audioPlayer.style.margin = '0 15px 0 10px';
 
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
     var MediaRootDir = "Media/";
@@ -323,11 +329,13 @@ var mgallery = (function(){
         var MediaConfigId = "MediaConfig";
 
         // Add a Config button
+        /*
         $('<a>').attr('id', MediaConfigButton)
             .attr('data-dir', dirName)
             .attr('href', "#")
             .append($('<i>').prop('class', "fa fa-2x fa-gear"))
             .appendTo($configContainer);
+        */
 
         // Get a list of files in the data directory
         $.getJSON(jjkgalleryRoot +"getDirList.php", "dir=" + dirName, function (dirList) {
@@ -361,7 +369,10 @@ var mgallery = (function(){
                         // If not a directory, add the photo to the gallery link list
                         filePath = MediaRootDir + photosSmallerDir + '/' + dir.filename;
                         $('<a/>')
-                            .append($('<img>').prop('src', MediaRootDir + photosThumbDir + '/' + dir.filename).prop('class', "img-thumbnail"))
+                            .append($('<img>')
+                                .attr('onerror', "this.onerror=null; this.remove()")
+                                .prop('src', MediaRootDir + photosThumbDir + '/' + dir.filename)
+                                .prop('class', "img-thumbnail"))
                             .prop('href', filePath)
                             .prop('title', dir.filename)
                             .appendTo($thumbnailContainer);
@@ -468,7 +479,6 @@ var mgallery = (function(){
             }
             else if (audioFiles) {
                 $thumbnailContainer.empty();
-
                 // if there were any MP3's, build a player with the playlist of MP3's
                 $('<h5>').attr('id', 'SongTitle').prop('class', 'font-weight-bold').appendTo($thumbnailContainer);
 
@@ -479,26 +489,28 @@ var mgallery = (function(){
                 $('<a>').attr('id', "AudioNext").attr('href', "#").append($('<i>').prop('class', 'fa fa-step-forward fa-3x ml-3'))
                     .appendTo($thumbnailContainer);
 
-                // *** build a row with 2 columns - table for playlist, and a column for associated photos
-                //$.getJSON(jjkgalleryRoot +"getDirList.php", "dir=" + dirName, function (dirList) {
-                // *** see if there are photos associated with the album, or the artist
-                /*
-                <div class="row">
-        			<div class="col-sm-5 col-md-3 d-none d-sm-block">
-        			</div>
-        			<div class="col-sm-7 col-md-9">
-                        <div id="MediaConfig" class="float-right m-2"></div>
-                        <div id="MediaThumbnails"></div>
-                    </div>
-        		</div><!-- row -->	                
-                */
-
-                // append the tbody to the table, and the table to the thumbnail container
+                // append the tbody rows to the table, and the table to the Col1 (and thumbnail container)
                 var $playlistTable = $('<table>')
                     .attr('id', 'PlaylistDisplay')
                     .prop('class', 'table table-sm mt-3');
                 $playlistTbody.appendTo($playlistTable);
-                $playlistTable.appendTo($thumbnailContainer);
+                var $playlistRow = $('<div>')
+                    .attr('id', 'PlaylistRow')
+                    .prop('class', 'row');
+                $('<div>')
+                    //.prop('class', 'col-sm-7 col-md-6')
+                    .prop('class', 'col-sm-7')
+                    .append($playlistTable).appendTo($playlistRow);
+                $('<div>')
+                    //.prop('class', 'col-sm-5 col-md-6')
+                    .prop('class', 'col-sm-5')
+                    .append(
+                        $('<img>').prop('src', MediaRootDir + rootDir + subPath + '/' + 'album.jpg')
+                            .prop('class', "img-thumbnail m-1 p-2")
+                            .attr('onerror', "this.onerror=null; this.remove()")
+                    ).appendTo($playlistRow);
+
+                $playlistRow.appendTo($thumbnailContainer);
 
                 // Load and start playing the 1st song in the list
                 loadSong(0);
