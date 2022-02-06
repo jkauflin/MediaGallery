@@ -1,5 +1,5 @@
 /*==============================================================================
- * (C) Copyright 2016,2018,2020 John J Kauflin, All rights reserved.
+ * (C) Copyright 2016,2018,2020,2022 John J Kauflin, All rights reserved.
  *----------------------------------------------------------------------------
  * DESCRIPTION:  A general media gallery that can organize and display photos,
  *              auido (MP3s), video (YouTube links), and docs (PDF)
@@ -49,6 +49,9 @@
  * 2021-05-27 JJK   Updated audio player display
  * 2021-05-31 JJK   Added 2 columns to audio playlist display and check to
  *                  display an album image
+ * 2022-02-06 JJK   Modified the YouTube video display to strip off the
+ *                  first part of the standard share link if it finds it
+ *                  (just use the identifier part with the embed link)
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -397,12 +400,19 @@ var mgallery = (function(){
                                 videoId = '';
                                 videoName = '';
 
+                                // Check if there title label to display
                                 cPos = videoStr.indexOf(":");
                                 if (cPos >= 0) {
                                     videoName = videoStr.substr(0, cPos);
                                     videoId = videoStr.substr(cPos + 2);
                                 } else {
                                     videoId = videoStr;
+                                }
+
+                                // Check if the url is the standard YouTube share link (if so, strip off the 1st part)
+                                cPos = videoId.indexOf("https://youtu.be/");
+                                if (cPos >= 0) {
+                                    videoId = videoId.substr(cPos + 17);
                                 }
 
                                 if (videoId != '') {
@@ -412,8 +422,9 @@ var mgallery = (function(){
                                         .append("<tr><td>" + videoName + "</td></tr>")
                                         .append($('<tr>').append($('<td>')
                                             .append($('<iframe>')
-                                                .prop('src', "//www.youtube.com/embed/" + videoId)
-                                                .attr('allowfullscreen', true)))
+                                            // Use the embed link for iframe (without https so it can be run locally for testing)
+                                            .prop('src', "//www.youtube.com/embed/" + videoId)
+                                            .attr('allowfullscreen', true)))
                                         ).appendTo($thumbnailContainer);
                                 }
                             });
