@@ -52,6 +52,8 @@
  * 2022-02-06 JJK   Modified the YouTube video display to strip off the
  *                  first part of the standard share link if it finds it
  *                  (just use the identifier part with the embed link)
+ * 2022-05-20 JJK   Update for bootstrap 5
+ * 2022-05-21 JJK   Re-did menu panel with new bootstrap 5 accordian
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -194,7 +196,7 @@ var mgallery = (function(){
         //console.log("Click on MediaConfig, data-dir = " + $this.attr('data-dir'));
         // Create thumbnails and smaller photos for images in a directory
         $.get(jjkgalleryRoot + "createThumbnails.php", "subPath=" + $this.attr('data-dir'), function (result) {
-            console.log("createThumbnails, result = " + result);
+            //console.log("createThumbnails, result = " + result);
         });
     });	
 
@@ -236,10 +238,13 @@ var mgallery = (function(){
 
         //Pass in sort (0 for alpha photos and 1 for years) ???
         $.getJSON(jjkgalleryRoot + "getDirList.php", "dir=" + rootDir, function (dirList) {
+            var accordionId = "accordianContainer";
+            var accordianContainer = $('<div>').attr('id', accordionId).prop('class', 'accordion accordion-flush');
             var itemId = '';
-            var panelItemHeader;
-            var panelItem;
-            var panelItemList;
+            var accordianItemHeader;
+            var accordianItem;
+            var accordianItemBody;
+            var accordianItemList;
             var collapseState = '';
             var collapseShow = '';
             $.each(dirList, function (index, dir) {
@@ -256,15 +261,26 @@ var mgallery = (function(){
                     collapseShow = '';
                 }
 
-                // Create the top level panel item
+                // Create the top level item
+                accordianItem = $('<div>').prop('class', 'accordion-item');
+
+                // Create the header for the item
                 itemId = "dir" + (index + 1);
-                panelItemHeader = $('<h6>').append(
-                    $('<a>').prop('class', collapseState).attr('data-toggle', 'collapse')
-                        .attr('href', '#' + itemId)
+                accordianItemHeader = $('<h6>').prop('class', 'accordion-header').append(
+                    $('<button>')
+                        .prop('class', 'm-1 p-1 accordion-button '+collapseState)
+                        .attr('type', "button")
+                        .attr('role', "button")
+                        .attr('role', "button")
+                        .attr('data-bs-toggle', 'collapse')
+                        .attr('data-bs-target', '#' + itemId)
                         .text(dir.filename)
                 );
-                panelItem = $('<div>').attr('id', itemId).attr('data-parent', '#' + MediaMenuId).prop('class', 'collapse ' + collapseShow);
-                panelItemList = $('<ul>');
+
+                // Create the body for the item
+                accordianItemBody = $('<div>').attr('id', itemId).attr('data-bs-parent', '#' + accordionId).prop('class', 'accordion-collapse collapse ' + collapseShow);
+                // Create the list for the body
+                accordianItemList = $('<ul>');
 
                 // Add list entries
                 $.each(dir.contents, function (index2, filename) {
@@ -273,7 +289,7 @@ var mgallery = (function(){
                         // If there are only files in the root folder and no other folders, 
                         // add a link to the root folder (if the first entry is a file)
                         if (index2 == 0) {
-                            panelItemList.append(
+                            accordianItemList.append(
                                 $('<li>').append(
                                     $('<a>').attr('data-dir', rootDir + '/' + dir.filename).attr('href', "#").prop('class', MediaFolderLinkClass)
                                         .text(dir.filename))
@@ -282,7 +298,7 @@ var mgallery = (function(){
                         return true;
                     }
                     // Create a link for the media dir folder
-                    panelItemList.append($('<li>').append(
+                    accordianItemList.append($('<li>').append(
                         $('<a>').attr('data-dir', rootDir + '/' + dir.filename + '/' + filename)
                             //.attr('href', "?media-dir=" + rootDir + '/' + dir.filename + '/' + filename)
                             .attr('href', "#")
@@ -292,9 +308,15 @@ var mgallery = (function(){
                 });
 
                 // Append the item list to the panel item, and the panel item to the menu
-                panelItem.append(panelItemList);
-                $menuContainer.append(panelItemHeader);
-                $menuContainer.append(panelItem);
+                accordianItemBody.append(accordianItemList);
+
+                accordianItem.append(accordianItemHeader);
+                accordianItem.append(accordianItemBody);
+
+                accordianContainer.append(accordianItem);
+
+                // Put the created accordian into the Menu DIV on the parent page
+                $menuContainer.append(accordianContainer);
             });
         });
     } // function createMenu(dirName) {
@@ -418,7 +440,7 @@ var mgallery = (function(){
                                 if (videoId != '') {
                                     //console.log("videoName = "+videoName+", videoId = "+videoId);
                                     // Add a table with a title above the iframe
-                                    $('<table>').prop('class','float-left')
+                                    $('<table>').prop('class','float-start')
                                         .append("<tr><td>" + videoName + "</td></tr>")
                                         .append($('<tr>').append($('<td>')
                                             .append($('<iframe>')
@@ -467,7 +489,8 @@ var mgallery = (function(){
                         $('<button>').attr('data-dir', dirName + '/' + dir.filename)
                             .attr('type', "button")
                             .attr('role', "button")
-                            .prop('class', 'btn p-1 mr-2 mb-2 ' + MediaFolderLinkClass)
+                            //.prop('class', 'btn p-1 mr-2 mb-2 ' + MediaFolderLinkClass)
+                            .prop('class', 'btn p-1 m-1 ' + MediaFolderLinkClass)
                             .attr('style', 'border:1px solid; background-color: #d9d9d9; color: black;')
                             .html(dir.filename)
                           //.append($('<i>').prop('class', "fa fa-folder-open").html(' ' + dir.filename))
@@ -497,7 +520,7 @@ var mgallery = (function(){
 
                 $('<a>').attr('id', "AudioPrev").attr('href', "#").append($('<i>').prop('class', 'fa fa-step-backward fa-3x '))
                     .appendTo($thumbnailContainer);
-                $('<a>').attr('id', "AudioNext").attr('href', "#").append($('<i>').prop('class', 'fa fa-step-forward fa-3x ml-3'))
+                $('<a>').attr('id', "AudioNext").attr('href', "#").append($('<i>').prop('class', 'fa fa-step-forward fa-3x mx-2'))
                     .appendTo($thumbnailContainer);
 
                 // append the tbody rows to the table, and the table to the Col1 (and thumbnail container)

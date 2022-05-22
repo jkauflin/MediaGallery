@@ -9,6 +9,8 @@ Music is straight HTML5 Audio
 
 Video uses a text file with YouTube links
 
+Currently dependent on JQuery, Bootstrap 5, and Font Awesome icons being included in the main page
+
 ## Getting Started
 1. Put your files in a Media folder on the web root with the following folders:
 ```
