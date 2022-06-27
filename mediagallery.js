@@ -61,6 +61,7 @@
  *                  of errors at the end of Fetch (would rather have the
  *                  more specific information from uncaught error)
  * 2022-06-25 JJK   Finished testing vanilla javascript version
+ * 2022-06-27 JJK   Missed a JQuery reference in loadSong (fixed)
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -107,7 +108,6 @@ var mgallery = (function(){
 
     //=================================================================================================================
     // Variables cached from the DOM
-    //var $document = $(document);
     var menuHeader = document.getElementById(MediaHeaderId);
     var menuContainer = document.getElementById(MediaMenuId);
     //var configContainer = document.getElementById(MediaConfigId);
@@ -469,7 +469,6 @@ var mgallery = (function(){
             let doclistTbody = document.createElement("tbody");
             var playlistTbody = document.createElement("tbody");
 
-            //$.each(dirList, function (index, dir) {
             for (let index in dirList) {
                 let dir = dirList[index]
     
@@ -724,8 +723,9 @@ var mgallery = (function(){
     // Audio 
     function loadSong(index) {
         plIndex = index;
-        $("#SongTitle").text(playlist[plIndex].title);
-        $("#AudioPlayer").attr("src", playlist[plIndex].url);
+        let songTitle = document.getElementById("SongTitle");
+        songTitle.textContent = playlist[plIndex].title;
+        audioPlayer.setAttribute('src', playlist[plIndex].url);
         audioPlayer.pause();
         audioPlayer.load();//suspends and restores all audio element
         //console.log("loaded audio, plIndex = "+plIndex);
