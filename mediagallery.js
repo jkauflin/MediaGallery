@@ -1,5 +1,5 @@
 /*==============================================================================
- * (C) Copyright 2016,2022 John J Kauflin, All rights reserved.
+ * (C) Copyright 2016,2022,2023 John J Kauflin, All rights reserved.
  *----------------------------------------------------------------------------
  * DESCRIPTION:  A general media gallery that can organize and display photos,
  *              auido (MP3s), video (YouTube links), and docs (PDF)
@@ -62,12 +62,34 @@
  *                  more specific information from uncaught error)
  * 2022-06-25 JJK   Finished testing vanilla javascript version
  * 2022-06-27 JJK   Missed a JQuery reference in loadSong (fixed)
+ * 2022-12-31 JJK   Implemented a Search function for the photos display by
+ *                  using a Media Gallery database, and updating the 
+ *                  getDirList to return the sub-path
+ * 2023-01-16 JJK   Implementing new database based menu and file query
+ * 2023-01-21 JJK   Implement Menu create based on Media Type
+ * 2023-01-23 JJK   Implement Filtered query logic
+ * 2023-01-27 JJK   Updated nav tab show logic for link-tile-tab (no longer
+ *                  have to set the active manually, just .show() on tab)
+ * 2023-01-29 JJK   Getting Videos display working
+ * 2023-02-03 JJK   Getting Music display working
+ * 2023-02-20 JJK   Re-implemented menu folder concept for start date beyond
+ *                  current max. 300 set
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
 
     //=================================================================================================================
     // Private variables for the Module
+
+    //console.log("window.location.pathname = "+window.location.pathname);
+    var tempPath = window.location.pathname;
+    var strPos = tempPath.indexOf('/vendor/jkauflin');
+    const webRootPath = tempPath.substring(0,strPos);
+
+    // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
+    var MediaRootDir = webRootPath + "/Media/";
+    var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
+
     // Playlist array and index (for audio player/playlist diaplay)
     var playlist = [];
     var plIndex = 0;
@@ -84,20 +106,24 @@ var mgallery = (function(){
     audioPlayer.style.padding = '13px 20px 0 0';
     audioPlayer.style.margin = '0 15px 0 10px';
 
-    // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
-    var MediaRootDir = "Media/";
-    var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
-
     var MediaPageId = "MediaPage";
     var MediaHeaderId = "MediaHeader";
     var MediaMenuId = "MediaMenu";
+    var MediaOffcanvasMenuId = "MediaOffcanvasMenu";
     var MediaConfigId = "MediaConfig";
     //var MediaConfigButton = "MediaConfigButton";
     var MediaBreadcrumbsId = "MediaBreadcrumbs";
+    
     var MediaFoldersId = "MediaFolders";
     var MediaThumbnailsId = "MediaThumbnails";
+
+    var MediaFilterInputValues = "MediaFilterInputValues";
+    var MediaFilterButton = "MediaFilterButton";
+
+    //var MediaSearchModalId = "MediaSearchModal";
     //var BlueimpGalleryId = "blueimp-gallery";
 
+    var MediaMenuRequestClass = "MediaMenuRequest";
     var MediaFolderLinkClass = "MediaFolderLink";
     var MediaPageLinkClass = "media-page";
     var imgThumbnailClass = "img-thumbnail";
@@ -109,18 +135,27 @@ var mgallery = (function(){
     //=================================================================================================================
     // Variables cached from the DOM
     var menuHeader = document.getElementById(MediaHeaderId);
-    var menuContainer = document.getElementById(MediaMenuId);
     //var configContainer = document.getElementById(MediaConfigId);
     var breadcrumbContainer = document.getElementById(MediaBreadcrumbsId);
     var folderContainer = document.getElementById(MediaFoldersId);
     var thumbnailContainer = document.getElementById(MediaThumbnailsId);
+    var mediaFilterButton = document.getElementById(MediaFilterButton);
 
+    // Non-Printable characters - Hex 01 to 1F, and 7F
+    var nonPrintableCharsStr = "[\x01-\x1F\x7F]";
+    // "g" global so it does more than 1 substitution
+    var regexNonPrintableChars = new RegExp(nonPrintableCharsStr, "g");
+    function cleanStr(inStr) {
+        return inStr.replace(regexNonPrintableChars, '');
+    }
+
+    //var mediaSearchModal = new bootstrap.Modal(document.getElementById(MediaSearchModalId))
 
     // Get random photos (within /Media/images) when the page loads
     var homePhotoElement = document.getElementById("HomePhoto");
     if (typeof homePhotoElement !== "undefined" && homePhotoElement !== null) {
         let url = jjkgalleryRoot + "getRandomImage.php";
-        let urlParamStr = "?rootDir=Home";
+        let urlParamStr = "?mediaTypeDesc=Home";
         fetch(url+urlParamStr)
         .then(response => response.text())
         .then(photoURL => {
@@ -130,7 +165,7 @@ var mgallery = (function(){
     var currentPhotoElement = document.getElementById("CurrentPhoto");
     if (typeof currentPhotoElement !== "undefined" && currentPhotoElement !== null) {
         let url = jjkgalleryRoot + "getRandomImage.php";
-        let urlParamStr = "?rootDir=Current";
+        let urlParamStr = "?mediaTypeDesc=Current";
         fetch(url+urlParamStr)
         .then(response => response.text())
         .then(photoURL => {
@@ -141,33 +176,46 @@ var mgallery = (function(){
     //=================================================================================================================
     // Bind events
 
-    // Respond to click on a media link tab by dynamically building the thumbnail display
-    document.querySelectorAll("."+MediaPageLinkClass).forEach(el => el.addEventListener("click", function (event) {
-        let dirName = event.target.getAttribute('data-dir')
-        if (typeof dirName !== "undefined" && dirName !== null) {
-            var firstSlashPos = dirName.indexOf("/");
-            var rootDir = dirName;
-            if (firstSlashPos >= 0) {
-                rootDir = dirName.substring(0, firstSlashPos);
-            }
-            displayThumbnails(dirName);
-            createMenu(rootDir);
+    window.addEventListener('contextmenu', (event) => {
+        // *** If I ever want to implement some right-click logic ***
+        //console.log(event.button)
+        // Prevent other actions for the right-click
+        //event.preventDefault()
+    })
 
-            // Display the correct media tab and make it active
-            let targetTabElement = document.querySelector(`.navbar-nav a[data-dir="${rootDir}"]`);
-            // Find the target tab element
-            if (typeof targetTabElement !== "undefined" && targetTabElement !== null) {
-                // Remove the active class on the current active tab
-                document.querySelector(".nav-link.active").classList.remove("active");
-                // Show the target tab page
-                new bootstrap.Tab(targetTabElement).show();
-                // Make the target tab page active (by adding the class)
-                targetTabElement.classList.add("active");
-            }
+    // Respond to click on a link-tile-tab button by finding the correct TAB and switching/showing it
+    // (These link-tile-tab's also have media-page for creating the Menu, but these handled from the listener on that class)
+    document.querySelectorAll(".link-tile-tab").forEach(el => el.addEventListener("click", function (event) {
+        let mediaType = event.target.getAttribute('data-MediaType')
+        //console.log("link-tile-tab click, mediaType = " + mediaType)
+
+        // Get the target tab based on the the MediaType specified, and use the new Bootstrap v5.2 js for showing the tab
+        // the link ('a') with the correct MediaType, within the ".navbar-nav" list
+        let targetTabElement = document.querySelector(`.navbar-nav a[data-MediaType="${mediaType}"]`);
+
+        // If the target tab element is found, create a Tab object and call the show() method
+        if (typeof targetTabElement !== "undefined" && targetTabElement !== null) {
+            bootstrap.Tab.getOrCreateInstance(targetTabElement).show();
         }
     }));
 
+    // Respond to click on a media-page link tab by dynamically building the menu display
+    document.querySelectorAll("."+MediaPageLinkClass).forEach(el => el.addEventListener("click", function (event) {
+        let mediaType = event.target.getAttribute('data-MediaType')
+        //console.log("media-page click, mediaType = " + mediaType)
+
+        if (typeof mediaType !== "undefined" && mediaType !== null) {
+            empty(thumbnailContainer);
+            createMenu(mediaType);
+            
+            // >>>>>>>>>>>>> Clear the thumbnails display (or do some kind of initial display???????????????)
+            // >>>> Show a "title" or menu to see what's been selected???
+        }
+    }));
+
+
     // If there is a data-dir parameter, build and display the page
+    /*
     var dataDirName = 'data-dir';
     // Look for parameters on the url
     var results = new RegExp('[\?&]' + dataDirName + '=([^&#]*)').exec(window.location.href);
@@ -176,14 +224,16 @@ var mgallery = (function(){
         //console.log(">>>>> mediaURI dirName = " + dirName);
         dirName = decodeURIComponent(dirName);
         var firstSlashPos = dirName.indexOf("/");
-        var rootDir = dirName;
+        var mediaTypeDesc = dirName;
         if (firstSlashPos >= 0) {
-            rootDir = dirName.substring(0, firstSlashPos);
+            mediaTypeDesc = dirName.substring(0, firstSlashPos);
         }
-        displayThumbnails(dirName);
-        createMenu(rootDir);
+        //displayThumbnails(dirName);
+                    empty(thumbnailContainer);
 
-        let targetTabElement = document.querySelector(`.navbar-nav a[data-dir="${rootDir}"]`);
+        //createMenu(mediaTypeDesc);
+
+        let targetTabElement = document.querySelector(`.navbar-nav a[data-dir="${mediaTypeDesc}"]`);
         // Find the target tab element
         if (typeof targetTabElement !== "undefined" && targetTabElement !== null) {
             // Remove the active class on the current active tab
@@ -194,18 +244,28 @@ var mgallery = (function(){
             targetTabElement.classList.add("active");
         }
     }
+    */
 
     //-------------------------------------------------------------------------------------------------------
     // Listen for clicks in the document body
-    //-------------------------------------------------------------------------------------------------------
     // *** Have to listen to Body instead of individual containers (because there are more than 1)
-    //folderContainer.addEventListener("click", function (event) {
-    //breadcrumbContainer
+    //-------------------------------------------------------------------------------------------------------
     document.body.addEventListener("click", function (event) {
         // Check for specific classes
         if (event.target && event.target.classList.contains(MediaFolderLinkClass)) {
             // If click on a media folder, create the thumbnails display for that folder
-            displayThumbnails(event.target.getAttribute('data-dir'));
+            let paramData = {MediaFilterMediaType:event.target.getAttribute('data-MediaType'),
+                             MediaFilterCategory:event.target.getAttribute('data-category'),
+                             MediaFilterStartDate:event.target.getAttribute('data-startDate')}
+	        displayThumbnails(paramData);
+        } else if (event.target && event.target.classList.contains(MediaMenuRequestClass)) {
+            // If click on a menu item, create the thumbnails display for that item
+            let paramData = {MediaFilterMediaType:event.target.getAttribute('data-MediaType'),
+                             MediaFilterCategory:event.target.getAttribute('data-category'),
+                             MediaFilterMenuItem:event.target.getAttribute('data-menuItem'),
+                             MediaFilterStartDate:event.target.getAttribute('data-startDate')}
+	        displayThumbnails(paramData);
+            bootstrap.Offcanvas.getOrCreateInstance('#MediaMenuCanvas').hide();
         }
     });
 
@@ -230,6 +290,37 @@ var mgallery = (function(){
             }
         }
     });
+
+    //-------------------------------------------------------------------------------------------------------
+    // Respond to Search requests
+    //-------------------------------------------------------------------------------------------------------
+    /*
+    document.getElementById("MediaInputValues").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            // Cancel the default action, if needed
+            event.preventDefault();
+            // Trigger the button element with a click
+            document.getElementById("MediaSearchInputButton").click();
+        }
+    });
+
+    document.getElementById("MediaSearchInputButton").addEventListener("click", function () {
+        const mediaSearchStr = document.getElementById('MediaSearchStr');
+        console.log("MediaSearchInputButton, value = "+mediaSearchStr.value)
+        mediaSearchModal.hide()
+        displayThumbnails("Photos", mediaSearchStr.value);
+    });
+    */
+
+    mediaFilterButton.addEventListener("click", function () {
+        let paramData = {MediaFilterMediaType:document.getElementById("MediaFilterMediaType").value,
+            MediaFilterCategory:document.getElementById("MediaFilterCategory").value,
+            MediaFilterStartDate:document.getElementById("MediaFilterStartDate").value,
+            MediaFilterSearchStr:document.getElementById("MediaFilterSearchStr").value}
+
+        displayThumbnails(paramData);
+    });
+
 
     // Add event listeners to the audio player
     // When a song ends, see if there is a next one to play
@@ -284,31 +375,38 @@ var mgallery = (function(){
         }
     }
 
+    //------------------------------------------------------------------------------------------------------------
     // Create a collapsible menu from a directory structure
-    function createMenu(dirName) {
+    //------------------------------------------------------------------------------------------------------------
+    function createMenu(mediaType) {
         //console.log("createMenu, dir=" + dirName)
-        empty(menuContainer)
+        //console.log("createMenu, mediaType = " + mediaType)
 
-        // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
-        var firstSlashPos = dirName.indexOf("/")
-        var rootDir = dirName
-        if (firstSlashPos >= 0) {
-            rootDir = dirName.substr(0, firstSlashPos)
-        }
+        // *** Check if the Menu is already created for the mediaType (somehow), and don't create if existing
+        // hidden input value???
 
-        menuHeader.textContent = rootDir
-
-        let url = jjkgalleryRoot + "getDirList.php"
-        let urlParamStr = `?dir=${rootDir}`
+        let url = jjkgalleryRoot + "getMenuList.php"
+        let urlParamStr = `?mediaType=${mediaType}`
         fetch(url+urlParamStr)
         .then(response => response.json())
-        .then(dirList => {
-            var accordionId = "accordianContainer";
+        .then(menuList => {
+            buildMenuElements(mediaType,MediaMenuId,menuList)
+            buildMenuElements(mediaType,MediaOffcanvasMenuId,menuList)
+        });
+
+    } // function createMenu(mediaType) {
+
+    function buildMenuElements(mediaType,menuId,menuList) {
+        var menuContainer = document.getElementById(menuId);
+        if (menuContainer != null) {
+            empty(menuContainer)
+
+            var accordionId = menuId + "AccordianContainer";
             let accordianContainer = document.createElement("div")
             accordianContainer.id = accordionId
             accordianContainer.classList.add('accordion')
             accordianContainer.classList.add('accordion-flush')
-
+    
             let itemId = ''
             let accordianItemHeader
             let accordianItem
@@ -316,14 +414,13 @@ var mgallery = (function(){
             let accordianItemList
             let collapseState = false
             let collapseShow = false
-
-            for (let index in dirList) {
-                let dir = dirList[index]
-                //console.log(">>> dir = "+dir.filename);
-                // Skip any non-directory files at this level
-                if (dir.filename.indexOf(".") >= 0) {
-                    continue;
-                }
+    
+            for (let index in menuList) {
+                let menu = menuList[index]
+    
+                //menuHeader.textContent = mediaTypeDesc
+                menuHeader.textContent = menu.mediaTypeDesc
+    
                 // Make the 1st panel item un-collapsed
                 if (index == 0) {
                     collapseState = false
@@ -332,18 +429,18 @@ var mgallery = (function(){
                     collapseState = true
                     collapseShow = false
                 }
-
+    
                 // Create the top level item
                 accordianItem = document.createElement("div")
                 accordianItem.classList.add('accordion-item')
     
                 // Create the header for the item
-                itemId = "dir" + (index + 1)
+                itemId = menuId + (index + 1)
                 accordianItemHeader = document.createElement("h6")
                 accordianItemHeader.classList.add('accordion-header')
-
+    
                 let button = document.createElement("button");
-                button.classList.add('m-1','p-1','accordion-button')
+                button.classList.add('m-1','p-1','accordion-button','shadow-none')
                 if (collapseState) {
                     button.classList.add('collapsed')
                 }
@@ -351,9 +448,9 @@ var mgallery = (function(){
                 button.setAttribute('role',"button")
                 button.setAttribute('data-bs-toggle','collapse')
                 button.setAttribute('data-bs-target','#' + itemId)
-                button.textContent = dir.filename
+                button.textContent = menu.category;
                 accordianItemHeader.appendChild(button)
-
+    
                 // Create the body for the item
                 accordianItemBody = document.createElement("div")
                 accordianItemBody.id = itemId
@@ -362,218 +459,204 @@ var mgallery = (function(){
                     accordianItemBody.classList.add('show')
                 }
                 accordianItemBody.setAttribute('data-bs-parent', '#' + accordionId)
-
+    
                 // Create the list for the body
                 accordianItemList = document.createElement("ul")
-
+    
                 // Add list entries
-                for (let index2 in dir.contents) {
-                    let filename = dir.contents[index2]
-                    //console.log("create menu, dir.contents filename = "+filename);
-                    if (filename.indexOf(".") < 0) {
-                        // Create a link for the media dir folder
-                        let a = document.createElement("a")
-                        a.setAttribute('href', "#")
-                        a.setAttribute('data-dir', rootDir + '/' + dir.filename + '/' + filename)
-                        a.classList.add(MediaFolderLinkClass)
-                        a.textContent = filename
-                        let li = document.createElement('li')
-                        li.appendChild(a)
-                        accordianItemList.appendChild(li)
-                    }
-                }
-
-                // If there are only files in the root folder and no other folders add a link to the root folder
-                if (accordianItemList.childElementCount == 0) {
+                for (let index2 in menu.subMenuList) {
+                    //console.log("create menu, fileRec.contents filename = "+filename);
+                    // Create a link for the media dir folder
                     let a = document.createElement("a")
                     a.setAttribute('href', "#")
-                    a.setAttribute('data-dir', rootDir + '/' + dir.filename)
-                    a.classList.add(MediaFolderLinkClass)
-                    a.textContent = dir.filename
-                    let li = document.createElement("li")
+                    a.setAttribute('data-MediaType', mediaType)
+                    a.setAttribute('data-category', menu.category)
+                    a.setAttribute('data-menuItem', menu.subMenuList[index2].menuItem)
+                    a.setAttribute('data-startDate', menu.subMenuList[index2].startDate)
+                    a.setAttribute('data-endDate', menu.subMenuList[index2].endDate)
+                    a.setAttribute('data-searchStr', menu.subMenuList[index2].searchStr)
+                    a.classList.add(MediaMenuRequestClass)
+                    a.textContent = menu.subMenuList[index2].menuItem
+                    let li = document.createElement('li')
                     li.appendChild(a)
-                    accordianItemList.appendChild(li);
+                    accordianItemList.appendChild(li)
                 }
-
+    
                 // Append the item list to the panel item, and the panel item to the menu
                 accordianItemBody.appendChild(accordianItemList);
                 accordianItem.appendChild(accordianItemHeader);
                 accordianItem.appendChild(accordianItemBody);
                 accordianContainer.appendChild(accordianItem);
             }    
-
+    
             // Put the created accordian into the Menu DIV on the parent page
             menuContainer.appendChild(accordianContainer);
-        });
+        }
+    }
 
-    } // function createMenu(dirName) {
 
-
+    //------------------------------------------------------------------------------------------------------------
     // Create side menu, breadcrumbs, folder and entity links (for photos, audio, video, etc.)
-    function displayThumbnails(dirName) {
-        //console.log("$$$$$ displayThumbnails, dirName = " + dirName);
-        setBreadcrumbs(dirName);
+    //------------------------------------------------------------------------------------------------------------
+    //function displayThumbnails(mediaType,category,menuItem,startDate,endDate,searchStr) {
+    function displayThumbnails(paramData) {
+        //console.log("$$$ displayThumbnails, category: " + category + ", menuItem: "+menuItem);
         
+        //setBreadcrumbs(dirName);
+
         empty(folderContainer);
         empty(thumbnailContainer);
         //empty(configContainer);
 
         // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
-        var firstSlashPos = dirName.indexOf("/");
-        var rootDir = dirName;
-        if (firstSlashPos >= 0) {
-            rootDir = dirName.substr(0, firstSlashPos);
+        var mediaTypeDesc = "Photos";
+        if (paramData.MediaFilterMediaType == 3) {
+            mediaTypeDesc = "Music";
         }
-        //console.log("in displayThumbnails, rootDir = " + rootDir);
+        /*
+        var firstSlashPos = dirName.indexOf("/");
+        if (firstSlashPos >= 0) {
+            mediaTypeDesc = dirName.substr(0, firstSlashPos);
+        }
+        */
+        //console.log("in displayThumbnails, mediaTypeDesc = " + mediaTypeDesc);
 
         // Assume the subpath starts at the 1st slash
+        /*
         var subPath = "";
         if (firstSlashPos >= 0) {
             subPath = dirName.substr(firstSlashPos)
         }
-        //console.log("in displayThumbnails, subPath =" + subPath);
-
-        var photosThumbsRoot = rootDir + "Thumbs";
-        var photosSmallerRoot = rootDir + "Smaller";
-        var photosThumbDir = photosThumbsRoot + subPath;
-        var photosSmallerDir = photosSmallerRoot + subPath;
-
-        var MediaConfigId = "MediaConfig";
-
-        // Add a Config button
-        /*
-        $('<a>').attr('id', MediaConfigButton)
-            .attr('data-dir', dirName)
-            .attr('href', "#")
-            .append($('<i>').prop('class', "fa fa-2x fa-gear"))
-            .appendTo(configContainer);
         */
 
-        // Get a list of files in the data directory
-        let url = jjkgalleryRoot + "getDirList.php"
-        let urlParamStr = `?dir=${dirName}`
-        //$.getJSON(jjkgalleryRoot +"getDirList.php", "dir=" + dirName, function (dirList) {
-        fetch(url+urlParamStr)
+        var photosThumbsRoot = mediaTypeDesc + "Thumbs";
+        var photosSmallerRoot = mediaTypeDesc + "Smaller";
+        //var photosThumbDir = photosThumbsRoot + subPath;
+        //var photosSmallerDir = photosSmallerRoot + subPath;
+
+        // Get a list of files from the media gallery database based on query parameters
+        let url = jjkgalleryRoot + "getFileList.php"
+        fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(paramData)
+        })
         .then(response => response.json())
-        .then(dirList => {
+        .then(listInfo => {
             // loop through the list and display thumbnails in a div
-            let periodPos = 0;
-            let fileExt = '';
-            let filePath = '';
-            let fileNameNoExt = '';
+            let periodPos = 0
+            let fileExt = ''
+            let filePath = ''
+            let fileSubPath = ''
+            let fileNameNoExt = ''
 
-            let docFiles = false;
-            let audioFiles = false;
-            playlist.length = 0;
-            plIndex = -1;
-            let doclistTbody = document.createElement("tbody");
-            var playlistTbody = document.createElement("tbody");
+            let docFiles = false
+            let audioFiles = false
+            playlist.length = 0
+            plIndex = -1
+            let doclistTbody = document.createElement("tbody")
+            var playlistTbody = document.createElement("tbody")
 
-            for (let index in dirList) {
-                let dir = dirList[index]
+            //----------------------------------------------------------------------------------------------------
+            // If there is a menu list, create folder tiles with the start date
+            //----------------------------------------------------------------------------------------------------
+            if (paramData.MediaFilterMediaType == 1 && listInfo.menuList != null) {
+                let fileList = listInfo.menuList
+                for (let index in listInfo.menuList) {
+                    let menuRec = listInfo.menuList[index]
+
+                    let button = document.createElement("button")
     
-                filePath = MediaRootDir + dirName + '/' + dir.filename;
-                //console.log("file = " + dir.filename + ", filePath = " + filePath);
+                    button.setAttribute('type',"button")
+                    button.setAttribute('role',"button")
+                    
+                    // ok, no double here because it's a good list of filenames, and only trying to apply 1 slash
+                    //button.setAttribute('data-dir', dirName + '/' + fileRec.filename)
+                    button.setAttribute('data-MediaType', paramData.MediaFilterMediaType)
+                    button.setAttribute('data-category', paramData.MediaFilterCategory)
+                    button.setAttribute('data-startDate', menuRec.startDate)
 
-                // Check if it is an image file or a directory (if period found assume file, if not directory)
-                periodPos = dir.filename.indexOf(".");
-                if (periodPos >= 0) {
-                    fileExt = dir.filename.substr(periodPos + 1).toUpperCase();
-                    fileNameNoExt = dir.filename.substr(0,periodPos);
+                    button.classList.add('btn','p-1','m-1',MediaFolderLinkClass)
 
-                    // Process if the file is an image
-                    if (fileExt == "JPG" || fileExt == "JPEG" || fileExt == "GIF") {
-                        // If not a directory, add the photo to the gallery link list
-                        filePath = MediaRootDir + photosSmallerDir + '/' + dir.filename;
+                    button.style.border = '1px solid'
+                    button.style.backgroundColor = '#d9d9d9'
+                    button.style.color = 'black'
+                    button.textContent = menuRec.menuName
+                    //button.appendTo(folderContainer)
+                    folderContainer.appendChild(button)
+                }    
+            }
+
+            //----------------------------------------------------------------------------------------------------
+            // Display thumbnails for files in file list
+            //----------------------------------------------------------------------------------------------------
+            let fileList = listInfo.fileList
+            for (let index in fileList) {
+                let fileRec = fileList[index]
+
+                if (paramData.MediaFilterMediaType == 2) {
+                    // VIDEOS
+
+                    // Add a table with a title above the iframe
+                    let table = document.createElement("table");
+                    table.classList.add('float-start')
+                    let td = document.createElement("td");
+                    td.textContent = fileRec.dirSubPath
+                    let tr = document.createElement("tr");
+                    tr.appendChild(td)
+                    table.appendChild(tr)
+
+                    let iframe = document.createElement("iframe")
+                    // Use the embed link for iframe (without https so it can be run locally for testing)
+                    iframe.setAttribute('src', "//www.youtube.com/embed/" + fileRec.filename);
+                    iframe.setAttribute('allowfullscreen', true);
+                    td = document.createElement("td");
+                    td.appendChild(iframe);
+                    tr = document.createElement("tr");
+                    tr.appendChild(td)
+                    table.appendChild(tr)
+                    thumbnailContainer.appendChild(table)
+
+                } else {
+                    if (fileRec.dirSubPath != '') {
+                        filePath = MediaRootDir + mediaTypeDesc + '/' + fileRec.dirSubPath + '/' + fileRec.filename;
+                        fileSubPath = '/' + fileRec.dirSubPath + '/' + fileRec.filename;
+                    }
+                    else 
+                    {
+                        filePath = MediaRootDir + mediaTypeDesc + '/' + fileRec.filename;
+                        fileSubPath = '/' + fileRec.filename;
+                    }
+                    //console.log("filePath = " + filePath + ", fileSubPath = " + fileSubPath);
+    
+                    periodPos = fileRec.filename.indexOf(".");
+                    if (periodPos >= 0) {
+                        fileExt = fileRec.filename.substr(periodPos + 1).toUpperCase();
+                        fileNameNoExt = fileRec.filename.substr(0,periodPos);
+                    }
+
+                    if (paramData.MediaFilterMediaType == 1) {
+                        // PHOTOS
+
+                        // Add the photo to the gallery link list
                         let img = document.createElement("img");
                         img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                        img.setAttribute('src', MediaRootDir + photosThumbDir + '/' + dir.filename)
+                        img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
                         img.classList.add(imgThumbnailClass)
                         let a = document.createElement("a")
-                        a.href = filePath
-                        a.title = dir.filename
+                        a.href = MediaRootDir + photosSmallerRoot + fileSubPath
+                        a.title = fileRec.filename
                         a.appendChild(img);
                         thumbnailContainer.appendChild(a)
-                        /*
-                            *** new functions?:
-                                right-click copy link address
-                                download full (large) version
-                                see tags and description
-                                edit tags and description
-                        */
+                        // *** new functions?: right-click copy link address download full (large) version
+                    } else if (paramData.MediaFilterMediaType == 3) {
+                        // MUSIC
 
-                    } else if (fileExt == "PDF") {
-                        //console.log("PDF file = " + dir.filename + ", filePath = " + filePath);
-                        docFiles = true;
-                        let a = document.createElement("a")
-                        a.href = filePath
-                        a.setAttribute('target',"_blank");
-                        a.textContent = fileNameNoExt
-                        let td = document.createElement("td");
-                        td.appendChild(a);
-                        let tr = document.createElement("tr");
-                        tr.classList.add("smalltext")
-                        tr.appendChild(td);
-                        doclistTbody.appendChild(tr)
-                    } else if (dir.filename == "youtube.txt") {
-                        // Get the list of youtube ids
-                        let cPos = 0;
-                        let url = jjkgalleryRoot + "getVideoList.php"
-                        let urlParamStr = `?file=${filePath}`
-                        fetch(url+urlParamStr)
-                        .then(response => response.json())
-                        .then(videoList => {
-                            let videoId = '';
-                            let videoName = '';
-                            //$.each(videoList, function (index, videoStr) {
-                            for (let index in videoList) {
-                                let videoStr = videoList[index]
-                                videoId = '';
-                                videoName = '';
-                                // Check if there title label to display
-                                cPos = videoStr.indexOf(":");
-                                if (cPos >= 0) {
-                                    videoName = videoStr.substring(0, cPos);
-                                    videoId = videoStr.substring(cPos + 2);
-                                } else {
-                                    videoId = videoStr;
-                                }
-                                // Check if the url is the standard YouTube share link (if so, strip off the 1st part)
-                                cPos = videoId.indexOf("https://youtu.be/");
-                                if (cPos >= 0) {
-                                    videoId = videoId.substring(0, cPos + 17);
-                                }
-                                if (videoId != '') {
-                                    //console.log("videoName = "+videoName+", videoId = "+videoId);
-                                    // Add a table with a title above the iframe
-                                    let table = document.createElement("table");
-                                    table.classList.add('float-start')
-                                    let td = document.createElement("td");
-                                    td.textContent = videoName
-                                    let tr = document.createElement("tr");
-                                    tr.appendChild(td)
-                                    table.appendChild(tr)
-
-                                    let iframe = document.createElement("iframe")
-                                    // Use the embed link for iframe (without https so it can be run locally for testing)
-                                    iframe.setAttribute('src', "//www.youtube.com/embed/" + videoId);
-                                    iframe.setAttribute('allowfullscreen', true);
-                                    td = document.createElement("td");
-                                    td.appendChild(iframe);
-                                    tr = document.createElement("tr");
-                                    tr.appendChild(td)
-                                    table.appendChild(tr)
-                                    thumbnailContainer.appendChild(table)
-                                }
-                            }
-                        });
-
-                    } else if (fileExt == "MP3") {
                         //console.log("fileNameNoExt = " + fileNameNoExt+", url = "+filePath);
                         audioFiles = true;
                         plIndex++;
                         playlist.push({ "title": fileNameNoExt, "url": filePath });
-
+    
                         // add the table rows for the playlist
                         // build a table then append to the thumbnail container
                         let a = document.createElement("a")
@@ -586,27 +669,21 @@ var mgallery = (function(){
                         let tr = document.createElement("tr");
                         tr.appendChild(td);
                         playlistTbody.appendChild(tr)
-                    }
-
-                } else {
-                    // If a directory, add the name with the folder icon
-                    if (dir.filename.indexOf("images") >= 0 || dir.filename.indexOf("Smaller") >= 0 ||
-                        dir.filename.indexOf("Thumbs") >= 0) {
-                            // Ignore folders with images, Smaller, or Thumbs in the name
-                    } else {
-                        //console.log("Folder container, dir.filename = " + dir.filename);
-                        let button = document.createElement("button")
-
-                        button.setAttribute('type',"button")
-                        button.setAttribute('role',"button")
-                        button.setAttribute('data-dir', dirName + '/' + dir.filename)
-                        button.classList.add('btn','p-1','m-1',MediaFolderLinkClass)
-                        button.style.border = '1px solid'
-                        button.style.backgroundColor = '#d9d9d9'
-                        button.style.color = 'black'
-                        button.textContent = dir.filename
-                        //button.appendTo(folderContainer)
-                        folderContainer.appendChild(button)
+                    } else if (paramData.MediaFilterMediaType == 4) {
+                        // DOCS
+                        
+                        //console.log("PDF file = " + fileRec.filename + ", filePath = " + filePath);
+                        docFiles = true;
+                        let a = document.createElement("a")
+                        a.href = filePath
+                        a.setAttribute('target',"_blank");
+                        a.textContent = fileNameNoExt
+                        let td = document.createElement("td");
+                        td.appendChild(a);
+                        let tr = document.createElement("tr");
+                        tr.classList.add("smalltext")
+                        tr.appendChild(td);
+                        doclistTbody.appendChild(tr)
                     }
                 }
 
@@ -662,15 +739,17 @@ var mgallery = (function(){
                 col1.classList.add('col-sm-7')
                 col1.appendChild(playlistTable)
                 row.appendChild(col1)
-
+ 
+                /* >>> re-do how it finds the related MP3 photos for the 2nd column (check new search functions)
                 let col2 = document.createElement("div");
                 col2.classList.add('col-sm-5')
                 let img = document.createElement("img");
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                img.setAttribute('src', MediaRootDir + rootDir + subPath + '/' + 'album.jpg')
+                img.setAttribute('src', MediaRootDir + mediaTypeDesc + subPath + '/' + 'album.jpg')
                 img.classList.add(`${imgThumbnailClass}`,'m-1','p-2')
                 col2.appendChild(img)
                 row.appendChild(col2)
+                */
 
                 thumbnailContainer.appendChild(row)
 
@@ -682,7 +761,7 @@ var mgallery = (function(){
 
     } // function displayThumbnails(dirName) {
 
-
+    /*
     function setBreadcrumbs(dirName) {
         empty(breadcrumbContainer)
         var dirArray = dirName.split("/")
@@ -718,7 +797,7 @@ var mgallery = (function(){
             }
         }
     } // function setBreadcrumbs(dirName) {
-
+    */
 
     // Audio 
     function loadSong(index) {
@@ -744,6 +823,7 @@ var mgallery = (function(){
             loadSong(--plIndex);
         }
     }
+
 
     // This is what is exposed from this Module
     return {

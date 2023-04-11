@@ -105,7 +105,7 @@ try {
     echo $returnValue;
 }
 catch (Exception $e) {
-    error_log(date('[m-d H:i:s] '). 'Exception: ' .  $e->message . PHP_EOL, 3, LOG_FILE);
+    error_log(date('[m-d H:i:s] '). 'Exception: ' .  $e . PHP_EOL, 3, LOG_FILE);
 	echo 'Error';
 }
 
