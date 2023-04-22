@@ -74,6 +74,9 @@
  * 2023-02-03 JJK   Getting Music display working
  * 2023-02-20 JJK   Re-implemented menu folder concept for start date beyond
  *                  current max. 300 set
+ * 2023-04-14 JJK   Implement Admin concepts into main UI (based on users
+ *                  authenticated with jjklogin)
+ * 2023-04-20 JJK   Implement Prev and Next for thumbnail display
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -82,12 +85,14 @@ var mgallery = (function(){
     // Private variables for the Module
 
     //console.log("window.location.pathname = "+window.location.pathname);
-    var tempPath = window.location.pathname;
-    var strPos = tempPath.indexOf('/vendor/jkauflin');
-    const webRootPath = tempPath.substring(0,strPos);
+    //var tempPath = window.location.pathname;
+    //var strPos = tempPath.indexOf('/vendor/jkauflin');
+    //const webRootPath = tempPath.substring(0,strPos);
+    //const webRootPath = tempPath;
 
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
-    var MediaRootDir = webRootPath + "/Media/";
+    //var MediaRootDir = webRootPath + "/Media/";
+    var MediaRootDir = window.location.pathname + "Media/";
     var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
 
     // Playlist array and index (for audio player/playlist diaplay)
@@ -106,25 +111,12 @@ var mgallery = (function(){
     audioPlayer.style.padding = '13px 20px 0 0';
     audioPlayer.style.margin = '0 15px 0 10px';
 
-    var MediaPageId = "MediaPage";
-    var MediaHeaderId = "MediaHeader";
-    var MediaMenuId = "MediaMenu";
     var MediaOffcanvasMenuId = "MediaOffcanvasMenu";
     var MediaConfigId = "MediaConfig";
     //var MediaConfigButton = "MediaConfigButton";
-    var MediaBreadcrumbsId = "MediaBreadcrumbs";
     
-    var MediaFoldersId = "MediaFolders";
-    var MediaThumbnailsId = "MediaThumbnails";
-
-    var MediaFilterInputValues = "MediaFilterInputValues";
-    var MediaFilterButton = "MediaFilterButton";
-
-    //var MediaSearchModalId = "MediaSearchModal";
-    //var BlueimpGalleryId = "blueimp-gallery";
-
     var MediaMenuRequestClass = "MediaMenuRequest";
-    var MediaFolderLinkClass = "MediaFolderLink";
+    var MediaFilterRequestClass = "MediaFilterRequest";
     var MediaPageLinkClass = "media-page";
     var imgThumbnailClass = "img-thumbnail";
     var playlistSongClass = "playlistSong";
@@ -134,12 +126,20 @@ var mgallery = (function(){
 
     //=================================================================================================================
     // Variables cached from the DOM
-    var menuHeader = document.getElementById(MediaHeaderId);
+    var menuHeader = document.getElementById("MediaHeader");
+
     //var configContainer = document.getElementById(MediaConfigId);
-    var breadcrumbContainer = document.getElementById(MediaBreadcrumbsId);
-    var folderContainer = document.getElementById(MediaFoldersId);
-    var thumbnailContainer = document.getElementById(MediaThumbnailsId);
-    var mediaFilterButton = document.getElementById(MediaFilterButton);
+    var filterRequestsContainer = document.getElementById("MediaFilterRequests");
+    var thumbnailContainer = document.getElementById("MediaThumbnails");
+    //var mediaFilterButton = document.getElementById(MediaFilterButton);
+
+    var mediaFilterMediaType = document.getElementById("MediaFilterMediaType")
+    var mediaFilterCategory = document.getElementById("MediaFilterCategory")
+    var mediaFilterStartDate = document.getElementById("MediaFilterStartDate")
+    var mediaFilterSearchStr = document.getElementById("MediaFilterSearchStr")
+    var mediaFilterMenuItem = document.getElementById("MediaFilterMenuItem")
+    var mediaFilterAlbumTag = document.getElementById("MediaFilterAlbumTag")
+
 
     // Non-Printable characters - Hex 01 to 1F, and 7F
     var nonPrintableCharsStr = "[\x01-\x1F\x7F]";
@@ -148,8 +148,6 @@ var mgallery = (function(){
     function cleanStr(inStr) {
         return inStr.replace(regexNonPrintableChars, '');
     }
-
-    //var mediaSearchModal = new bootstrap.Modal(document.getElementById(MediaSearchModalId))
 
     // Get random photos (within /Media/images) when the page loads
     var homePhotoElement = document.getElementById("HomePhoto");
@@ -207,9 +205,8 @@ var mgallery = (function(){
         if (typeof mediaType !== "undefined" && mediaType !== null) {
             empty(thumbnailContainer);
             createMenu(mediaType);
-            
-            // >>>>>>>>>>>>> Clear the thumbnails display (or do some kind of initial display???????????????)
-            // >>>> Show a "title" or menu to see what's been selected???
+            // Query based on default Category and Start Date
+            executeFilter()
         }
     }));
 
@@ -251,20 +248,52 @@ var mgallery = (function(){
     // *** Have to listen to Body instead of individual containers (because there are more than 1)
     //-------------------------------------------------------------------------------------------------------
     document.body.addEventListener("click", function (event) {
+
         // Check for specific classes
-        if (event.target && event.target.classList.contains(MediaFolderLinkClass)) {
+        if (event.target && event.target.classList.contains(MediaFilterRequestClass)) {
             // If click on a media folder, create the thumbnails display for that folder
+
+            mediaFilterMediaType = event.target.getAttribute('data-MediaType')
+            //let tempStartDate = event.target.getAttribute('data-startDate')
+            //tempStartDate = tempStartDate.substring(0,10)
+
+            // >>>> setting Category drop-down from value
+            //let categoryValue = event.target.getAttribute('data-category')
+
             let paramData = {MediaFilterMediaType:event.target.getAttribute('data-MediaType'),
                              MediaFilterCategory:event.target.getAttribute('data-category'),
                              MediaFilterStartDate:event.target.getAttribute('data-startDate')}
 	        displayThumbnails(paramData);
+
         } else if (event.target && event.target.classList.contains(MediaMenuRequestClass)) {
             // If click on a menu item, create the thumbnails display for that item
+
+            // >>>> setting Category drop-down from value
+            /*
+            mediaFilterCategory.options[index].selected = true;
+            
+            for (let i = (mediaFilterCategory.options.length-1); i > -1; i--) {
+                mediaFilterCategory.options.remove(i)
+            }
+            for (let index in listInfo.categoryList) {
+                mediaCategorySelect.options[mediaCategorySelect.options.length] = new Option(listInfo.categoryList[index], listInfo.categoryList[index])
+            }
+
+            mediaFilterSearchStr.value
+            */
+
+            //console.log(">>> Filter mediaFilterMenuItem = "+mediaFilterMenuItem.value)
+            //console.log(">>> Filter mediaFilterAlbumTag = "+mediaFilterAlbumTag.value)
+    
+            //let tempStartDate = event.target.getAttribute('data-startDate')
+            //tempStartDate = tempStartDate.substring(0,10)
+
             let paramData = {MediaFilterMediaType:event.target.getAttribute('data-MediaType'),
                              MediaFilterCategory:event.target.getAttribute('data-category'),
                              MediaFilterMenuItem:event.target.getAttribute('data-menuItem'),
                              MediaFilterStartDate:event.target.getAttribute('data-startDate')}
 	        displayThumbnails(paramData);
+
             bootstrap.Offcanvas.getOrCreateInstance('#MediaMenuCanvas').hide();
         }
     });
@@ -292,34 +321,42 @@ var mgallery = (function(){
     });
 
     //-------------------------------------------------------------------------------------------------------
-    // Respond to Search requests
+    // Respond to Filter requests
     //-------------------------------------------------------------------------------------------------------
     /*
-    document.getElementById("MediaInputValues").addEventListener("keypress", function(event) {
+    mediaFilterButton.addEventListener("click", function () {
+        executeFilter()
+    });
+    */
+    mediaFilterCategory.addEventListener("change", function () {
+        executeFilter()
+    });
+    mediaFilterStartDate.addEventListener("change", function () {
+        executeFilter()
+    });
+    mediaFilterSearchStr.addEventListener("keypress", function(event) {
+        // If the user presses the "Enter" key on the keyboard
         if (event.key === "Enter") {
             // Cancel the default action, if needed
             event.preventDefault();
-            // Trigger the button element with a click
-            document.getElementById("MediaSearchInputButton").click();
+            executeFilter()
         }
     });
 
-    document.getElementById("MediaSearchInputButton").addEventListener("click", function () {
-        const mediaSearchStr = document.getElementById('MediaSearchStr');
-        console.log("MediaSearchInputButton, value = "+mediaSearchStr.value)
-        mediaSearchModal.hide()
-        displayThumbnails("Photos", mediaSearchStr.value);
-    });
-    */
-
-    mediaFilterButton.addEventListener("click", function () {
-        let paramData = {MediaFilterMediaType:document.getElementById("MediaFilterMediaType").value,
-            MediaFilterCategory:document.getElementById("MediaFilterCategory").value,
-            MediaFilterStartDate:document.getElementById("MediaFilterStartDate").value,
-            MediaFilterSearchStr:document.getElementById("MediaFilterSearchStr").value}
+    function executeFilter() {
+        console.log(">>> Execute Filter mediaFilterCategory = "+mediaFilterCategory.value)
+        console.log(">>> Filter mediaFilterStartDate = "+mediaFilterStartDate.value)
+        console.log(">>> Filter mediaFilterSearchStr = "+mediaFilterSearchStr.value)
+        console.log(">>> Filter mediaFilterMenuItem = "+mediaFilterMenuItem.value)
+        console.log(">>> Filter mediaFilterAlbumTag = "+mediaFilterAlbumTag.value)
+    
+        let paramData = {MediaFilterMediaType:mediaFilterMediaType.value,
+            MediaFilterCategory:mediaFilterCategory.value,
+            MediaFilterStartDate:mediaFilterStartDate.value,
+            MediaFilterSearchStr:mediaFilterSearchStr.value}
 
         displayThumbnails(paramData);
-    });
+    }
 
 
     // Add event listeners to the audio player
@@ -382,15 +419,12 @@ var mgallery = (function(){
         //console.log("createMenu, dir=" + dirName)
         //console.log("createMenu, mediaType = " + mediaType)
 
-        // *** Check if the Menu is already created for the mediaType (somehow), and don't create if existing
-        // hidden input value???
-
         let url = jjkgalleryRoot + "getMenuList.php"
         let urlParamStr = `?mediaType=${mediaType}`
         fetch(url+urlParamStr)
         .then(response => response.json())
         .then(menuList => {
-            buildMenuElements(mediaType,MediaMenuId,menuList)
+            //buildMenuElements(mediaType,MediaMenuId,menuList)
             buildMenuElements(mediaType,MediaOffcanvasMenuId,menuList)
         });
 
@@ -418,7 +452,6 @@ var mgallery = (function(){
             for (let index in menuList) {
                 let menu = menuList[index]
     
-                //menuHeader.textContent = mediaTypeDesc
                 menuHeader.textContent = menu.mediaTypeDesc
     
                 // Make the 1st panel item un-collapsed
@@ -496,15 +529,13 @@ var mgallery = (function(){
 
 
     //------------------------------------------------------------------------------------------------------------
-    // Create side menu, breadcrumbs, folder and entity links (for photos, audio, video, etc.)
+    // Create thumbnails and entity links (for photos, audio, video, etc.)
     //------------------------------------------------------------------------------------------------------------
     //function displayThumbnails(mediaType,category,menuItem,startDate,endDate,searchStr) {
     function displayThumbnails(paramData) {
         //console.log("$$$ displayThumbnails, category: " + category + ", menuItem: "+menuItem);
-        
-        //setBreadcrumbs(dirName);
 
-        empty(folderContainer);
+        empty(filterRequestsContainer);
         empty(thumbnailContainer);
         //empty(configContainer);
 
@@ -513,21 +544,6 @@ var mgallery = (function(){
         if (paramData.MediaFilterMediaType == 3) {
             mediaTypeDesc = "Music";
         }
-        /*
-        var firstSlashPos = dirName.indexOf("/");
-        if (firstSlashPos >= 0) {
-            mediaTypeDesc = dirName.substr(0, firstSlashPos);
-        }
-        */
-        //console.log("in displayThumbnails, mediaTypeDesc = " + mediaTypeDesc);
-
-        // Assume the subpath starts at the 1st slash
-        /*
-        var subPath = "";
-        if (firstSlashPos >= 0) {
-            subPath = dirName.substr(firstSlashPos)
-        }
-        */
 
         var photosThumbsRoot = mediaTypeDesc + "Thumbs";
         var photosSmallerRoot = mediaTypeDesc + "Smaller";
@@ -557,33 +573,25 @@ var mgallery = (function(){
             let doclistTbody = document.createElement("tbody")
             var playlistTbody = document.createElement("tbody")
 
-            //----------------------------------------------------------------------------------------------------
-            // If there is a menu list, create folder tiles with the start date
-            //----------------------------------------------------------------------------------------------------
-            if (paramData.MediaFilterMediaType == 1 && listInfo.menuList != null) {
-                let fileList = listInfo.menuList
-                for (let index in listInfo.menuList) {
-                    let menuRec = listInfo.menuList[index]
+            // Set the UI filter date to the start date of the first file in the query set
+            mediaFilterStartDate.value = listInfo.startDate
 
+            //----------------------------------------------------------------------------------------------------
+            // If there is a filter request list, create Filter Request buttons with the start date
+            //----------------------------------------------------------------------------------------------------
+            if (paramData.MediaFilterMediaType == 1 && listInfo.filterList != null) {
+                let fileList = listInfo.filterList
+                for (let index in listInfo.filterList) {
+                    let FilterRec = listInfo.filterList[index]
                     let button = document.createElement("button")
-    
                     button.setAttribute('type',"button")
                     button.setAttribute('role',"button")
-                    
-                    // ok, no double here because it's a good list of filenames, and only trying to apply 1 slash
-                    //button.setAttribute('data-dir', dirName + '/' + fileRec.filename)
-                    button.setAttribute('data-MediaType', paramData.MediaFilterMediaType)
-                    button.setAttribute('data-category', paramData.MediaFilterCategory)
-                    button.setAttribute('data-startDate', menuRec.startDate)
-
-                    button.classList.add('btn','p-1','m-1',MediaFolderLinkClass)
-
-                    button.style.border = '1px solid'
-                    button.style.backgroundColor = '#d9d9d9'
-                    button.style.color = 'black'
-                    button.textContent = menuRec.menuName
-                    //button.appendTo(folderContainer)
-                    folderContainer.appendChild(button)
+                    button.setAttribute('data-MediaType', paramData.MediaFilterMediaType)   // current media type
+                    button.setAttribute('data-category', paramData.MediaFilterCategory)     // current category
+                    button.setAttribute('data-startDate', FilterRec.startDate)
+                    button.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','mb-2',MediaFilterRequestClass)
+                    button.textContent = FilterRec.filterName
+                    filterRequestsContainer.appendChild(button)
                 }    
             }
 
@@ -761,44 +769,6 @@ var mgallery = (function(){
 
     } // function displayThumbnails(dirName) {
 
-    /*
-    function setBreadcrumbs(dirName) {
-        empty(breadcrumbContainer)
-        var dirArray = dirName.split("/")
-        //console.log('setBreadcrumbs dirName = '+dirName)
-        let urlStr = ''
-
-        let dirName2 = ''
-        for (let index in dirArray) {
-            dirName2 = dirArray[index]
-            // Set the last element as active
-            if (index == dirArray.length - 1) {
-                let li = document.createElement("li")
-                li.classList.add('breadcrumb-item')
-                li.classList.add('active')
-                li.textContent = dirName2
-                breadcrumbContainer.appendChild(li)
-            } else {
-                if (index == 0) {
-                    urlStr += dirName2
-                } else {
-                    urlStr += '/' + dirName2
-                }
-                //console.log("in setBreadcrumbs, urlStr = "+urlStr)
-                let li = document.createElement("li")
-                li.classList.add('breadcrumb-item')
-                let a = document.createElement("a")
-                a.href = '#'
-                a.textContent = dirName2
-                a.classList.add(MediaFolderLinkClass)
-                a.setAttribute('data-dir', urlStr)
-                li.appendChild(a)
-                breadcrumbContainer.appendChild(li)
-            }
-        }
-    } // function setBreadcrumbs(dirName) {
-    */
-
     // Audio 
     function loadSong(index) {
         plIndex = index;
@@ -823,7 +793,6 @@ var mgallery = (function(){
             loadSong(--plIndex);
         }
     }
-
 
     // This is what is exposed from this Module
     return {

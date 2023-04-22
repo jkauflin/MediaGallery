@@ -17,6 +17,8 @@
  * 					in a JSON string
  * 2023-02-19 JJK	Modified to return a structure of both the file list and
  * 					a menu list with other start dates
+ * 2023-04-20 JJK	Changed menu list to filter request list and added
+ * 					Prev and Next filter requests
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -61,13 +63,14 @@ function wildCardStrFromTokens($inStr) {
 
 class ListInfo
 {
-	public $menuList;
+	public $filterList;
 	public $fileList;
+	public $startDate;
 }
 
-class MenuRec
+class FilterRec
 {
-	public $menuName;
+	public $filterName;
 	public $startDate;
 }
 
@@ -81,7 +84,7 @@ class FileRec
 
 $listInfo = new ListInfo();
 $filelistArray = array();
-$maxRows = 300;
+$maxRows = 100;
 try {
 	header("Content-Type: application/json; charset=UTF-8");
 	// Get JSON as a string
@@ -154,23 +157,28 @@ try {
 	if ($categoryExists && $menuItemExists) {
 		$sql = $sql . "AND CategoryTags LIKE ? ";
 		$sql = $sql . "AND MenuTags LIKE ? ";
+	} else if ($categoryExists && $startDateExists && $searchStrExists) {
+		$sql = $sql . "AND CategoryTags LIKE ? ";
+		$sql = $sql . "AND TakenDateTime >= ? ";
+		$sql = $sql . "AND (UPPER(Name) LIKE ? ";
+		$sql = $sql . "OR UPPER(Title) LIKE ? ";
+		$sql = $sql . "OR UPPER(Description) LIKE ? ";
+		$sql = $sql . "OR UPPER(People) LIKE ?) ";
 	} else if ($categoryExists && $startDateExists) {
 		$sql = $sql . "AND CategoryTags LIKE ? ";
 		$sql = $sql . "AND TakenDateTime >= ? ";
 	} else if ($categoryExists && $searchStrExists) {
 		$sql = $sql . "AND CategoryTags LIKE ? ";
-		$sql = $sql . " AND (UPPER(Name) LIKE ? ";
+		$sql = $sql . "AND (UPPER(Name) LIKE ? ";
 		$sql = $sql . "OR UPPER(Title) LIKE ? ";
 		$sql = $sql . "OR UPPER(Description) LIKE ? ";
 		$sql = $sql . "OR UPPER(People) LIKE ?) ";
-	/*
 	} else if ($startDateExists && $searchStrExists) {
-		$sql = $sql . " AND (UPPER(Name) LIKE ? ";
+		$sql = $sql . "AND TakenDateTime >= ? ";
+		$sql = $sql . "AND (UPPER(Name) LIKE ? ";
 		$sql = $sql . "OR UPPER(Title) LIKE ? ";
 		$sql = $sql . "OR UPPER(Description) LIKE ? ";
 		$sql = $sql . "OR UPPER(People) LIKE ?) ";
-		$sql = $sql . "AND TakenDateTime >= ? ";
-	*/
 	} else if ($categoryExists) {
 		$sql = $sql . "AND CategoryTags LIKE ? ";
 	} else if ($searchStrExists) {
@@ -182,8 +190,7 @@ try {
 		$sql = $sql . "AND TakenDateTime >= ? ";
 	}
 
-	//$sql = $sql . "ORDER BY TakenDateTime LIMIT 300; ";
-	$sql = $sql . "ORDER BY TakenDateTime,Name LIMIT 300; ";
+	$sql = $sql . "ORDER BY TakenDateTime,Name LIMIT 100; ";
 
 	//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
 	$conn = getConn($dbHost, $dbUser, $dbPassword, $dbName);
@@ -194,6 +201,15 @@ try {
 			$param->MediaFilterMediaType,
 			$wildCategory,
 			$wildMenuItem);
+	} else if ($categoryExists && $startDateExists && $searchStrExists) {
+		$stmt->bind_param("issssss",
+			$param->MediaFilterMediaType,
+			$wildCategory,
+			$param->MediaFilterStartDate,
+			$wildSearchStr,
+			$wildSearchStr,
+			$wildSearchStr,
+			$wildSearchStr);
 	} else if ($categoryExists && $startDateExists) {
 		$stmt->bind_param("iss",
 			$param->MediaFilterMediaType,
@@ -207,16 +223,14 @@ try {
 			$wildSearchStr,
 			$wildSearchStr,
 			$wildSearchStr);
-	/*
 	} else if ($startDateExists && $searchStrExists) {
 		$stmt->bind_param("isssss",
 			$param->MediaFilterMediaType,
+			$param->MediaFilterStartDate,
 			$wildSearchStr,
 			$wildSearchStr,
 			$wildSearchStr,
-			$wildSearchStr,
-			$param->MediaFilterStartDate);
-	*/
+			$wildSearchStr);
 	} else if ($categoryExists) {
 		$stmt->bind_param("is",
 			$param->MediaFilterMediaType,
@@ -236,6 +250,12 @@ try {
 		$stmt->bind_param("i",
 			$param->MediaFilterMediaType);
 	}
+
+
+	// do a query that gets the count of records first
+	// then plan the first file query, and sub-menu items to be included at the top
+	// (as well as NEXT and PREV page???)
+
 
 	$stmt->execute();
 	$result = $stmt->get_result();
@@ -264,12 +284,14 @@ try {
 			// Save the first and last timestamps
 			if ($cnt == 1) {
 				$firstTakenDateTime = $row["TakenDateTime"];
+				$listInfo->startDate = substr($firstTakenDateTime,0,10);
 			}
 			$lastTakenDateTime = $row["TakenDateTime"];
 		}
 
-		if ($result->num_rows == $maxRows && $param->MediaFilterMediaType == 1) {
-			// figure out from 1st and last timestamp if list is multiple years or just 1 year
+		//if ($result->num_rows == $maxRows && $param->MediaFilterMediaType == 1) {
+		if ($param->MediaFilterMediaType == 1) {
+				// figure out from 1st and last timestamp if list is multiple years or just 1 year
 			// if multiple, add menu boxes for years, if one add season boxes?
 			// *** No, can just use the first and last from the limited set, have to get "whole" set for
 			// *** category from start to full list
@@ -279,26 +301,27 @@ try {
 
 			// $param->MediaFilterCategory
 			// $param->MediaFilterStartDate
-			$tempStartDate = $param->MediaFilterStartDate;
-			$tempEndDate = $lastTakenDateTime;
 
-			$listInfo->menuList = array();
+			// $firstTakenDateTime
+			//$tempStartDate = $param->MediaFilterStartDate;
+			//$tempEndDate = $lastTakenDateTime;
 
-			/*
-			$menuRec = new MenuRec();
-			$menuRec->menuName = "1987";
-			$menuRec->startDate = $firstTakenDateTime;
-			array_push($listInfo->menuList,$menuRec);
+			$listInfo->filterList = array();
 
-			$menuRec = new MenuRec();
-			$menuRec->menuName = "1988";
-			$menuRec->startDate = $firstTakenDateTime;
-			array_push($listInfo->menuList,$menuRec);
-			*/
+			$FilterRec = new FilterRec();
+			$FilterRec->filterName = "Prev";
+			// Just do prev year for now?
+			$tempStartDate = date_parse($firstTakenDateTime);
+			$tempEndDate = strtotime($lastTakenDateTime);
 
-			//MediaFolderLinkClass
-			// use the same class but add new data- elements to store the media type, category, and start date
+			$Year = $tempStartDate["year"] - 1;
+			$FilterRec->startDate = (string)$Year . "-01-01";
+			array_push($listInfo->filterList,$FilterRec);
 
+			$FilterRec = new FilterRec();
+			$FilterRec->filterName = "Next";
+			$FilterRec->startDate = date("Y-m-d",$tempEndDate);
+			array_push($listInfo->filterList,$FilterRec);
 		}
 	}
 		
