@@ -77,12 +77,15 @@
  * 2023-04-14 JJK   Implement Admin concepts into main UI (based on users
  *                  authenticated with jjklogin)
  * 2023-04-20 JJK   Implement Prev and Next for thumbnail display
+ * 2023-04-25 JJK   Modify to add thumbnail display element dynamically
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
 
     //=================================================================================================================
     // Private variables for the Module
+
+    var adminFileList = []
 
     //console.log("window.location.pathname = "+window.location.pathname);
     //var tempPath = window.location.pathname;
@@ -430,6 +433,374 @@ var mgallery = (function(){
 
     } // function createMenu(mediaType) {
 
+    /*
+			<div class="col">
+                <div id="MediaFilterInputValues" class="container-fluid my-2">
+                    <div class="row">
+                        <input id="MediaFilterMediaType" type="hidden" class="form-control" value="1">
+                        <input id="MediaFilterMenuItem" type="hidden" class="form-control" value="">
+                        <input id="MediaFilterAlbumTag" type="hidden" class="form-control" value="">
+
+                        <div class="col-3" >
+                            <button class="btn btn-primary float-start" type="button" data-bs-toggle="offcanvas" data-bs-target="#MediaMenuCanvas">
+                                <i class="fa fa-chevron-right" ></i> Menu
+                            </button>
+                        </div>
+                        <div class="col">
+                            <select id="MediaFilterCategory" class="form-select float-end shadow-none">
+                                <option value="0">ALL</option>
+                                <option selected value="1 John J Kauflin">1 John J Kauflin</option>
+                                <option value="2 John E Kauflin">2 John E Kauflin</option>
+                                <option value="3 Baker Family">3 Baker Family</option>
+                                <option value="4 Mann Family">4 Mann Family</option>
+                                <option value="5 Bands">5 Bands</option>
+                                <option value="Mementos">Mementos</option>
+                                <option value="Misc">Misc</option>
+                                <option value="Albums">Albums</option>
+                            </select>
+                        </div>
+                        <div class="col-2">
+                            <button id="MediaFilterButton" type="button" class="btn btn-success float-end shadow-none" disabled>
+                                <i class="fa fa-pencil" ></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-3 d-none d-sm-block">
+                            <h5 id=MediaHeader></h5>
+                        </div>
+                        <div class="col">
+                            <div class="row">
+                                <div class="col-5">
+                                    <input id="MediaFilterStartDate" type="date" class="form-control shadow-none" value="2023-01-01">
+                                </div>
+                                <div class="col-7">
+                                    <input id="MediaFilterSearchStr" type="text" class="form-control shadow-none" placeholder="Search string">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-2 d-none d-sm-block">
+                            <!--
+                            <h6 class="float-end">(Edit Mode)</h6>
+                            -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="MediaFilterRequests">
+                </div>
+                <div id="MediaThumbnails">
+                </div>
+            </div>
+    */
+
+    //------------------------------------------------------------------------------------------------------------
+    // Create thumbnails and entity links (for photos, audio, video, etc.)
+    //------------------------------------------------------------------------------------------------------------
+    //function displayThumbnails(mediaType,category,menuItem,startDate,endDate,searchStr) {
+    function displayThumbnails(paramData) {
+        //console.log("$$$ displayThumbnails, category: " + category + ", menuItem: "+menuItem);
+
+        empty(filterRequestsContainer);
+        empty(thumbnailContainer);
+        //empty(configContainer);
+
+        // Clear out the display file list
+        adminFileList = []
+
+        // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
+        var mediaTypeDesc = "Photos";
+        if (paramData.MediaFilterMediaType == 3) {
+            mediaTypeDesc = "Music";
+        }
+
+        var photosThumbsRoot = mediaTypeDesc + "Thumbs";
+        var photosSmallerRoot = mediaTypeDesc + "Smaller";
+        //var photosThumbDir = photosThumbsRoot + subPath;
+        //var photosSmallerDir = photosSmallerRoot + subPath;
+
+        // Get a list of files from the media gallery database based on query parameters
+        let url = jjkgalleryRoot + "getFileList.php"
+        fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(paramData)
+        })
+        .then(response => response.json())
+        .then(listInfo => {
+            // loop through the list and display thumbnails in a div
+            let periodPos = 0
+            let fileExt = ''
+            let filePath = ''
+            let fileSubPath = ''
+            let fileNameNoExt = ''
+
+            let docFiles = false
+            let audioFiles = false
+            playlist.length = 0
+            plIndex = -1
+            let doclistTbody = document.createElement("tbody")
+            var playlistTbody = document.createElement("tbody")
+
+            // Set the UI filter date to the start date of the first file in the query set
+            mediaFilterStartDate.value = listInfo.startDate
+
+            //----------------------------------------------------------------------------------------------------
+            // If there is a filter request list, create Filter Request buttons with the start date
+            //----------------------------------------------------------------------------------------------------
+            if (paramData.MediaFilterMediaType == 1 && listInfo.filterList != null) {
+                let fileList = listInfo.filterList
+                for (let index in listInfo.filterList) {
+                    let FilterRec = listInfo.filterList[index]
+                    let button = document.createElement("button")
+                    button.setAttribute('type',"button")
+                    button.setAttribute('role',"button")
+                    button.setAttribute('data-MediaType', paramData.MediaFilterMediaType)   // current media type
+                    button.setAttribute('data-category', paramData.MediaFilterCategory)     // current category
+                    button.setAttribute('data-startDate', FilterRec.startDate)
+                    button.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','mb-2',MediaFilterRequestClass)
+                    button.textContent = FilterRec.filterName
+                    filterRequestsContainer.appendChild(button)
+                }    
+            }
+
+            //----------------------------------------------------------------------------------------------------
+            // Display thumbnails for files in file list
+            //----------------------------------------------------------------------------------------------------
+            let fileList = listInfo.fileList
+            for (let index in fileList) {
+                let fileRec = fileList[index]
+
+                const fileInfo = {
+                    Name: fileRec.filename,
+                    DirSubPath: fileRec.dirSubPath,
+                    Selected: false,
+                    CategoryTags: fileRec.CategoryTags,
+                    MenuTags: fileRec.MenuTags,
+                    AlbumTags: fileRec.AlbumTags,
+                    TakenDateTime: fileRec.TakenDateTime,
+                    Title: fileRec.Title,
+                    Description: fileRec.Description,
+                    People: fileRec.People
+                };
+    
+                // Add the file info objects to the main array
+                adminFileList[adminFileList.length] = fileInfo
+
+            } // End of Loop through dir list files
+            
+            mediaAdminMessage.textContent = "Number of images = " + (adminFileList.length)
+            displayFileList()
+            //displayFileDetail(0)            
+
+        }); // End of Fetch dir list - fetch(url+urlParamStr)
+
+    } // function displayThumbnails(dirName) {
+
+
+    function displayFileList() {
+        empty(thumbnailContainer);
+
+        let fileSubPath = ''
+        for (let index in adminFileList) {
+            let fi = adminFileList[index]
+
+            /*
+            if (fi.DirSubPath != '') {
+                fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
+            }
+            else 
+            {
+                fileSubPath = '/' + fi.Name;
+            }
+            //console.log("filePath = " + filePath + ", fileSubPath = " + fileSubPath);
+
+            let card = document.createElement("div")
+            card.classList.add('card','w-20','float-start')
+            let cardCheckbox = document.createElement("input")
+            cardCheckbox.classList.add('form-check-input','shadow-none','mx-1','mb-1',imgCheckboxClass)
+            cardCheckbox.setAttribute('type', 'checkbox')
+            cardCheckbox.setAttribute('data-index', index)
+            cardCheckbox.checked = fi.Selected
+            card.appendChild(cardCheckbox)
+      
+            // Add the photo to the gallery link list
+            let img = document.createElement("img");
+            img.classList.add(imgThumbnailClass)
+            // add a class for event click
+            img.setAttribute('onerror', "this.onerror=null; this.remove()")
+            img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
+            img.setAttribute('data-index', index)
+            card.appendChild(img)
+            thumbnailContainer.appendChild(card)
+            */
+
+            if (paramData.MediaFilterMediaType == 2) {
+                // VIDEOS
+
+                // Add a table with a title above the iframe
+                let table = document.createElement("table");
+                table.classList.add('float-start')
+                let td = document.createElement("td");
+                td.textContent = fileRec.dirSubPath
+                let tr = document.createElement("tr");
+                tr.appendChild(td)
+                table.appendChild(tr)
+
+                let iframe = document.createElement("iframe")
+                // Use the embed link for iframe (without https so it can be run locally for testing)
+                iframe.setAttribute('src', "//www.youtube.com/embed/" + fileRec.filename);
+                iframe.setAttribute('allowfullscreen', true);
+                td = document.createElement("td");
+                td.appendChild(iframe);
+                tr = document.createElement("tr");
+                tr.appendChild(td)
+                table.appendChild(tr)
+                thumbnailContainer.appendChild(table)
+
+            } else {
+                if (fileRec.dirSubPath != '') {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fileRec.dirSubPath + '/' + fileRec.filename;
+                    fileSubPath = '/' + fileRec.dirSubPath + '/' + fileRec.filename;
+                }
+                else 
+                {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fileRec.filename;
+                    fileSubPath = '/' + fileRec.filename;
+                }
+                //console.log("filePath = " + filePath + ", fileSubPath = " + fileSubPath);
+
+                periodPos = fileRec.filename.indexOf(".");
+                if (periodPos >= 0) {
+                    fileExt = fileRec.filename.substr(periodPos + 1).toUpperCase();
+                    fileNameNoExt = fileRec.filename.substr(0,periodPos);
+                }
+
+                if (paramData.MediaFilterMediaType == 1) {
+                    // PHOTOS
+
+                    // Add the photo to the gallery link list
+                    let img = document.createElement("img");
+                    img.setAttribute('onerror', "this.onerror=null; this.remove()")
+                    img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
+                    img.classList.add(imgThumbnailClass)
+                    let a = document.createElement("a")
+                    a.href = MediaRootDir + photosSmallerRoot + fileSubPath
+                    a.title = fileRec.filename
+                    a.appendChild(img);
+                    thumbnailContainer.appendChild(a)
+                    // *** new functions?: right-click copy link address download full (large) version
+                } else if (paramData.MediaFilterMediaType == 3) {
+                    // MUSIC
+
+                    //console.log("fileNameNoExt = " + fileNameNoExt+", url = "+filePath);
+                    audioFiles = true;
+                    plIndex++;
+                    playlist.push({ "title": fileNameNoExt, "url": filePath });
+
+                    // add the table rows for the playlist
+                    // build a table then append to the thumbnail container
+                    let a = document.createElement("a")
+                    a.href = "#"
+                    a.classList.add('class', `${playlistSongClass}`)
+                    a.setAttribute('data-plIndex', plIndex);
+                    a.textContent = fileNameNoExt
+                    let td = document.createElement("td");
+                    td.appendChild(a);
+                    let tr = document.createElement("tr");
+                    tr.appendChild(td);
+                    playlistTbody.appendChild(tr)
+                } else if (paramData.MediaFilterMediaType == 4) {
+                    // DOCS
+                    
+                    //console.log("PDF file = " + fileRec.filename + ", filePath = " + filePath);
+                    docFiles = true;
+                    let a = document.createElement("a")
+                    a.href = filePath
+                    a.setAttribute('target',"_blank");
+                    a.textContent = fileNameNoExt
+                    let td = document.createElement("td");
+                    td.appendChild(a);
+                    let tr = document.createElement("tr");
+                    tr.classList.add("smalltext")
+                    tr.appendChild(td);
+                    doclistTbody.appendChild(tr)
+                }
+            }
+
+        }
+
+                    // if there were any docs, build a table of the filelinks and append to the Thumbnails container
+            if (docFiles) {
+                empty(thumbnailContainer);
+
+                let table = document.createElement("table");
+                table.classList.add('table','table-sm')
+                table.appendChild(doclistTbody)
+                thumbnailContainer.appendChild(table)
+            }
+            else if (audioFiles) {
+                empty(thumbnailContainer);
+
+                // if there were any MP3's, build a player with the playlist of MP3's
+                let h5 = document.createElement("h5");
+                h5.id = 'SongTitle'
+                h5.classList.add('font-weight-bold')
+                thumbnailContainer.appendChild(h5)
+
+                // Append the audioPlayer element
+                thumbnailContainer.appendChild(audioPlayer);
+
+                let i = document.createElement("i");
+                i.classList.add('fa',`${audioPrevClass}`,'fa-3x')
+                let a = document.createElement("a")
+                a.id = "AudioPrev"
+                a.href = "#"
+                a.appendChild(i)
+                thumbnailContainer.appendChild(a)
+
+                i = document.createElement("i");
+                i.classList.add('fa',`${audioNextClass}`,'fa-3x','mx-2')
+                a = document.createElement("a")
+                a.id = "AudioNext"
+                a.href = "#"
+                a.appendChild(i)
+                thumbnailContainer.appendChild(a)
+
+                // append the tbody rows to the table, and the table to the Col1 (and thumbnail container)
+                let playlistTable = document.createElement("table");
+                playlistTable.id = 'PlaylistDisplay'
+                playlistTable.classList.add('table', 'table-sm', 'mt-3')
+                playlistTable.appendChild(playlistTbody)
+
+                let row = document.createElement("div");
+                row.id = 'PlaylistRow'
+                row.classList.add('row')
+                let col1 = document.createElement("div");
+                col1.classList.add('col-sm-7')
+                col1.appendChild(playlistTable)
+                row.appendChild(col1)
+ 
+                /* >>> re-do how it finds the related MP3 photos for the 2nd column (check new search functions)
+                let col2 = document.createElement("div");
+                col2.classList.add('col-sm-5')
+                let img = document.createElement("img");
+                img.setAttribute('onerror', "this.onerror=null; this.remove()")
+                img.setAttribute('src', MediaRootDir + mediaTypeDesc + subPath + '/' + 'album.jpg')
+                img.classList.add(`${imgThumbnailClass}`,'m-1','p-2')
+                col2.appendChild(img)
+                row.appendChild(col2)
+                */
+
+                thumbnailContainer.appendChild(row)
+
+                // Load and start playing the 1st song in the list
+                loadSong(0);
+            } 
+    }
+
+
     function buildMenuElements(mediaType,menuId,menuList) {
         var menuContainer = document.getElementById(menuId);
         if (menuContainer != null) {
@@ -526,248 +897,6 @@ var mgallery = (function(){
             menuContainer.appendChild(accordianContainer);
         }
     }
-
-
-    //------------------------------------------------------------------------------------------------------------
-    // Create thumbnails and entity links (for photos, audio, video, etc.)
-    //------------------------------------------------------------------------------------------------------------
-    //function displayThumbnails(mediaType,category,menuItem,startDate,endDate,searchStr) {
-    function displayThumbnails(paramData) {
-        //console.log("$$$ displayThumbnails, category: " + category + ", menuItem: "+menuItem);
-
-        empty(filterRequestsContainer);
-        empty(thumbnailContainer);
-        //empty(configContainer);
-
-        // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
-        var mediaTypeDesc = "Photos";
-        if (paramData.MediaFilterMediaType == 3) {
-            mediaTypeDesc = "Music";
-        }
-
-        var photosThumbsRoot = mediaTypeDesc + "Thumbs";
-        var photosSmallerRoot = mediaTypeDesc + "Smaller";
-        //var photosThumbDir = photosThumbsRoot + subPath;
-        //var photosSmallerDir = photosSmallerRoot + subPath;
-
-        // Get a list of files from the media gallery database based on query parameters
-        let url = jjkgalleryRoot + "getFileList.php"
-        fetch(url, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(paramData)
-        })
-        .then(response => response.json())
-        .then(listInfo => {
-            // loop through the list and display thumbnails in a div
-            let periodPos = 0
-            let fileExt = ''
-            let filePath = ''
-            let fileSubPath = ''
-            let fileNameNoExt = ''
-
-            let docFiles = false
-            let audioFiles = false
-            playlist.length = 0
-            plIndex = -1
-            let doclistTbody = document.createElement("tbody")
-            var playlistTbody = document.createElement("tbody")
-
-            // Set the UI filter date to the start date of the first file in the query set
-            mediaFilterStartDate.value = listInfo.startDate
-
-            //----------------------------------------------------------------------------------------------------
-            // If there is a filter request list, create Filter Request buttons with the start date
-            //----------------------------------------------------------------------------------------------------
-            if (paramData.MediaFilterMediaType == 1 && listInfo.filterList != null) {
-                let fileList = listInfo.filterList
-                for (let index in listInfo.filterList) {
-                    let FilterRec = listInfo.filterList[index]
-                    let button = document.createElement("button")
-                    button.setAttribute('type',"button")
-                    button.setAttribute('role',"button")
-                    button.setAttribute('data-MediaType', paramData.MediaFilterMediaType)   // current media type
-                    button.setAttribute('data-category', paramData.MediaFilterCategory)     // current category
-                    button.setAttribute('data-startDate', FilterRec.startDate)
-                    button.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','mb-2',MediaFilterRequestClass)
-                    button.textContent = FilterRec.filterName
-                    filterRequestsContainer.appendChild(button)
-                }    
-            }
-
-            //----------------------------------------------------------------------------------------------------
-            // Display thumbnails for files in file list
-            //----------------------------------------------------------------------------------------------------
-            let fileList = listInfo.fileList
-            for (let index in fileList) {
-                let fileRec = fileList[index]
-
-                if (paramData.MediaFilterMediaType == 2) {
-                    // VIDEOS
-
-                    // Add a table with a title above the iframe
-                    let table = document.createElement("table");
-                    table.classList.add('float-start')
-                    let td = document.createElement("td");
-                    td.textContent = fileRec.dirSubPath
-                    let tr = document.createElement("tr");
-                    tr.appendChild(td)
-                    table.appendChild(tr)
-
-                    let iframe = document.createElement("iframe")
-                    // Use the embed link for iframe (without https so it can be run locally for testing)
-                    iframe.setAttribute('src', "//www.youtube.com/embed/" + fileRec.filename);
-                    iframe.setAttribute('allowfullscreen', true);
-                    td = document.createElement("td");
-                    td.appendChild(iframe);
-                    tr = document.createElement("tr");
-                    tr.appendChild(td)
-                    table.appendChild(tr)
-                    thumbnailContainer.appendChild(table)
-
-                } else {
-                    if (fileRec.dirSubPath != '') {
-                        filePath = MediaRootDir + mediaTypeDesc + '/' + fileRec.dirSubPath + '/' + fileRec.filename;
-                        fileSubPath = '/' + fileRec.dirSubPath + '/' + fileRec.filename;
-                    }
-                    else 
-                    {
-                        filePath = MediaRootDir + mediaTypeDesc + '/' + fileRec.filename;
-                        fileSubPath = '/' + fileRec.filename;
-                    }
-                    //console.log("filePath = " + filePath + ", fileSubPath = " + fileSubPath);
-    
-                    periodPos = fileRec.filename.indexOf(".");
-                    if (periodPos >= 0) {
-                        fileExt = fileRec.filename.substr(periodPos + 1).toUpperCase();
-                        fileNameNoExt = fileRec.filename.substr(0,periodPos);
-                    }
-
-                    if (paramData.MediaFilterMediaType == 1) {
-                        // PHOTOS
-
-                        // Add the photo to the gallery link list
-                        let img = document.createElement("img");
-                        img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                        img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
-                        img.classList.add(imgThumbnailClass)
-                        let a = document.createElement("a")
-                        a.href = MediaRootDir + photosSmallerRoot + fileSubPath
-                        a.title = fileRec.filename
-                        a.appendChild(img);
-                        thumbnailContainer.appendChild(a)
-                        // *** new functions?: right-click copy link address download full (large) version
-                    } else if (paramData.MediaFilterMediaType == 3) {
-                        // MUSIC
-
-                        //console.log("fileNameNoExt = " + fileNameNoExt+", url = "+filePath);
-                        audioFiles = true;
-                        plIndex++;
-                        playlist.push({ "title": fileNameNoExt, "url": filePath });
-    
-                        // add the table rows for the playlist
-                        // build a table then append to the thumbnail container
-                        let a = document.createElement("a")
-                        a.href = "#"
-                        a.classList.add('class', `${playlistSongClass}`)
-                        a.setAttribute('data-plIndex', plIndex);
-                        a.textContent = fileNameNoExt
-                        let td = document.createElement("td");
-                        td.appendChild(a);
-                        let tr = document.createElement("tr");
-                        tr.appendChild(td);
-                        playlistTbody.appendChild(tr)
-                    } else if (paramData.MediaFilterMediaType == 4) {
-                        // DOCS
-                        
-                        //console.log("PDF file = " + fileRec.filename + ", filePath = " + filePath);
-                        docFiles = true;
-                        let a = document.createElement("a")
-                        a.href = filePath
-                        a.setAttribute('target',"_blank");
-                        a.textContent = fileNameNoExt
-                        let td = document.createElement("td");
-                        td.appendChild(a);
-                        let tr = document.createElement("tr");
-                        tr.classList.add("smalltext")
-                        tr.appendChild(td);
-                        doclistTbody.appendChild(tr)
-                    }
-                }
-
-            } // End of Loop through dir list files
-            
-            // if there were any docs, build a table of the filelinks and append to the Thumbnails container
-            if (docFiles) {
-                empty(thumbnailContainer);
-
-                let table = document.createElement("table");
-                table.classList.add('table','table-sm')
-                table.appendChild(doclistTbody)
-                thumbnailContainer.appendChild(table)
-            }
-            else if (audioFiles) {
-                empty(thumbnailContainer);
-
-                // if there were any MP3's, build a player with the playlist of MP3's
-                let h5 = document.createElement("h5");
-                h5.id = 'SongTitle'
-                h5.classList.add('font-weight-bold')
-                thumbnailContainer.appendChild(h5)
-
-                // Append the audioPlayer element
-                thumbnailContainer.appendChild(audioPlayer);
-
-                let i = document.createElement("i");
-                i.classList.add('fa',`${audioPrevClass}`,'fa-3x')
-                let a = document.createElement("a")
-                a.id = "AudioPrev"
-                a.href = "#"
-                a.appendChild(i)
-                thumbnailContainer.appendChild(a)
-
-                i = document.createElement("i");
-                i.classList.add('fa',`${audioNextClass}`,'fa-3x','mx-2')
-                a = document.createElement("a")
-                a.id = "AudioNext"
-                a.href = "#"
-                a.appendChild(i)
-                thumbnailContainer.appendChild(a)
-
-                // append the tbody rows to the table, and the table to the Col1 (and thumbnail container)
-                let playlistTable = document.createElement("table");
-                playlistTable.id = 'PlaylistDisplay'
-                playlistTable.classList.add('table', 'table-sm', 'mt-3')
-                playlistTable.appendChild(playlistTbody)
-
-                let row = document.createElement("div");
-                row.id = 'PlaylistRow'
-                row.classList.add('row')
-                let col1 = document.createElement("div");
-                col1.classList.add('col-sm-7')
-                col1.appendChild(playlistTable)
-                row.appendChild(col1)
- 
-                /* >>> re-do how it finds the related MP3 photos for the 2nd column (check new search functions)
-                let col2 = document.createElement("div");
-                col2.classList.add('col-sm-5')
-                let img = document.createElement("img");
-                img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                img.setAttribute('src', MediaRootDir + mediaTypeDesc + subPath + '/' + 'album.jpg')
-                img.classList.add(`${imgThumbnailClass}`,'m-1','p-2')
-                col2.appendChild(img)
-                row.appendChild(col2)
-                */
-
-                thumbnailContainer.appendChild(row)
-
-                // Load and start playing the 1st song in the list
-                loadSong(0);
-            } 
-
-        }); // End of Fetch dir list - fetch(url+urlParamStr)
-
-    } // function displayThumbnails(dirName) {
 
     // Audio 
     function loadSong(index) {
