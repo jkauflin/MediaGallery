@@ -78,6 +78,7 @@
  *                  authenticated with jjklogin)
  * 2023-04-20 JJK   Implement Prev and Next for thumbnail display
  * 2023-04-25 JJK   Modify to add thumbnail display element dynamically
+ * 2023-04-27 JJK   Working on Admin functions
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
