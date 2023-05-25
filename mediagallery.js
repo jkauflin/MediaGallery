@@ -77,8 +77,15 @@
  * 2023-04-14 JJK   Implement Admin concepts into main UI (based on users
  *                  authenticated with jjklogin)
  * 2023-04-20 JJK   Implement Prev and Next for thumbnail display
- * 2023-04-25 JJK   Modify to add thumbnail display element dynamically
- * 2023-04-27 JJK   Working on Admin functions
+ * 2023-04-25 JJK   Added displayFileList and display function (for Admin functions)
+ * 2023-04-27 JJK   Modify to add MediaFilter elements dynamically
+ * 2023-05-04 JJK   Working on filter responses
+ * 2023-05-05 JJK   Added mediaPageContainer to dynamically build display
+ *                  (and be able to create Admin/Edit view), and combined
+ *                  queries into getMediaInfo
+ * 2023-05-11 JJK   Working on editSwitch toggle
+ * 2023-05-14 JJK   Working on edit toggle and update requests
+ * 2023-05-21 JJK   Working on Admin Detail and update functions
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -86,7 +93,13 @@ var mgallery = (function(){
     //=================================================================================================================
     // Private variables for the Module
 
-    var adminFileList = []
+    var mediaType = 1
+    var mediaInfo
+    var menuList = []
+    var categoryList = []
+    var menuFilter = []
+    var albumList = []
+    var peopleList = []
 
     //console.log("window.location.pathname = "+window.location.pathname);
     //var tempPath = window.location.pathname;
@@ -115,35 +128,66 @@ var mgallery = (function(){
     audioPlayer.style.padding = '13px 20px 0 0';
     audioPlayer.style.margin = '0 15px 0 10px';
 
-    var MediaOffcanvasMenuId = "MediaOffcanvasMenu";
     var MediaConfigId = "MediaConfig";
     //var MediaConfigButton = "MediaConfigButton";
     
     var MediaMenuRequestClass = "MediaMenuRequest";
     var MediaFilterRequestClass = "MediaFilterRequest";
     var MediaPageLinkClass = "media-page";
-    var imgThumbnailClass = "img-thumbnail";
+    var currIndex = 0
+    var imgThumbnailClass = "img-thumbnail"
+    var imgCheckboxClass = "img-checkbox"
+
     var playlistSongClass = "playlistSong";
     var audioPrevClass = "fa-step-backward";
     var audioNextClass = "fa-step-forward";
 
-
     //=================================================================================================================
     // Variables cached from the DOM
-    var menuHeader = document.getElementById("MediaHeader");
 
+    var mediaPageContainer = document.getElementById("MediaPage");
     //var configContainer = document.getElementById(MediaConfigId);
-    var filterRequestsContainer = document.getElementById("MediaFilterRequests");
-    var thumbnailContainer = document.getElementById("MediaThumbnails");
-    //var mediaFilterButton = document.getElementById(MediaFilterButton);
+    var filterContainer = document.createElement("div")
+    var filterRequestsContainer = document.createElement("div")
+    var thumbnailContainer = document.createElement("div")
+    var editRow1 = document.createElement("div")
 
-    var mediaFilterMediaType = document.getElementById("MediaFilterMediaType")
-    var mediaFilterCategory = document.getElementById("MediaFilterCategory")
-    var mediaFilterStartDate = document.getElementById("MediaFilterStartDate")
-    var mediaFilterSearchStr = document.getElementById("MediaFilterSearchStr")
-    var mediaFilterMenuItem = document.getElementById("MediaFilterMenuItem")
-    var mediaFilterAlbumTag = document.getElementById("MediaFilterAlbumTag")
+    var mediaAdminMessage
 
+    var mediaCategorySelect
+    var mediaMenuSelect
+    var mediaPeopleInput
+    var mediaPeopleSelect
+    var mediaPeopleList
+
+    var mediaFilterMediaType
+    var mediaTypeDesc = "Photos"
+    var photosThumbsRoot = mediaTypeDesc + "Thumbs";
+    var photosSmallerRoot = mediaTypeDesc + "Smaller";
+
+    var mediaFilterCategory
+    var mediaFilterStartDate
+    var mediaFilterSearchStr
+    var mediaFilterMenuItem
+    var mediaFilterAlbumTag
+
+    var mediaDetailFilename
+    var mediaDetailTitle
+    var mediaDetailTaken
+    var mediaDetailImg
+    var mediaDetailCategoryTags
+    var mediaDetailMenuTags
+    var mediaDetailAlbumTags
+    var mediaDetailPeopleList
+    var mediaDetailDescription
+
+    var getMenu = false
+    var editMode = false
+    var currSelectAll = false
+
+    var queryCategory = ""
+    var querySearchStr = ""
+    var queryMenuItem = ""
 
     // Non-Printable characters - Hex 01 to 1F, and 7F
     var nonPrintableCharsStr = "[\x01-\x1F\x7F]";
@@ -154,6 +198,7 @@ var mgallery = (function(){
     }
 
     // Get random photos (within /Media/images) when the page loads
+    /*
     var homePhotoElement = document.getElementById("HomePhoto");
     if (typeof homePhotoElement !== "undefined" && homePhotoElement !== null) {
         let url = jjkgalleryRoot + "getRandomImage.php";
@@ -174,9 +219,40 @@ var mgallery = (function(){
             currentPhotoElement.setAttribute("src", photoURL);
         })
     }
+    */
 
     //=================================================================================================================
     // Bind events
+
+    var jjkloginEventElement = document.getElementById("jjkloginEventElement")
+    jjkloginEventElement.addEventListener('userJJKLoginAuth', function (event) {
+        if (event.detail.userLevel >= 9) {
+            // If the user is authenticated and has the right security level, add an "Edit" switch
+            let editSwitchDiv = document.createElement("div")
+            editSwitchDiv.classList.add('form-check','form-switch','float-end','shadow-none')
+
+            let editSwitch = document.createElement("input")
+            editSwitch.id = "editSwitch"
+            editSwitch.classList.add('form-check-input','shadow-none')
+            editSwitch.setAttribute('type',"checkbox")
+            editSwitch.setAttribute('role',"switch")
+            editSwitchDiv.appendChild(editSwitch)
+
+            let editSwitchLabel = document.createElement("label")
+            editSwitchLabel.classList.add('form-check-label')
+            editSwitchLabel.setAttribute('for',editSwitch.id)
+            editSwitchLabel.textContent = "Edit"
+            editSwitchDiv.appendChild(editSwitchLabel)
+
+            mediaPageContainer.appendChild(editSwitchDiv);
+
+            editSwitch.addEventListener("change", function () {
+                //console.log(">>> editSwitch.checked = "+editSwitch.checked)
+                editMode = editSwitch.checked
+                createMediaPage(false)
+            });
+        }
+    });
 
     window.addEventListener('contextmenu', (event) => {
         // *** If I ever want to implement some right-click logic ***
@@ -188,7 +264,7 @@ var mgallery = (function(){
     // Respond to click on a link-tile-tab button by finding the correct TAB and switching/showing it
     // (These link-tile-tab's also have media-page for creating the Menu, but these handled from the listener on that class)
     document.querySelectorAll(".link-tile-tab").forEach(el => el.addEventListener("click", function (event) {
-        let mediaType = event.target.getAttribute('data-MediaType')
+        mediaType = event.target.getAttribute('data-MediaType')
         //console.log("link-tile-tab click, mediaType = " + mediaType)
 
         // Get the target tab based on the the MediaType specified, and use the new Bootstrap v5.2 js for showing the tab
@@ -203,14 +279,19 @@ var mgallery = (function(){
 
     // Respond to click on a media-page link tab by dynamically building the menu display
     document.querySelectorAll("."+MediaPageLinkClass).forEach(el => el.addEventListener("click", function (event) {
-        let mediaType = event.target.getAttribute('data-MediaType')
+        mediaType = event.target.getAttribute('data-MediaType')
         //console.log("media-page click, mediaType = " + mediaType)
 
         if (typeof mediaType !== "undefined" && mediaType !== null) {
-            empty(thumbnailContainer);
-            createMenu(mediaType);
-            // Query based on default Category and Start Date
-            executeFilter()
+            getMenu = true
+            // >>>>>>>>>>>>>>>>>>>>>>>> this is the START of things <<<<<<<<<<<<<<<<<<<
+            let paramData = {
+                MediaFilterMediaType: mediaType, 
+                getMenu: getMenu,
+                MediaFilterCategory: "DEFAULT",
+                MediaFilterStartDate: "DEFAULT"}
+    
+            queryMediaInfo(paramData);
         }
     }));
 
@@ -252,114 +333,99 @@ var mgallery = (function(){
     // *** Have to listen to Body instead of individual containers (because there are more than 1)
     //-------------------------------------------------------------------------------------------------------
     document.body.addEventListener("click", function (event) {
-
         // Check for specific classes
         if (event.target && event.target.classList.contains(MediaFilterRequestClass)) {
-            // If click on a media folder, create the thumbnails display for that folder
+            // If click on a Filter Request (like Next or Prev), query the data and build the thumbnail display
+            //console.log(">>> FilterRequest data-category = "+event.target.getAttribute('data-category'))
+            //console.log(">>> FilterRequest data-startDate = "+event.target.getAttribute('data-startDate'))
+            //console.log(">>> FilterRequest data-searchStr = "+event.target.getAttribute('data-searchStr'))
+    
+            let paramData = {
+                MediaFilterMediaType: mediaType, 
+                getMenu: false,
+                MediaFilterCategory:  event.target.getAttribute('data-category'),
+                MediaFilterStartDate: event.target.getAttribute('data-startDate'),
+                MediaFilterSearchStr: event.target.getAttribute('data-searchStr')}
 
-            mediaFilterMediaType = event.target.getAttribute('data-MediaType')
-            //let tempStartDate = event.target.getAttribute('data-startDate')
-            //tempStartDate = tempStartDate.substring(0,10)
-
-            // >>>> setting Category drop-down from value
-            //let categoryValue = event.target.getAttribute('data-category')
-
-            let paramData = {MediaFilterMediaType:event.target.getAttribute('data-MediaType'),
-                             MediaFilterCategory:event.target.getAttribute('data-category'),
-                             MediaFilterStartDate:event.target.getAttribute('data-startDate')}
-	        displayThumbnails(paramData);
+            queryMediaInfo(paramData);
 
         } else if (event.target && event.target.classList.contains(MediaMenuRequestClass)) {
-            // If click on a menu item, create the thumbnails display for that item
+            // If click on a menu item, query the data and build the thumbnail display
+            let paramData = {
+                MediaFilterMediaType: mediaType, 
+                getMenu: false,
+                MediaFilterCategory:  event.target.getAttribute('data-category'),
+                MediaFilterMenuItem:  event.target.getAttribute('data-menuItem'),
+                MediaFilterStartDate: event.target.getAttribute('data-startDate')}
 
-            // >>>> setting Category drop-down from value
-            /*
-            mediaFilterCategory.options[index].selected = true;
-            
-            for (let i = (mediaFilterCategory.options.length-1); i > -1; i--) {
-                mediaFilterCategory.options.remove(i)
-            }
-            for (let index in listInfo.categoryList) {
-                mediaCategorySelect.options[mediaCategorySelect.options.length] = new Option(listInfo.categoryList[index], listInfo.categoryList[index])
-            }
-
-            mediaFilterSearchStr.value
-            */
-
-            //console.log(">>> Filter mediaFilterMenuItem = "+mediaFilterMenuItem.value)
-            //console.log(">>> Filter mediaFilterAlbumTag = "+mediaFilterAlbumTag.value)
-    
-            //let tempStartDate = event.target.getAttribute('data-startDate')
-            //tempStartDate = tempStartDate.substring(0,10)
-
-            let paramData = {MediaFilterMediaType:event.target.getAttribute('data-MediaType'),
-                             MediaFilterCategory:event.target.getAttribute('data-category'),
-                             MediaFilterMenuItem:event.target.getAttribute('data-menuItem'),
-                             MediaFilterStartDate:event.target.getAttribute('data-startDate')}
-	        displayThumbnails(paramData);
+            queryMediaInfo(paramData);
 
             bootstrap.Offcanvas.getOrCreateInstance('#MediaMenuCanvas').hide();
         }
     });
 
+    //-------------------------------------------------------------------------------------------------------------------
     // Listen for clicks in the MediaThumbnails container
+    //-------------------------------------------------------------------------------------------------------------------
     thumbnailContainer.addEventListener("click", function (event) {
-        event = event || window.event;
-        var target = event.target,
+            event = event || window.event
+            //let target = event.target
+            let target = event.target,
             link = target.src ? target.parentNode : target,
             options = { index: link, event: event },
-            links = this.getElementsByTagName('a');
+            links = this.getElementsByTagName('a')
 
-        if (target.classList.contains(imgThumbnailClass)) {
-            blueimp.Gallery(links, options);
-        } else if (target.classList.contains(audioNextClass)) {
-            nextSong();
-        } else if (target.classList.contains(audioPrevClass)) {
-            prevSong();
-        } else if (target.classList.contains(playlistSongClass)) {
-            let tempAttr = target.getAttribute('data-plIndex');
-            if (typeof tempAttr !== "undefined" && tempAttr !== null) {
-                loadSong(tempAttr);
+            if (target.classList.contains(imgThumbnailClass)) {
+                //console.log("Clicked on image thumbnail")
+                if (editMode) {
+                    let index = parseInt(target.getAttribute('data-index'))
+                    if (typeof index !== "undefined" && index !== null) {
+                        //console.log(">>> click on thumbnail img class ")
+                        displayFileDetail(index)
+                    }
+                } else {
+                    blueimp.Gallery(links, options);
+                }
+
+            } else if (target.classList.contains(imgCheckboxClass)) {
+                //console.log("Clicked on image checkbox")
+                let index = parseInt(target.getAttribute('data-index'))
+                if (typeof index !== "undefined" && index !== null) {
+                    mediaInfo.fileList[index].Selected = true
+                }
+            } else if (target.classList.contains(audioNextClass)) {
+                nextSong();
+            } else if (target.classList.contains(audioPrevClass)) {
+                prevSong();
+            } else if (target.classList.contains(playlistSongClass)) {
+                let tempAttr = target.getAttribute('data-plIndex');
+                if (typeof tempAttr !== "undefined" && tempAttr !== null) {
+                    loadSong(tempAttr);
+                }
             }
-        }
     });
+
 
     //-------------------------------------------------------------------------------------------------------
     // Respond to Filter requests
     //-------------------------------------------------------------------------------------------------------
-    /*
-    mediaFilterButton.addEventListener("click", function () {
-        executeFilter()
-    });
-    */
-    mediaFilterCategory.addEventListener("change", function () {
-        executeFilter()
-    });
-    mediaFilterStartDate.addEventListener("change", function () {
-        executeFilter()
-    });
-    mediaFilterSearchStr.addEventListener("keypress", function(event) {
-        // If the user presses the "Enter" key on the keyboard
-        if (event.key === "Enter") {
-            // Cancel the default action, if needed
-            event.preventDefault();
-            executeFilter()
-        }
-    });
-
     function executeFilter() {
-        console.log(">>> Execute Filter mediaFilterCategory = "+mediaFilterCategory.value)
-        console.log(">>> Filter mediaFilterStartDate = "+mediaFilterStartDate.value)
-        console.log(">>> Filter mediaFilterSearchStr = "+mediaFilterSearchStr.value)
-        console.log(">>> Filter mediaFilterMenuItem = "+mediaFilterMenuItem.value)
-        console.log(">>> Filter mediaFilterAlbumTag = "+mediaFilterAlbumTag.value)
+        //console.log(">>> Execute Filter mediaFilterMediaType = "+mediaType)
+        //console.log(">>> Execute Filter mediaFilterCategory = "+mediaFilterCategory.value)
+        //console.log(">>> Filter mediaFilterStartDate = "+mediaFilterStartDate.value)
+        //console.log(">>> Filter mediaFilterSearchStr = "+mediaFilterSearchStr.value)
+        //console.log(">>> Filter mediaFilterMenuItem = "+mediaFilterMenuItem.value)
+        //console.log(">>> Filter mediaFilterAlbumTag = "+mediaFilterAlbumTag.value)
     
-        let paramData = {MediaFilterMediaType:mediaFilterMediaType.value,
-            MediaFilterCategory:mediaFilterCategory.value,
-            MediaFilterStartDate:mediaFilterStartDate.value,
-            MediaFilterSearchStr:mediaFilterSearchStr.value}
+        let paramData = {
+            MediaFilterMediaType: mediaType, 
+            getMenu: false,
+            MediaFilterCategory:  mediaFilterCategory.value,
+            MediaFilterStartDate: mediaFilterStartDate.value,
+            MediaFilterSearchStr: mediaFilterSearchStr.value}
 
-        displayThumbnails(paramData);
+        queryMediaInfo(paramData);
+        // After query has retreived data, it will kick off the display page create
     }
 
 
@@ -417,241 +483,588 @@ var mgallery = (function(){
     }
 
     //------------------------------------------------------------------------------------------------------------
-    // Create a collapsible menu from a directory structure
+    // Query the database for menu and file information and store in js variables
     //------------------------------------------------------------------------------------------------------------
-    function createMenu(mediaType) {
-        //console.log("createMenu, dir=" + dirName)
-        //console.log("createMenu, mediaType = " + mediaType)
-
-        let url = jjkgalleryRoot + "getMenuList.php"
-        let urlParamStr = `?mediaType=${mediaType}`
-        fetch(url+urlParamStr)
-        .then(response => response.json())
-        .then(menuList => {
-            //buildMenuElements(mediaType,MediaMenuId,menuList)
-            buildMenuElements(mediaType,MediaOffcanvasMenuId,menuList)
-        });
-
-    } // function createMenu(mediaType) {
-
-    /*
-			<div class="col">
-                <div id="MediaFilterInputValues" class="container-fluid my-2">
-                    <div class="row">
-                        <input id="MediaFilterMediaType" type="hidden" class="form-control" value="1">
-                        <input id="MediaFilterMenuItem" type="hidden" class="form-control" value="">
-                        <input id="MediaFilterAlbumTag" type="hidden" class="form-control" value="">
-
-                        <div class="col-3" >
-                            <button class="btn btn-primary float-start" type="button" data-bs-toggle="offcanvas" data-bs-target="#MediaMenuCanvas">
-                                <i class="fa fa-chevron-right" ></i> Menu
-                            </button>
-                        </div>
-                        <div class="col">
-                            <select id="MediaFilterCategory" class="form-select float-end shadow-none">
-                                <option value="0">ALL</option>
-                                <option selected value="1 John J Kauflin">1 John J Kauflin</option>
-                                <option value="2 John E Kauflin">2 John E Kauflin</option>
-                                <option value="3 Baker Family">3 Baker Family</option>
-                                <option value="4 Mann Family">4 Mann Family</option>
-                                <option value="5 Bands">5 Bands</option>
-                                <option value="Mementos">Mementos</option>
-                                <option value="Misc">Misc</option>
-                                <option value="Albums">Albums</option>
-                            </select>
-                        </div>
-                        <div class="col-2">
-                            <button id="MediaFilterButton" type="button" class="btn btn-success float-end shadow-none" disabled>
-                                <i class="fa fa-pencil" ></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="row mt-2">
-                        <div class="col-3 d-none d-sm-block">
-                            <h5 id=MediaHeader></h5>
-                        </div>
-                        <div class="col">
-                            <div class="row">
-                                <div class="col-5">
-                                    <input id="MediaFilterStartDate" type="date" class="form-control shadow-none" value="2023-01-01">
-                                </div>
-                                <div class="col-7">
-                                    <input id="MediaFilterSearchStr" type="text" class="form-control shadow-none" placeholder="Search string">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-2 d-none d-sm-block">
-                            <!--
-                            <h6 class="float-end">(Edit Mode)</h6>
-                            -->
-                        </div>
-                    </div>
-                </div>
-
-                <div id="MediaFilterRequests">
-                </div>
-                <div id="MediaThumbnails">
-                </div>
-            </div>
-    */
-
-    //------------------------------------------------------------------------------------------------------------
-    // Create thumbnails and entity links (for photos, audio, video, etc.)
-    //------------------------------------------------------------------------------------------------------------
-    //function displayThumbnails(mediaType,category,menuItem,startDate,endDate,searchStr) {
-    function displayThumbnails(paramData) {
-        //console.log("$$$ displayThumbnails, category: " + category + ", menuItem: "+menuItem);
-
-        empty(filterRequestsContainer);
-        empty(thumbnailContainer);
-        //empty(configContainer);
-
-        // Clear out the display file list
-        adminFileList = []
-
-        // Assuming the media folder are under a parent media folder (look for 1st slash to get sub-path)
-        var mediaTypeDesc = "Photos";
-        if (paramData.MediaFilterMediaType == 3) {
-            mediaTypeDesc = "Music";
-        }
-
-        var photosThumbsRoot = mediaTypeDesc + "Thumbs";
-        var photosSmallerRoot = mediaTypeDesc + "Smaller";
-        //var photosThumbDir = photosThumbsRoot + subPath;
-        //var photosSmallerDir = photosSmallerRoot + subPath;
-
-        // Get a list of files from the media gallery database based on query parameters
-        let url = jjkgalleryRoot + "getFileList.php"
+    function queryMediaInfo(paramData) {
+        let url = jjkgalleryRoot + "getMediaInfo.php"
         fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(paramData)
         })
         .then(response => response.json())
-        .then(listInfo => {
-            // loop through the list and display thumbnails in a div
-            let periodPos = 0
-            let fileExt = ''
-            let filePath = ''
-            let fileSubPath = ''
-            let fileNameNoExt = ''
+        .then(responseMediaInfo => {
+            // Save the media information in the response
+            mediaInfo = responseMediaInfo
+            getMenu = paramData.getMenu
+            if (getMenu) {
+                // Save the menu lists
+                menuList = mediaInfo.menuList
+                categoryList = mediaInfo.categoryList
+                menuFilter = mediaInfo.menuFilter
+                albumList = mediaInfo.albumList
+                peopleList = mediaInfo.peopleList
 
-            let docFiles = false
-            let audioFiles = false
-            playlist.length = 0
-            plIndex = -1
-            let doclistTbody = document.createElement("tbody")
-            var playlistTbody = document.createElement("tbody")
-
-            // Set the UI filter date to the start date of the first file in the query set
-            mediaFilterStartDate.value = listInfo.startDate
-
-            //----------------------------------------------------------------------------------------------------
-            // If there is a filter request list, create Filter Request buttons with the start date
-            //----------------------------------------------------------------------------------------------------
-            if (paramData.MediaFilterMediaType == 1 && listInfo.filterList != null) {
-                let fileList = listInfo.filterList
-                for (let index in listInfo.filterList) {
-                    let FilterRec = listInfo.filterList[index]
-                    let button = document.createElement("button")
-                    button.setAttribute('type',"button")
-                    button.setAttribute('role',"button")
-                    button.setAttribute('data-MediaType', paramData.MediaFilterMediaType)   // current media type
-                    button.setAttribute('data-category', paramData.MediaFilterCategory)     // current category
-                    button.setAttribute('data-startDate', FilterRec.startDate)
-                    button.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','mb-2',MediaFilterRequestClass)
-                    button.textContent = FilterRec.filterName
-                    filterRequestsContainer.appendChild(button)
-                }    
+                // Set the top level variables from the media type descriptions
+                mediaTypeDesc = mediaInfo.menuList[0].mediaTypeDesc
+                photosThumbsRoot = mediaTypeDesc + "Thumbs";
+                photosSmallerRoot = mediaTypeDesc + "Smaller";
             }
 
-            //----------------------------------------------------------------------------------------------------
-            // Display thumbnails for files in file list
-            //----------------------------------------------------------------------------------------------------
-            let fileList = listInfo.fileList
-            for (let index in fileList) {
-                let fileRec = fileList[index]
+            // Save the parameters from the laste query
+            queryCategory = paramData.MediaFilterCategory
+            querySearchStr = ""
+            if (paramData.MediaFilterSearchStr != null && paramData.MediaFilterSearchStr != "") {
+                querySearchStr = paramData.MediaFilterSearchStr
+            }
+            queryMenuItem = ""
+            if (paramData.MediaFilterMenuItem != null & paramData.MediaFilterMenuItem != "") {
+                queryMenuItem = paramData.MediaFilterMenuItem
+            }
 
-                const fileInfo = {
-                    Name: fileRec.filename,
-                    DirSubPath: fileRec.dirSubPath,
-                    Selected: false,
-                    CategoryTags: fileRec.CategoryTags,
-                    MenuTags: fileRec.MenuTags,
-                    AlbumTags: fileRec.AlbumTags,
-                    TakenDateTime: fileRec.TakenDateTime,
-                    Title: fileRec.Title,
-                    Description: fileRec.Description,
-                    People: fileRec.People
-                };
+            createMediaPage()
+        });
+    }
+
+
+    //------------------------------------------------------------------------------------------------------------
+    // Dynamically create the DOM elements to add to the Media Page div (either regular display or EDIT mode)
+    //------------------------------------------------------------------------------------------------------------
+    function createMediaPage() {
+        //console.log("$$$$ in the createMediaPage")
+        empty(filterContainer)
+        empty(filterRequestsContainer)
+        empty(thumbnailContainer)
+        empty(editRow1)
+
+        if (getMenu) {
+            buildMenuElements(mediaType)
+        }
+        buildFilterElements(mediaType)
+
+        if (editMode) {
+            // Create Row and columns
+            editRow1.classList.add('row')
+
+            // Col 1
+            let editRow1Col1 = document.createElement("div")
+            editRow1Col1.classList.add('col-sm-5','col-md-5')
+            editRow1Col1.appendChild(thumbnailContainer);
+            editRow1.appendChild(editRow1Col1)
+
+            // Col 2
+            let editRow1Col2 = document.createElement("div")
+            editRow1Col2.classList.add('col-sm-4','col-md-4')
+
+            // GetNEW
+            let getNewButton = document.createElement("button")
+            getNewButton.classList.add('btn','btn-success','btn-sm','float-start','shadow-none','me-2','my-2')
+            getNewButton.setAttribute('type',"button")
+            getNewButton.setAttribute('role',"button")
+            getNewButton.textContent = "Get NEW"
+            editRow1Col2.appendChild(getNewButton)
+            getNewButton.addEventListener("click", function () {
+                let paramData = {
+                    MediaFilterMediaType: mediaType, 
+                    getNew: true}
+                queryMediaInfo(paramData);
+            });
+
+            // SelectALL
+            let selectAllButton = document.createElement("button")
+            selectAllButton.classList.add('btn','btn-primary','btn-sm','float-start','shadow-none','me-2','my-2')
+            selectAllButton.setAttribute('type',"button")
+            selectAllButton.setAttribute('role',"button")
+            selectAllButton.textContent = "Select ALL"
+            editRow1Col2.appendChild(selectAllButton)
+            selectAllButton.addEventListener("click", function () {
+                currIndex = 0
+                if (currSelectAll == true) {
+                    currSelectAll = false
+                } else {
+                    currSelectAll = true
+                }
+                // Loop through the current file list and set all to Selected
+                for (let index in mediaInfo.fileList) {
+                    mediaInfo.fileList[index].Selected = currSelectAll
+                }        
+                //displayFileDetail(currIndex) <<<<< can't select the 1st one because that will turn off the selected for all the rest
+                displayCurrFileList()
+            });
+
+            // Prev
+            let detailPrevButton = document.createElement("button")
+            //detailPrevButton.id = "MediaAdminSelectAllButton"
+            detailPrevButton.classList.add('btn','btn-warning','btn-sm','float-start','shadow-none','me-2','my-2')
+            detailPrevButton.setAttribute('type',"button")
+            detailPrevButton.setAttribute('role',"button")
+            detailPrevButton.textContent = "Prev"
+            editRow1Col2.appendChild(detailPrevButton)
+            detailPrevButton.addEventListener("click", function () {
+                if (currIndex > 0) {
+                    currIndex -= 1
+                    displayFileDetail(currIndex)
+                }            
+            });
+
+            // Next
+            let detailNextButton = document.createElement("button")
+            //detailNextButton.id = "MediaAdminGetNewButton"
+            detailNextButton.classList.add('btn','btn-info','btn-sm','float-start','shadow-none','me-2','my-2')
+            detailNextButton.setAttribute('type',"button")
+            detailNextButton.setAttribute('role',"button")
+            detailNextButton.textContent = "Next"
+            editRow1Col2.appendChild(detailNextButton)
+            detailNextButton.addEventListener("click", function () {
+                if (currIndex < mediaInfo.fileList.length-1) {
+                    currIndex += 1
+                    displayFileDetail(currIndex)
+                }            
+            });
+
+            // *** Detail TAGS ***
+            mediaDetailFilename = document.createElement("div")
+            editRow1Col2.appendChild(mediaDetailFilename)
     
-                // Add the file info objects to the main array
-                adminFileList[adminFileList.length] = fileInfo
+            mediaDetailTitle = document.createElement("input")
+            mediaDetailTitle.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailTitle.setAttribute('type', "text")
+            mediaDetailTitle.setAttribute('placeholder', "Title")
+            editRow1Col2.appendChild(mediaDetailTitle)
+    
+            mediaDetailTaken = document.createElement("input")
+            mediaDetailTaken.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailTaken.setAttribute('type', "text")
+            mediaDetailTaken.setAttribute('placeholder', "Taken DateTime")
+            editRow1Col2.appendChild(mediaDetailTaken)
+    
+            mediaDetailImg = document.createElement("img")
+            mediaDetailImg.classList.add('img-fluid','rounded','mx-auto','d-block')
+            //mediaDetailImg.setAttribute('onerror', "this.onerror=null; this.remove()")
+            mediaDetailImg.setAttribute('onerror', "this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';")
+            editRow1Col2.appendChild(mediaDetailImg)
 
-            } // End of Loop through dir list files
-            
-            mediaAdminMessage.textContent = "Number of images = " + (adminFileList.length)
-            displayFileList()
-            //displayFileDetail(0)            
+            editRow1.appendChild(editRow1Col2)
 
-        }); // End of Fetch dir list - fetch(url+urlParamStr)
+            // Col 3
+            let editRow1Col3 = document.createElement("div")
+            editRow1Col3.classList.add('col-sm-3','col-md-3')
+            // Category
+            mediaCategorySelect = document.createElement("select")
+            mediaCategorySelect.classList.add('form-select','float-start','shadow-none','mt-2','py-1')
+            for (let index in categoryList) {
+                if (index == 1) {
+                    mediaCategorySelect.options[mediaCategorySelect.options.length] = new Option(categoryList[index], categoryList[index], true, true)
+                } else {
+                    mediaCategorySelect.options[mediaCategorySelect.options.length] = new Option(categoryList[index], categoryList[index])
+                }
+            }
+            editRow1Col3.appendChild(mediaCategorySelect);
 
-    } // function displayThumbnails(dirName) {
+            mediaMenuSelect = document.createElement("select")
+            mediaMenuSelect.classList.add('form-select','float-start','shadow-none','mt-2','py-1')
+            for (let index in menuFilter) {
+                let tempPos = menuFilter[index].indexOf(' - ')
+                mediaMenuSelect.options[mediaMenuSelect.options.length] = new Option(menuFilter[index], menuFilter[index].substring(tempPos+3))
+            }
+            editRow1Col3.appendChild(mediaMenuSelect);
+
+            //-------------------------------------------------------------------------------------------------------------
+            // *** People list ***
+            //-------------------------------------------------------------------------------------------------------------
+            mediaPeopleSelect = document.createElement("select")
+            mediaPeopleSelect.classList.add('form-select','float-start','shadow-none','py-1')
+            for (let index in peopleList) {
+                mediaPeopleSelect.options[mediaPeopleSelect.options.length] = new Option(peopleList[index], index)
+            }
+
+            mediaPeopleInput = document.createElement("input")
+            mediaPeopleInput.classList.add('form-control','shadow-none','mt-2','py-1')
+            mediaPeopleInput.setAttribute('type',"text")
+            mediaPeopleInput.setAttribute('placeholder',"People filter")
+            editRow1Col3.appendChild(mediaPeopleInput);
+            // Filter the people list from entered value (checked after every key is typed)
+            mediaPeopleInput.addEventListener("keyup", function(event) {
+                //console.log("mediaPeopleInput.value = "+mediaPeopleInput.value);
+                let peopleInputVal = ""
+                if (mediaPeopleInput.value != null) {
+                    peopleInputVal = mediaPeopleInput.value
+                }
+
+                // Remove all options
+                for (let i = (mediaPeopleSelect.options.length-1); i > -1; i--) {
+                    mediaPeopleSelect.options.remove(i)
+                }
+
+                //let searchEx = new RegExp(`//${mediaPeopleInput.value}//i`);
+                //string pattern = @"\b[M]\w+";
+
+                //let searchStr = '/'+mediaPeopleInput.value+'/i'
+                //let re = new RegExp(`\b${mediaPeopleInput.value}\b`, 'i');
+                //let re = new RegExp(`\badam\b`, 'i');
+
+                // Add the ones that match the input value
+                for (let index in peopleList) {
+                    //if (peopleList[index].search(searchEx) >= 0) {
+                    //if (peopleList[index].search(/adam/i) >= 0) {
+                    //if (peopleList[index].search(re) >= 0) {
+                    if (peopleInputVal != "") {
+                        if (peopleList[index].indexOf(peopleInputVal) >= 0) {
+                            mediaPeopleSelect.options[mediaPeopleSelect.options.length] = new Option(peopleList[index], index)
+                        }
+                    } else {
+                        mediaPeopleSelect.options[mediaPeopleSelect.options.length] = new Option(peopleList[index], index)
+                    }
+                }
+            });
+
+            editRow1Col3.appendChild(mediaPeopleSelect);
+
+            mediaPeopleList = document.createElement("input")
+            mediaPeopleList.classList.add('form-control','shadow-none','py-1')
+            mediaPeopleList.setAttribute('type',"text")
+            mediaPeopleList.setAttribute('placeholder',"People list")
+
+            let replacePeopleButton = document.createElement("button")
+            replacePeopleButton.classList.add('btn','btn-primary','btn-sm','float-start','shadow-none','me-2','my-1')
+            replacePeopleButton.setAttribute('type',"button")
+            replacePeopleButton.setAttribute('role',"button")
+            replacePeopleButton.textContent = "Replace"
+            editRow1Col3.appendChild(replacePeopleButton)
+            replacePeopleButton.addEventListener("click", function () {
+                mediaPeopleList.value = peopleList[mediaPeopleSelect.value]
+            });
+
+            let appendPeopleButton = document.createElement("button")
+            appendPeopleButton.classList.add('btn','btn-warning','btn-sm','float-start','shadow-none','me-2','my-1')
+            appendPeopleButton.setAttribute('type',"button")
+            appendPeopleButton.setAttribute('role',"button")
+            appendPeopleButton.textContent = "Append"
+            editRow1Col3.appendChild(appendPeopleButton)
+            appendPeopleButton.addEventListener("click", function () {
+                if (mediaPeopleList.value) {
+                    mediaPeopleList.value = mediaPeopleList.value + ',' + peopleList[mediaPeopleSelect.value]
+                } else {
+                    mediaPeopleList.value = peopleList[mediaPeopleSelect.value]
+                }
+            });
+
+            editRow1Col3.appendChild(mediaPeopleList);
+
+            // Update
+            let editUpdateButton = document.createElement("button")
+            editUpdateButton.classList.add('btn','btn-info','btn-sm','float-start','shadow-none','mt-3','me-2')
+            editUpdateButton.setAttribute('type',"button")
+            editUpdateButton.setAttribute('role',"button")
+            editUpdateButton.textContent = "Update Selected"
+            editRow1Col3.appendChild(editUpdateButton)
+            editUpdateButton.addEventListener("click", function () {
+                //console.log("mediaCategorySelect.value = "+mediaCategorySelect.value)
+                //console.log("mediaMenuSelect.value = "+mediaMenuSelect.value)
+                //console.log("mediaPeopleList.value = "+mediaPeopleList.value)
+                mediaAdminMessage.textContent = ""
+
+                // update to selected objects in adminFileList
+                for (let index in mediaInfo.fileList) {
+                    let fi = mediaInfo.fileList[index]
+                    if (fi.Selected) {
+                        fi.Title = mediaDetailTitle.value
+                        fi.TakenDateTime = mediaDetailTaken.value
+                        fi.CategoryTags = mediaCategorySelect.value
+                        mediaDetailCategoryTags.value = mediaCategorySelect.value
+                        fi.MenuTags = mediaMenuSelect.value
+                        mediaDetailMenuTags.value = mediaMenuSelect.value
+                        fi.AlbumTags = mediaDetailAlbumTags.value
+                        fi.People = mediaPeopleList.value
+                        mediaDetailPeopleList.value = mediaPeopleList.value
+                        fi.Description = mediaDetailDescription.value
+                    }
+                }
+            });
+        
+            // Save
+            let editSaveButton = document.createElement("button")
+            //editSaveButton.id = "MediaAdminSaveButton"
+            editSaveButton.classList.add('btn','btn-success','btn-sm','float-start','shadow-none','mt-3','me-2','mb-3')
+            editSaveButton.setAttribute('type',"button")
+            editSaveButton.setAttribute('role',"button")
+            editSaveButton.textContent = "Save to DB"
+            editRow1Col3.appendChild(editSaveButton)
+            editSaveButton.addEventListener("click", function () {
+                let paramData = {MediaFilterMediaType: mediaType,
+                                 mediaInfoFileList: mediaInfo.fileList}
+
+                let url = jjkgalleryRoot + "updateMediaInfo.php"
+                fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(paramData)
+                })
+                .then(response => response.text())
+                .then(returnMsg => {
+                    //console.log("returnMsg = "+returnMsg)
+                    mediaAdminMessage.textContent = returnMsg
+
+                    // Filter out the Selected files (that were updated)
+                    mediaInfo.fileList = mediaInfo.fileList.filter(checkSelected);
+                    currIndex = 0
+                    displayCurrFileList()
+                    
+                }); // End of Fetch
+            });
+
+            // Category Tags
+            mediaDetailCategoryTags = document.createElement("input")
+            //mediaDetailCategoryTags.id = "MediaDetailCategoryTags"
+            mediaDetailCategoryTags.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailCategoryTags.setAttribute('type', "text")
+            mediaDetailCategoryTags.setAttribute('placeholder', "Category tags")
+            mediaDetailCategoryTags.disabled = true
+            editRow1Col3.appendChild(mediaDetailCategoryTags)
+
+            // Menu Tags
+            mediaDetailMenuTags = document.createElement("input")
+            //mediaDetailMenuTags.id = "MediaDetailMenuTags"
+            mediaDetailMenuTags.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailMenuTags.setAttribute('type', "text")
+            mediaDetailMenuTags.setAttribute('placeholder', "Menu tags")
+            mediaDetailMenuTags.disabled = true
+            editRow1Col3.appendChild(mediaDetailMenuTags)
+
+            // Album Tags
+            mediaDetailAlbumTags = document.createElement("input")
+            //mediaDetailAlbumTags.id = "MediaDetailAlbumTags"
+            mediaDetailAlbumTags.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailAlbumTags.setAttribute('type', "text")
+            mediaDetailAlbumTags.setAttribute('placeholder', "Album tags")
+            editRow1Col3.appendChild(mediaDetailAlbumTags)
+
+            // People List
+            mediaDetailPeopleList = document.createElement("input")
+            //mediaDetailPeopleList.id = "MediaDetailPeopleList"
+            mediaDetailPeopleList.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailPeopleList.setAttribute('type', "text")
+            mediaDetailPeopleList.setAttribute('placeholder', "People list")
+            mediaDetailPeopleList.disabled = true
+            editRow1Col3.appendChild(mediaDetailPeopleList)
+
+            // Description
+            mediaDetailDescription = document.createElement("textarea")
+            //mediaDetailDescription.id = "MediaDetailDescription"
+            mediaDetailDescription.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailDescription.setAttribute('rows', "6")
+            mediaDetailDescription.setAttribute('placeholder', "Description")
+            //mediaDetailDescription.value = fi.Description
+            editRow1Col3.appendChild(mediaDetailDescription)
+
+            // Admin Message
+            mediaAdminMessage = document.createElement("div")
+            mediaAdminMessage.id = "MediaAdminMessage"
+            mediaAdminMessage.classList.add('float-start')
+            mediaAdminMessage.textContent = "Number of images = " + (mediaInfo.fileList.length)
+            editRow1Col3.appendChild(mediaAdminMessage)
+            editRow1.appendChild(editRow1Col3)
+
+            mediaPageContainer.appendChild(editRow1);
+
+        } else {
+            mediaPageContainer.appendChild(filterContainer);
+            mediaPageContainer.appendChild(filterRequestsContainer);
+            mediaPageContainer.appendChild(thumbnailContainer);
+        }
+
+        displayCurrFileList()
+    }
 
 
-    function displayFileList() {
-        empty(thumbnailContainer);
+        //------------------------------------------------------------------------------------------------------------
+    // Create a collapsible menu from a directory structure
+    //------------------------------------------------------------------------------------------------------------
+    function buildFilterElements(mediaType) {
+        empty(filterContainer)
 
+        // Row 1
+        let filterRow1 = document.createElement("div")
+        filterRow1.classList.add('row','mt-2')
+        let filterRow1Col1 = document.createElement("div")
+        filterRow1Col1.classList.add('col-3')
+
+        let menuButton = document.createElement("button")
+        menuButton.classList.add('btn','btn-primary','btn-sm','float-start')
+        menuButton.setAttribute('type',"button")
+        menuButton.setAttribute('role',"button")
+        menuButton.setAttribute('data-bs-toggle', "offcanvas")
+        menuButton.setAttribute('data-bs-target', "#MediaMenuCanvas")
+        //menuButton.textContent = "Menu"
+        let icon1 = document.createElement("i")
+        icon1.classList.add('fa','fa-chevron-right')
+        icon1.textContent = "Menu"
+        menuButton.appendChild(icon1)
+        filterRow1Col1.appendChild(menuButton)
+        filterRow1.appendChild(filterRow1Col1)
+
+        let filterRow1Col2 = document.createElement("div")
+        filterRow1Col2.classList.add('col')
+        // Category
+        mediaFilterCategory = document.createElement("select")
+        mediaFilterCategory.classList.add('form-select','float-start','shadow-none')
+        let tempSelected = false
+        for (let index in categoryList) {
+            tempSelected = false
+            if (queryCategory != null && queryCategory != "" && queryCategory != "DEFAULT") {
+                if (categoryList[index] == queryCategory) {
+                    tempSelected = true
+                }
+            } else {
+                if (mediaType == 1) {
+                    if (index == 1) {
+                        tempSelected = true
+                    }
+                } else {
+                    if (index == 0) {
+                        tempSelected = true
+                    }
+                }
+            }
+
+            if (tempSelected) {
+                mediaFilterCategory.options[mediaFilterCategory.options.length] = new Option(categoryList[index], categoryList[index], true, true)
+            } else {
+                mediaFilterCategory.options[mediaFilterCategory.options.length] = new Option(categoryList[index], categoryList[index])
+            }
+        }
+        filterRow1Col2.appendChild(mediaFilterCategory);
+        mediaFilterCategory.addEventListener("change", function () {
+            executeFilter()
+        });
+        filterRow1.appendChild(filterRow1Col2)
+
+        let filterRow1Col3 = document.createElement("div")
+        filterRow1Col3.classList.add('col-1')
+        filterRow1.appendChild(filterRow1Col3)
+
+        // Row 2
+        let filterRow2 = document.createElement("div")
+        filterRow2.classList.add('row','mt-2')
+        let filterRow2Col1 = document.createElement("div")
+        filterRow2Col1.classList.add('col-3','d-none','d-sm-block')
+        let header2 = document.createElement("h5")
+        header2.textContent = mediaTypeDesc
+        filterRow2Col1.appendChild(header2)
+        filterRow2.appendChild(filterRow2Col1)
+
+        let filterRow2Col2 = document.createElement("div")
+        filterRow2Col2.classList.add('col')
+        let tRow = document.createElement("div")
+        tRow.classList.add('row')
+        let tCol1 = document.createElement("div")
+        tCol1.classList.add('col-5')
+        mediaFilterStartDate = document.createElement("input")
+        mediaFilterStartDate.classList.add('form-control','shadow-none')
+        mediaFilterStartDate.setAttribute('type',"date")
+        mediaFilterStartDate.value = mediaInfo.startDate
+        tCol1.appendChild(mediaFilterStartDate);
+        tRow.appendChild(tCol1)
+        mediaFilterStartDate.addEventListener("change", function () {
+            executeFilter()
+        });
+
+        let tCol2 = document.createElement("div")
+        tCol2.classList.add('col-7')
+        mediaFilterSearchStr = document.createElement("input")
+        //mediaFilterSearchStr.id = "MediaFilterSearchStr"
+        mediaFilterSearchStr.classList.add('form-control','shadow-none')
+        mediaFilterSearchStr.setAttribute('type',"text")
+        mediaFilterSearchStr.setAttribute('placeholder',"Search string")
+        mediaFilterSearchStr.value = querySearchStr
+        tCol2.appendChild(mediaFilterSearchStr);
+        tRow.appendChild(tCol2)
+        filterRow2Col2.appendChild(tRow)
+        filterRow2.appendChild(filterRow2Col2)
+        mediaFilterSearchStr.addEventListener("keypress", function(event) {
+            // If the user presses the "Enter" key on the keyboard
+            if (event.key === "Enter") {
+                // Cancel the default action, if needed
+                event.preventDefault();
+                executeFilter()
+            }
+        });
+    
+        let filterRow2Col3 = document.createElement("div")
+        filterRow2Col3.classList.add('col-2','d-none','d-sm-block')
+        let header3 = document.createElement("h6")
+        header3.classList.add('float-end')
+        //header3.textContent = "(Edit Mode)"
+        header3.textContent = ""   // >>>>>>>>>>>>>>>>>>>>>>> use if you need to display something <<<<<<<<<<<<<<<<<<<<<
+        filterRow2Col3.appendChild(header3)
+        filterRow2.appendChild(filterRow2Col3)
+
+        // Add Rows to Filter Container
+        filterContainer.appendChild(filterRow1);
+        filterContainer.appendChild(filterRow2);
+    }
+
+    function checkSelected(fileInfo) {
+        return !fileInfo.Selected
+    }
+
+    //===========================================================================================================
+    // Display the current list image thumbnails in the thumbnail container (with appropriate class links)
+    //===========================================================================================================
+    function displayCurrFileList() {
+        let periodPos = 0
+        let fileExt = ''
+        let filePath = ''
         let fileSubPath = ''
-        for (let index in adminFileList) {
-            let fi = adminFileList[index]
+        let fileNameNoExt = ''
 
-            /*
-            if (fi.DirSubPath != '') {
-                fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
+        let docFiles = false
+        let audioFiles = false
+        playlist.length = 0
+        plIndex = -1
+        let doclistTbody = document.createElement("tbody")
+        var playlistTbody = document.createElement("tbody")
+
+        //----------------------------------------------------------------------------------------------------
+        // If there is a filter request list, create Filter Request buttons with the start date
+        //----------------------------------------------------------------------------------------------------
+        empty(filterRequestsContainer);
+        if (mediaType == 1 && mediaInfo.filterList != null) {
+            for (let index in mediaInfo.filterList) {
+                let FilterRec = mediaInfo.filterList[index]
+                let button = document.createElement("button")
+                button.setAttribute('type',"button")
+                button.setAttribute('role',"button")
+                button.setAttribute('data-MediaType', mediaType)
+                button.setAttribute('data-category', mediaFilterCategory.value)
+                button.setAttribute('data-startDate', FilterRec.startDate)
+                button.setAttribute('data-searchStr', querySearchStr)
+                button.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','mb-2',MediaFilterRequestClass)
+                button.textContent = FilterRec.filterName
+                filterRequestsContainer.appendChild(button)
             }
-            else 
-            {
-                fileSubPath = '/' + fi.Name;
-            }
-            //console.log("filePath = " + filePath + ", fileSubPath = " + fileSubPath);
+        }
 
-            let card = document.createElement("div")
-            card.classList.add('card','w-20','float-start')
-            let cardCheckbox = document.createElement("input")
-            cardCheckbox.classList.add('form-check-input','shadow-none','mx-1','mb-1',imgCheckboxClass)
-            cardCheckbox.setAttribute('type', 'checkbox')
-            cardCheckbox.setAttribute('data-index', index)
-            cardCheckbox.checked = fi.Selected
-            card.appendChild(cardCheckbox)
-      
-            // Add the photo to the gallery link list
-            let img = document.createElement("img");
-            img.classList.add(imgThumbnailClass)
-            // add a class for event click
-            img.setAttribute('onerror', "this.onerror=null; this.remove()")
-            img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
-            img.setAttribute('data-index', index)
-            card.appendChild(img)
-            thumbnailContainer.appendChild(card)
-            */
+        empty(thumbnailContainer);
+        // Loop through all the files in the current file list
+        for (let index in mediaInfo.fileList) {
+            let fi = mediaInfo.fileList[index]
 
-            if (paramData.MediaFilterMediaType == 2) {
+            if (mediaType == 2) {
                 // VIDEOS
 
                 // Add a table with a title above the iframe
                 let table = document.createElement("table");
                 table.classList.add('float-start')
                 let td = document.createElement("td");
-                td.textContent = fileRec.dirSubPath
+                td.textContent = fi.DirSubPath
                 let tr = document.createElement("tr");
                 tr.appendChild(td)
                 table.appendChild(tr)
 
                 let iframe = document.createElement("iframe")
                 // Use the embed link for iframe (without https so it can be run locally for testing)
-                iframe.setAttribute('src', "//www.youtube.com/embed/" + fileRec.filename);
+                iframe.setAttribute('src', "//www.youtube.com/embed/" + fi.Name);
                 iframe.setAttribute('allowfullscreen', true);
                 td = document.createElement("td");
                 td.appendChild(iframe);
@@ -661,38 +1074,59 @@ var mgallery = (function(){
                 thumbnailContainer.appendChild(table)
 
             } else {
-                if (fileRec.dirSubPath != '') {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fileRec.dirSubPath + '/' + fileRec.filename;
-                    fileSubPath = '/' + fileRec.dirSubPath + '/' + fileRec.filename;
+                if (fi.DirSubPath != '') {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                    fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
                 }
                 else 
                 {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fileRec.filename;
-                    fileSubPath = '/' + fileRec.filename;
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                    fileSubPath = '/' + fi.Name;
                 }
                 //console.log("filePath = " + filePath + ", fileSubPath = " + fileSubPath);
 
-                periodPos = fileRec.filename.indexOf(".");
+                periodPos = fi.Name.indexOf(".");
                 if (periodPos >= 0) {
-                    fileExt = fileRec.filename.substr(periodPos + 1).toUpperCase();
-                    fileNameNoExt = fileRec.filename.substr(0,periodPos);
+                    fileExt = fi.Name.substr(periodPos + 1).toUpperCase();
+                    fileNameNoExt = fi.Name.substr(0,periodPos);
                 }
 
-                if (paramData.MediaFilterMediaType == 1) {
+                if (mediaType == 1) {
                     // PHOTOS
 
-                    // Add the photo to the gallery link list
-                    let img = document.createElement("img");
-                    img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                    img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
-                    img.classList.add(imgThumbnailClass)
-                    let a = document.createElement("a")
-                    a.href = MediaRootDir + photosSmallerRoot + fileSubPath
-                    a.title = fileRec.filename
-                    a.appendChild(img);
-                    thumbnailContainer.appendChild(a)
-                    // *** new functions?: right-click copy link address download full (large) version
-                } else if (paramData.MediaFilterMediaType == 3) {
+                    if (editMode) {
+                        let card = document.createElement("div")
+                        card.classList.add('card','w-20','float-start')
+                        let cardCheckbox = document.createElement("input")
+                        cardCheckbox.classList.add('form-check-input','shadow-none','mx-1','mb-1',imgCheckboxClass)
+                        cardCheckbox.setAttribute('type', 'checkbox')
+                        cardCheckbox.setAttribute('data-index', index)
+                        cardCheckbox.checked = fi.Selected
+                        card.appendChild(cardCheckbox)
+                  
+                        // Add the photo to the gallery link list
+                        let img = document.createElement("img");
+                        img.classList.add(imgThumbnailClass)
+                        // add a class for event click
+                        img.setAttribute('onerror', "this.onerror=null; this.remove()")
+                        img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
+                        img.setAttribute('data-index', index)
+                        card.appendChild(img)
+                        thumbnailContainer.appendChild(card)
+                    } else {
+                        // Add the photo to the gallery link list
+                        let img = document.createElement("img");
+                        img.setAttribute('onerror', "this.onerror=null; this.remove()")
+                        img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
+                        img.classList.add(imgThumbnailClass)
+                        let a = document.createElement("a")
+                        a.href = MediaRootDir + photosSmallerRoot + fileSubPath
+                        a.title = fi.Name
+                        a.appendChild(img);
+                        thumbnailContainer.appendChild(a)
+                    }
+
+                } else if (mediaType == 3) {
                     // MUSIC
 
                     //console.log("fileNameNoExt = " + fileNameNoExt+", url = "+filePath);
@@ -712,10 +1146,10 @@ var mgallery = (function(){
                     let tr = document.createElement("tr");
                     tr.appendChild(td);
                     playlistTbody.appendChild(tr)
-                } else if (paramData.MediaFilterMediaType == 4) {
+                } else if (mediaType == 4) {
                     // DOCS
                     
-                    //console.log("PDF file = " + fileRec.filename + ", filePath = " + filePath);
+                    //console.log("PDF file = " + fi.Name + ", filePath = " + filePath);
                     docFiles = true;
                     let a = document.createElement("a")
                     a.href = filePath
@@ -732,16 +1166,16 @@ var mgallery = (function(){
 
         }
 
-                    // if there were any docs, build a table of the filelinks and append to the Thumbnails container
-            if (docFiles) {
+        // if there were any docs, build a table of the filelinks and append to the Thumbnails container
+        if (docFiles) {
                 empty(thumbnailContainer);
 
                 let table = document.createElement("table");
                 table.classList.add('table','table-sm')
                 table.appendChild(doclistTbody)
                 thumbnailContainer.appendChild(table)
-            }
-            else if (audioFiles) {
+        }
+        else if (audioFiles) {
                 empty(thumbnailContainer);
 
                 // if there were any MP3's, build a player with the playlist of MP3's
@@ -797,17 +1231,70 @@ var mgallery = (function(){
                 thumbnailContainer.appendChild(row)
 
                 // Load and start playing the 1st song in the list
-                loadSong(0);
-            } 
+                //loadSong(0);
+        } 
     }
 
+    //-------------------------------------------------------------------------------------------------------
+    // Display individual image for Edit mode
+    //-------------------------------------------------------------------------------------------------------
+    function displayFileDetail(index) {
+        //console.log("index = "+index)
+        currIndex = index
+        
+        // Get the correct image from the file list, and set the values of the screen components
+        let fi = mediaInfo.fileList[index]
 
-    function buildMenuElements(mediaType,menuId,menuList) {
-        var menuContainer = document.getElementById(menuId);
+        mediaDetailFilename.textContent = fi.Name;
+        mediaDetailTitle.value = fi.Title
+        mediaDetailTaken.value = fi.TakenDateTime
+
+        let fileSubPath = ''
+        if (fi.DirSubPath != '') {
+            fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
+        }
+        else 
+        {
+            fileSubPath = '/' + fi.Name;
+        }
+
+        mediaDetailCategoryTags.value = fi.CategoryTags
+        mediaDetailMenuTags.value = fi.MenuTags
+        mediaDetailAlbumTags.value = fi.AlbumTags
+        mediaDetailPeopleList.value = fi.People
+        mediaDetailDescription.value = fi.Description
+
+        // Set only the selected file in the thumbnail list
+        for (let index2 in mediaInfo.fileList) {
+            if (index2 == index) {
+                mediaInfo.fileList[index2].Selected = true
+            } else {
+                mediaInfo.fileList[index2].Selected = false
+            }
+        }    
+        
+        // Re-display the file list to show the correct selected image
+        displayCurrFileList()
+
+        // Set the img src to get the smaller version of the image and display it on the screen
+        //console.log("small = "+MediaRootDir + photosSmallerRoot + fileSubPath)
+        mediaDetailImg.setAttribute('src', MediaRootDir + photosSmallerRoot + fileSubPath)
+    }
+
+    //------------------------------------------------------------------------------------------------------------
+    // Create a collapsible menu in an offcanvas pop-out using menu list data
+    //------------------------------------------------------------------------------------------------------------
+    function buildMenuElements(mediaType) {
+        let MediaOffcanvasMenuId = "MediaOffcanvasMenu"
+        let menuContainer = document.getElementById(MediaOffcanvasMenuId)
+        let mediaMenuCanvasLabel = document.getElementById("MediaMenuCanvasLabel")
+        mediaMenuCanvasLabel.textContent = mediaTypeDesc + " Menu"
+
         if (menuContainer != null) {
             empty(menuContainer)
 
-            var accordionId = menuId + "AccordianContainer";
+            let menuId = MediaOffcanvasMenuId
+            let accordionId = menuId + "AccordianContainer";
             let accordianContainer = document.createElement("div")
             accordianContainer.id = accordionId
             accordianContainer.classList.add('accordion')
@@ -824,7 +1311,7 @@ var mgallery = (function(){
             for (let index in menuList) {
                 let menu = menuList[index]
     
-                menuHeader.textContent = menu.mediaTypeDesc
+                //menuHeader.textContent = mediaTypeDesc
     
                 // Make the 1st panel item un-collapsed
                 if (index == 0) {
@@ -870,7 +1357,7 @@ var mgallery = (function(){
     
                 // Add list entries
                 for (let index2 in menu.subMenuList) {
-                    //console.log("create menu, fileRec.contents filename = "+filename);
+                    //console.log("create menu,  filename = "+filename);
                     // Create a link for the media dir folder
                     let a = document.createElement("a")
                     a.setAttribute('href', "#")

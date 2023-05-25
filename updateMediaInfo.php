@@ -6,6 +6,7 @@
  *----------------------------------------------------------------------------
  * Modification History
  * 2023-04-06 JJK 	Initial version to update file info in database
+ * 2023-05-24 JJK	Updated for new file list
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -73,15 +74,15 @@ try {
 	//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
 	$conn = getConn($dbHost, $dbUser, $dbPassword, $dbName);
 
-	$sql = "UPDATE FileInfo SET CategoryTags=?,MenuTags=?,AlbumTags=?,Title=?,Description=?,People=?,ToBeProcessed=0 WHERE Name=? ";
+	$sql = "UPDATE FileInfo SET CategoryTags=?,MenuTags=?,AlbumTags=?,TakenDateTime=?,Title=?,Description=?,People=?,ToBeProcessed=0 WHERE Name=? ";
 	$stmt = $conn->prepare($sql);
 	$updCnt = 0;
-	foreach ($param->adminFileList as $fi) {
+	foreach ($param->mediaInfoFileList as $fi) {
 		if (!$fi->Selected) {
 			continue;
 		}
 
-    	$stmt->bind_param("sssssss",$fi->CategoryTags,$fi->MenuTags,$fi->AlbumTags,$fi->Title,$fi->Description,$fi->People,$fi->Name);
+    	$stmt->bind_param("ssssssss",$fi->CategoryTags,$fi->MenuTags,$fi->AlbumTags,$fi->TakenDateTime,$fi->Title,$fi->Description,$fi->People,$fi->Name);
     	$stmt->execute();
 		$updCnt++;
 	}

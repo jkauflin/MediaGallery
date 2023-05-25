@@ -1,24 +1,14 @@
 <?php
 /*==============================================================================
- * (C) Copyright 2014,2020,2022,2023 John J Kauflin, All rights reserved. 
+ * (C) Copyright 2023 John J Kauflin, All rights reserved. 
  *----------------------------------------------------------------------------
- * DESCRIPTION: 
+ * DESCRIPTION:  Get a media gallery menu list based on media type
  *----------------------------------------------------------------------------
  * Modification History
- * 2014-04-03 JJK 	Initial version to return a directory list
- * 2019-01-12 JJK	Introduced a FileRec and turned the top level as a 
- * 					proper array (to solve the order problem)
- * 2020-03-14 JJK   Added a MediaRootDir include to define variables
- * 2020-12-19 JJK   Hard-coded media root and reset levels
- * 2022-12-31 JJK	Added search string handling with queries to new database
- * 2023-01-16 JJK	Rename getFileList to return a list of files from the
- * 					database query according to parameters
- * 2023-01-23 JJK   Implementing logic to handle Filter parameters POSTed
- * 					in a JSON string
- * 2023-02-19 JJK	Modified to return a structure of both the file list and
- * 					a menu list with other start dates
- * 2023-04-20 JJK	Changed menu list to filter request list and added
- * 					Prev and Next filter requests
+ * 2023-01-15 JJK 	Initial version to return a menu list from database
+ * 2023-04-27 JJK	Added queries for filter functions
+ * 2023-05-05 JJK	Rename to getMediaInfo and added file list, also made
+ * 					the menu info get controllable by parameter
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -60,59 +50,239 @@ function wildCardStrFromTokens($inStr) {
 	return strtoupper($paramStr);
 }
 
-
-class ListInfo
+class MenuRec
 {
-	public $filterList;
-	public $fileList;
-	public $startDate;
+	public $mediaTypeDesc;
+	public $category;
+	public $subMenuList;
 }
 
+class SubMenuRec
+{
+	public $menuItem;
+	public $startDate;
+	public $endDate;
+	public $searchStr;
+}
+
+// array of tiles for years, seasons, prev, next, (with a start Date)
 class FilterRec
 {
 	public $filterName;
 	public $startDate;
 }
 
-// array of tiles for years, seasons, prev, next, (with a start Date)
 // FileList
 class FileRec
 {
-	public $filename;
-	public $dirSubPath;
+	//public $filename;
+	public $Name;
+	//public $dirSubPath;
+	public $DirSubPath;
+	public $Selected;
+	public $CategoryTags;
+	public $MenuTags;
+	public $AlbumTags;
+	public $TakenDateTime;
+	public $Title;
+	public $Description;
+	public $People;
 }
 
-$listInfo = new ListInfo();
-$filelistArray = array();
+// Master collection of return info
+class MediaInfo
+{
+	public $categoryList;
+	public $menuList;
+	public $menuFilter;
+	public $albumList;
+	public $peopleList;
+	public $filterList;
+	public $fileList;
+	public $startDate;
+}
+
+$mediaInfo = new MediaInfo();
+$mediaInfo->categoryList = array();
+$mediaInfo->menuList = array();
+$mediaInfo->menuFilter = array();
+$mediaInfo->albumList = array();
+$mediaInfo->peopleList = array();
+$mediaInfo->fileList = array();
+$mediaInfo->filterList = array();
 $maxRows = 100;
+//$maxRows = 300;
+
+// Default to the 1st day of the current year
+$mediaInfo->startDate = date("Y") . "-01-01";
+$defaultCategory = "ALL";
+
 try {
+	// Get the parameters sent as a JSON structure
 	header("Content-Type: application/json; charset=UTF-8");
 	// Get JSON as a string
 	$json_str = file_get_contents('php://input');
 	// Decode the string to get a JSON object
 	$param = json_decode($json_str);
 
-	//------------------------------------------------------------------------------------------------------------
-	// Check what parameters have been sent and create the appropriate SQL query to get files
-	//------------------------------------------------------------------------------------------------------------
-	$sql = "SELECT Name,NameAndPath,FilePath,TakenDateTime FROM FileInfo WHERE ";
+	// Get the database connection
+	$conn = getConn($dbHost, $dbUser, $dbPassword, $dbName);
+
+	$getMenu = false;
+	if (!empty($param->getMenu)) {
+		$getMenu = $param->getMenu;
+	}
 
 	if (empty($param->MediaFilterMediaType)) {
 		$param->MediaFilterMediaType = 1;
+	} else {
+		$param->MediaFilterMediaType = intval($param->MediaFilterMediaType);
 	}
+
+	if ($param->MediaFilterMediaType != 1) {
+		$mediaInfo->startDate = "1900-01-01";
+	}
+
+	
+	if ($getMenu) {
+		$sql = "SELECT * FROM MediaType t, MediaCategory c, Menu m WHERE ";
+		$sql = $sql . " t.MediaTypeId = ? AND c.MediaTypeId = t.MediaTypeId AND m.CategoryId = c.CategoryId ";
+		$sql = $sql . " ORDER BY c.CategoryOrder, m.MenuId; ";
+		//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, 'php.log');
+	
+		$stmt = $conn->prepare($sql) or die($mysqli->error);
+		$stmt->bind_param("i", $param->MediaFilterMediaType);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		if ($result->num_rows > 0) {
+			$mediaTypeDesc = "";
+			$prevCategory = "";
+			$category = "";
+			$menuRecCnt = 0;
+			while($row = $result->fetch_assoc()) {
+				$mediaTypeDesc = $row["MediaTypeDesc"];
+				$category = $row["CategoryName"];
+				if ($category != $prevCategory) {
+					if ($menuRecCnt > 0 ) {
+						array_push($mediaInfo->menuList,$menuRec);
+					}
+					$menuRecCnt++;
+					$menuRec = new MenuRec();
+					$menuRec->mediaTypeDesc = $mediaTypeDesc;
+					$menuRec->category = $category;
+					$menuRec->subMenuList = array();
+					$prevCategory = $category;
+				}
+					$subMenuRec = new SubMenuRec();
+					$subMenuRec->menuItem = $row["MenuItem"];
+					$subMenuRec->startDate = $row["StartDate"]; 
+					$subMenuRec->endDate = $row["EndDate"]; 
+					$subMenuRec->searchStr = $row["SearchStr"];
+					array_push($menuRec->subMenuList,$subMenuRec);
+			}
+			if ($menuRecCnt > 0 ) {
+				array_push($mediaInfo->menuList,$menuRec);
+			}
+		}
+		$stmt->close();
+	
+		//-----------------------------------------------------------------------------------
+		// Category
+		//-----------------------------------------------------------------------------------
+		$sql = "SELECT CategoryName FROM MediaCategory WHERE ";
+		$sql = $sql . "MediaTypeId = ? ";
+		$sql = $sql . "ORDER BY CategoryOrder; ";
+		$stmt = $conn->prepare($sql)  or die($mysqli->error);
+		$stmt->bind_param("i",
+			$param->MediaFilterMediaType);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		$cnt = 0;
+		if ($result->num_rows > 0) {
+			while($row = $result->fetch_assoc()) {
+				$cnt++;
+				//$categoryRec = new CategoryRec();
+				//$categoryRec->categoryId = $row["CategoryId"];
+				//$categoryRec->categoryName = $row["CategoryName"];
+				//array_push($mediaInfo->categoryList,$categoryRec);
+				array_push($mediaInfo->categoryList,$row["CategoryName"]);
+				if ($param->MediaFilterMediaType == 1) {
+					if ($cnt == 2) {
+						$defaultCategory = $row["CategoryName"];
+					}
+				} else {
+					if ($cnt == 1) {
+						$defaultCategory = $row["CategoryName"];
+					}
+				}
+			}
+		}
+		$stmt->close();
+	
+		//-----------------------------------------------------------------------------------
+		// Menu
+		//-----------------------------------------------------------------------------------
+		$sql = "SELECT m.CategoryId,m.MenuItem FROM MediaCategory c, Menu m";
+		$sql = $sql . " WHERE c.MediaTypeId = ? AND m.CategoryId = c.CategoryId";
+		$sql = $sql . " ORDER BY m.CategoryId,m.MenuId; ";
+		$stmt = $conn->prepare($sql)  or die($mysqli->error);
+		$stmt->bind_param("i",
+			$param->MediaFilterMediaType);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		if ($result->num_rows > 0) {
+			while($row = $result->fetch_assoc()) {
+				$menuVal = $row["CategoryId"] . " - " . $row["MenuItem"];
+				array_push($mediaInfo->menuFilter,$menuVal);
+			}
+		}
+		$stmt->close();
+	
+		//-----------------------------------------------------------------------------------
+		// People
+		//-----------------------------------------------------------------------------------
+		$sql = "SELECT PeopleName FROM People ";
+		$sql = $sql . "ORDER BY PeopleName; ";
+		$stmt = $conn->prepare($sql)  or die($mysqli->error);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		if ($result->num_rows > 0) {
+			while($row = $result->fetch_assoc()) {
+				array_push($mediaInfo->peopleList,$row["PeopleName"]);
+			}
+		}
+		$stmt->close();
+	} // if ($param->getMenu) {
+
+	
+	// if Menu - get default Category
+
+
+	//------------------------------------------------------------------------------------------------------------
+	// Check what parameters have been sent and create the appropriate SQL query to get files
+	//------------------------------------------------------------------------------------------------------------
+	$sql = "SELECT * FROM FileInfo WHERE ";
 	$sql = $sql . "MediaTypeId = ? ";
 
 	$wildCategory = "";
 	$categoryExists = false;
 	if (!empty($param->MediaFilterCategory)) {
-		if ($param->MediaFilterCategory != "0") {
-			$wildCategory = wildCardStrFromTokens($param->MediaFilterCategory);
+		//if ($param->MediaFilterCategory != "0") {
+		if ($param->MediaFilterCategory != "ALL") {
+			if ($param->MediaFilterCategory == "DEFAULT") {
+				$wildCategory = wildCardStrFromTokens($defaultCategory);
+			} else {
+				$wildCategory = wildCardStrFromTokens($param->MediaFilterCategory);
+			}
 			$categoryExists = true;
 		}
 	}
 
 	$startDateExists = false;
 	if (!empty($param->MediaFilterStartDate)) {
+		if ($param->MediaFilterStartDate == "DEFAULT") {
+			$param->MediaFilterStartDate = $mediaInfo->startDate;
+		}
 		if ($param->MediaFilterStartDate != "0001-01-01 00:00:00") {
 			$startDateExists = true;
 		}
@@ -142,19 +312,14 @@ try {
 		$searchStrExists = true;
 	}
 
-	/*
-	$categoryExists
-	$startDateExists
-	$menuItemExists
-	$albumTagExists
-	$searchStrExists
+	$getNew = false;
+	if (!empty($param->getNew)) {
+		$getNew = $param->getNew;
+	}
 
-	$wildMenuItem
-	$wildAlbumTag
-	$wildSearchStr
-	*/
-
-	if ($categoryExists && $menuItemExists) {
+	if ($getNew) {
+		$sql = $sql . "AND ToBeProcessed = 1 ";
+	} else if ($categoryExists && $menuItemExists) {
 		$sql = $sql . "AND CategoryTags LIKE ? ";
 		$sql = $sql . "AND MenuTags LIKE ? ";
 	} else if ($categoryExists && $startDateExists && $searchStrExists) {
@@ -193,7 +358,6 @@ try {
 	$sql = $sql . "ORDER BY TakenDateTime,Name LIMIT 100; ";
 
 	//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
-	$conn = getConn($dbHost, $dbUser, $dbPassword, $dbName);
 	$stmt = $conn->prepare($sql)  or die($mysqli->error);
 
 	if ($categoryExists && $menuItemExists) {
@@ -251,12 +415,6 @@ try {
 			$param->MediaFilterMediaType);
 	}
 
-
-	// do a query that gets the count of records first
-	// then plan the first file query, and sub-menu items to be included at the top
-	// (as well as NEXT and PREV page???)
-
-
 	$stmt->execute();
 	$result = $stmt->get_result();
 	$cnt = 0;
@@ -266,9 +424,7 @@ try {
 		while($row = $result->fetch_assoc()) {
 			$cnt++;
 			$fileRec = new FileRec();
-			$fileRec->filename = $row["Name"];
-			//$fileRec->contents = array();
-
+			$fileRec->Name = $row["Name"];
 			$filePath = $row["FilePath"];
 			if ($filePath == null || $filePath == '') {
 				$dirParts = explode("/", $row["NameAndPath"]);
@@ -276,15 +432,21 @@ try {
 				// Get the subpath, without the root (and without the filename)
 				$filePath = implode('/',array_slice($dirParts,1,count($dirParts)-2));
 			}
-
-			$fileRec->dirSubPath = $filePath;
-
-			array_push($filelistArray,$fileRec);
+			$fileRec->DirSubPath = $filePath;
+			$fileRec->Selected = false;
+			$fileRec->CategoryTags = $row["CategoryTags"];
+			$fileRec->MenuTags = $row["MenuTags"];
+			$fileRec->AlbumTags = $row["AlbumTags"];
+			$fileRec->TakenDateTime = $row["TakenDateTime"];
+			$fileRec->Title = $row["Title"];
+		 	$fileRec->Description = $row["Description"];
+			$fileRec->People = $row["People"];
+			array_push($mediaInfo->fileList,$fileRec);
 
 			// Save the first and last timestamps
 			if ($cnt == 1) {
 				$firstTakenDateTime = $row["TakenDateTime"];
-				$listInfo->startDate = substr($firstTakenDateTime,0,10);
+				$mediaInfo->startDate = substr($firstTakenDateTime,0,10);
 			}
 			$lastTakenDateTime = $row["TakenDateTime"];
 		}
@@ -306,8 +468,6 @@ try {
 			//$tempStartDate = $param->MediaFilterStartDate;
 			//$tempEndDate = $lastTakenDateTime;
 
-			$listInfo->filterList = array();
-
 			$FilterRec = new FilterRec();
 			$FilterRec->filterName = "Prev";
 			// Just do prev year for now?
@@ -316,24 +476,24 @@ try {
 
 			$Year = $tempStartDate["year"] - 1;
 			$FilterRec->startDate = (string)$Year . "-01-01";
-			array_push($listInfo->filterList,$FilterRec);
+			array_push($mediaInfo->filterList,$FilterRec);
 
 			$FilterRec = new FilterRec();
 			$FilterRec->filterName = "Next";
 			$FilterRec->startDate = date("Y-m-d",$tempEndDate);
-			array_push($listInfo->filterList,$FilterRec);
+			array_push($mediaInfo->filterList,$FilterRec);
 		}
 	}
-		
 	$stmt->close();
+
+
+	// Close the database connection
 	$conn->close();
 }
 catch (Exception $e) {
-	error_log(date('[Y-m-d H:i] '). 'Exception = ' . $e . PHP_EOL, 3, LOG_FILE);
+	//error_log(date('[Y-m-d H:i] '). 'Exception = ' . $e->message . PHP_EOL, 3, 'getDirList.log');
+	error_log(date('[Y-m-d H:i] '). 'Exception = ' . $e . PHP_EOL, 3, 'getDirList.log');
 }
 
-//echo json_encode($filelistArray);
-$listInfo->fileList = $filelistArray;
-echo json_encode($listInfo);
-
+echo json_encode($mediaInfo);
 ?>
