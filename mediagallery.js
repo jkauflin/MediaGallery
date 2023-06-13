@@ -86,6 +86,12 @@
  * 2023-05-11 JJK   Working on editSwitch toggle
  * 2023-05-14 JJK   Working on edit toggle and update requests
  * 2023-05-21 JJK   Working on Admin Detail and update functions
+ * 2023-06-01 JJK   Add Prev/Next (Filter Request) to bottom of thumbnails 
+ *                  display
+ * 2023-06-11 JJK   Remove the Photos "Smaller" concept and just use original
+ *                  photo for all displays
+ * 2023-06-13 JJK   Added season buttons to filter requests (before and after
+ *                  the thumbnails), and fixed bugs in request queries
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -109,7 +115,8 @@ var mgallery = (function(){
 
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
     //var MediaRootDir = webRootPath + "/Media/";
-    var MediaRootDir = window.location.pathname + "Media/";
+    //var MediaRootDir = window.location.pathname + "Media/";
+    var MediaRootDir = "Media/";
     var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
 
     // Playlist array and index (for audio player/playlist diaplay)
@@ -148,7 +155,6 @@ var mgallery = (function(){
     var mediaPageContainer = document.getElementById("MediaPage");
     //var configContainer = document.getElementById(MediaConfigId);
     var filterContainer = document.createElement("div")
-    var filterRequestsContainer = document.createElement("div")
     var thumbnailContainer = document.createElement("div")
     var editRow1 = document.createElement("div")
 
@@ -163,7 +169,7 @@ var mgallery = (function(){
     var mediaFilterMediaType
     var mediaTypeDesc = "Photos"
     var photosThumbsRoot = mediaTypeDesc + "Thumbs";
-    var photosSmallerRoot = mediaTypeDesc + "Smaller";
+    //var photosSmallerRoot = mediaTypeDesc + "Smaller";
 
     var mediaFilterCategory
     var mediaFilterStartDate
@@ -339,12 +345,15 @@ var mgallery = (function(){
             //console.log(">>> FilterRequest data-category = "+event.target.getAttribute('data-category'))
             //console.log(">>> FilterRequest data-startDate = "+event.target.getAttribute('data-startDate'))
             //console.log(">>> FilterRequest data-searchStr = "+event.target.getAttribute('data-searchStr'))
-    
+            //console.log(">>> FilterRequest data-menuItem = "+event.target.getAttribute('data-menuItem'))
+
             let paramData = {
                 MediaFilterMediaType: mediaType, 
                 getMenu: false,
+                MaxRows: 200,
                 MediaFilterCategory:  event.target.getAttribute('data-category'),
                 MediaFilterStartDate: event.target.getAttribute('data-startDate'),
+                MediaFilterMenuItem: event.target.getAttribute('data-menuItem'),
                 MediaFilterSearchStr: event.target.getAttribute('data-searchStr')}
 
             queryMediaInfo(paramData);
@@ -508,7 +517,6 @@ var mgallery = (function(){
                 // Set the top level variables from the media type descriptions
                 mediaTypeDesc = mediaInfo.menuList[0].mediaTypeDesc
                 photosThumbsRoot = mediaTypeDesc + "Thumbs";
-                photosSmallerRoot = mediaTypeDesc + "Smaller";
             }
 
             // Save the parameters from the laste query
@@ -533,7 +541,6 @@ var mgallery = (function(){
     function createMediaPage() {
         //console.log("$$$$ in the createMediaPage")
         empty(filterContainer)
-        empty(filterRequestsContainer)
         empty(thumbnailContainer)
         empty(editRow1)
 
@@ -549,6 +556,7 @@ var mgallery = (function(){
             // Col 1
             let editRow1Col1 = document.createElement("div")
             editRow1Col1.classList.add('col-sm-5','col-md-5')
+
             editRow1Col1.appendChild(thumbnailContainer);
             editRow1.appendChild(editRow1Col1)
 
@@ -869,7 +877,6 @@ var mgallery = (function(){
 
         } else {
             mediaPageContainer.appendChild(filterContainer);
-            mediaPageContainer.appendChild(filterRequestsContainer);
             mediaPageContainer.appendChild(thumbnailContainer);
         }
 
@@ -1025,30 +1032,61 @@ var mgallery = (function(){
         let doclistTbody = document.createElement("tbody")
         var playlistTbody = document.createElement("tbody")
 
+        empty(thumbnailContainer);
+
+        let thumbnailRow1 = document.createElement("div")
+        let thumbnailRow2 = document.createElement("div")
+        let thumbnailRow3 = document.createElement("div")
+        thumbnailRow1.classList.add('row')
+        thumbnailRow2.classList.add('row')
+        thumbnailRow2.classList.add('row')
+
+        let thumbnailRow1Col1 = document.createElement("div")
+        let thumbnailRow2Col1 = document.createElement("div")
+        let thumbnailRow3Col1 = document.createElement("div")
+        thumbnailRow1Col1.classList.add('col')
+        thumbnailRow2Col1.classList.add('col','my-2')
+        thumbnailRow3Col1.classList.add('col')
+
         //----------------------------------------------------------------------------------------------------
         // If there is a filter request list, create Filter Request buttons with the start date
         //----------------------------------------------------------------------------------------------------
-        empty(filterRequestsContainer);
-        if (mediaType == 1 && mediaInfo.filterList != null) {
-            for (let index in mediaInfo.filterList) {
+        //if (mediaType == 1 && mediaInfo.filterList != null) {
+        if (mediaInfo.filterList != null) {
+                for (let index in mediaInfo.filterList) {
                 let FilterRec = mediaInfo.filterList[index]
+
                 let button = document.createElement("button")
                 button.setAttribute('type',"button")
                 button.setAttribute('role',"button")
                 button.setAttribute('data-MediaType', mediaType)
                 button.setAttribute('data-category', mediaFilterCategory.value)
                 button.setAttribute('data-startDate', FilterRec.startDate)
+                button.setAttribute('data-menuItem', queryMenuItem)
                 button.setAttribute('data-searchStr', querySearchStr)
-                button.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','mb-2',MediaFilterRequestClass)
+                button.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
                 button.textContent = FilterRec.filterName
-                filterRequestsContainer.appendChild(button)
+                thumbnailRow1Col1.appendChild(button)
+
+                let button2 = document.createElement("button")
+                button2.setAttribute('type',"button")
+                button2.setAttribute('role',"button")
+                button2.setAttribute('data-MediaType', mediaType)
+                button2.setAttribute('data-category', mediaFilterCategory.value)
+                button2.setAttribute('data-startDate', FilterRec.startDate)
+                button2.setAttribute('data-menuItem', queryMenuItem)
+                button2.setAttribute('data-searchStr', querySearchStr)
+                button2.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
+                button2.textContent = FilterRec.filterName
+                thumbnailRow3Col1.appendChild(button2)
             }
         }
 
-        empty(thumbnailContainer);
+        //-------------------------------------------------------------------------------------------------------------------------
         // Loop through all the files in the current file list
+        //-------------------------------------------------------------------------------------------------------------------------
         for (let index in mediaInfo.fileList) {
-            let fi = mediaInfo.fileList[index]
+        let fi = mediaInfo.fileList[index]
 
             if (mediaType == 2) {
                 // VIDEOS
@@ -1071,7 +1109,7 @@ var mgallery = (function(){
                 tr = document.createElement("tr");
                 tr.appendChild(td)
                 table.appendChild(tr)
-                thumbnailContainer.appendChild(table)
+                thumbnailRow2Col1.appendChild(table)
 
             } else {
                 if (fi.DirSubPath != '') {
@@ -1112,7 +1150,7 @@ var mgallery = (function(){
                         img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
                         img.setAttribute('data-index', index)
                         card.appendChild(img)
-                        thumbnailContainer.appendChild(card)
+                        thumbnailRow2Col1.appendChild(card)
                     } else {
                         // Add the photo to the gallery link list
                         let img = document.createElement("img");
@@ -1120,10 +1158,10 @@ var mgallery = (function(){
                         img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
                         img.classList.add(imgThumbnailClass)
                         let a = document.createElement("a")
-                        a.href = MediaRootDir + photosSmallerRoot + fileSubPath
+                        a.href = filePath
                         a.title = fi.Name
                         a.appendChild(img);
-                        thumbnailContainer.appendChild(a)
+                        thumbnailRow2Col1.appendChild(a)
                     }
 
                 } else if (mediaType == 3) {
@@ -1168,24 +1206,24 @@ var mgallery = (function(){
 
         // if there were any docs, build a table of the filelinks and append to the Thumbnails container
         if (docFiles) {
-                empty(thumbnailContainer);
+                empty(thumbnailRow2Col1);
 
                 let table = document.createElement("table");
                 table.classList.add('table','table-sm')
                 table.appendChild(doclistTbody)
-                thumbnailContainer.appendChild(table)
+                thumbnailRow2Col1.appendChild(table)
         }
         else if (audioFiles) {
-                empty(thumbnailContainer);
+                empty(thumbnailRow2Col1);
 
                 // if there were any MP3's, build a player with the playlist of MP3's
                 let h5 = document.createElement("h5");
                 h5.id = 'SongTitle'
                 h5.classList.add('font-weight-bold')
-                thumbnailContainer.appendChild(h5)
+                thumbnailRow2Col1.appendChild(h5)
 
                 // Append the audioPlayer element
-                thumbnailContainer.appendChild(audioPlayer);
+                thumbnailRow2Col1.appendChild(audioPlayer);
 
                 let i = document.createElement("i");
                 i.classList.add('fa',`${audioPrevClass}`,'fa-3x')
@@ -1193,7 +1231,7 @@ var mgallery = (function(){
                 a.id = "AudioPrev"
                 a.href = "#"
                 a.appendChild(i)
-                thumbnailContainer.appendChild(a)
+                thumbnailRow2Col1.appendChild(a)
 
                 i = document.createElement("i");
                 i.classList.add('fa',`${audioNextClass}`,'fa-3x','mx-2')
@@ -1201,7 +1239,7 @@ var mgallery = (function(){
                 a.id = "AudioNext"
                 a.href = "#"
                 a.appendChild(i)
-                thumbnailContainer.appendChild(a)
+                thumbnailRow2Col1.appendChild(a)
 
                 // append the tbody rows to the table, and the table to the Col1 (and thumbnail container)
                 let playlistTable = document.createElement("table");
@@ -1228,11 +1266,18 @@ var mgallery = (function(){
                 row.appendChild(col2)
                 */
 
-                thumbnailContainer.appendChild(row)
+                thumbnailRow2Col1.appendChild(row)
 
                 // Load and start playing the 1st song in the list
                 //loadSong(0);
         } 
+
+        thumbnailRow1.appendChild(thumbnailRow1Col1)
+        thumbnailRow2.appendChild(thumbnailRow2Col1)
+        thumbnailRow3.appendChild(thumbnailRow3Col1)
+        thumbnailContainer.appendChild(thumbnailRow1)
+        thumbnailContainer.appendChild(thumbnailRow2)
+        thumbnailContainer.appendChild(thumbnailRow3)
     }
 
     //-------------------------------------------------------------------------------------------------------
@@ -1249,14 +1294,18 @@ var mgallery = (function(){
         mediaDetailTitle.value = fi.Title
         mediaDetailTaken.value = fi.TakenDateTime
 
+        let filePath = ''
         let fileSubPath = ''
         if (fi.DirSubPath != '') {
+            filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
             fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
         }
         else 
         {
+            filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
             fileSubPath = '/' + fi.Name;
         }
+        //console.log("displayFileDetail, filePath = " + filePath + ", fileSubPath = " + fileSubPath);
 
         mediaDetailCategoryTags.value = fi.CategoryTags
         mediaDetailMenuTags.value = fi.MenuTags
@@ -1277,8 +1326,7 @@ var mgallery = (function(){
         displayCurrFileList()
 
         // Set the img src to get the smaller version of the image and display it on the screen
-        //console.log("small = "+MediaRootDir + photosSmallerRoot + fileSubPath)
-        mediaDetailImg.setAttribute('src', MediaRootDir + photosSmallerRoot + fileSubPath)
+        mediaDetailImg.setAttribute('src', filePath)
     }
 
     //------------------------------------------------------------------------------------------------------------

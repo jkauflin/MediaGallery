@@ -9,6 +9,9 @@
  * 2023-04-27 JJK	Added queries for filter functions
  * 2023-05-05 JJK	Rename to getMediaInfo and added file list, also made
  * 					the menu info get controllable by parameter
+ * 2023-06-13 JJK   Added max rows as a parameter in all the queries and to
+ * 					accept as an input parameter.  Also max the max max
+ * 					media type specific
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -110,8 +113,9 @@ $mediaInfo->albumList = array();
 $mediaInfo->peopleList = array();
 $mediaInfo->fileList = array();
 $mediaInfo->filterList = array();
-$maxRows = 100;
-//$maxRows = 300;
+
+$maxMaxRows = 500;
+$maxRows = 200;
 
 // Default to the 1st day of the current year
 $mediaInfo->startDate = date("Y") . "-01-01";
@@ -143,6 +147,17 @@ try {
 		$mediaInfo->startDate = "1900-01-01";
 	}
 
+	if ($param->MediaFilterMediaType == 2) {
+		$maxRows = 10;
+	} else {
+		if (!empty($param->MaxRows)) {
+			$maxRows = intval($param->MaxRows);
+			if ($maxRows > $maxMaxRows) {
+				$maxRows = $maxMaxRows;
+			}
+	
+		}
+	}
 	
 	if ($getMenu) {
 		$sql = "SELECT * FROM MediaType t, MediaCategory c, Menu m WHERE ";
@@ -319,6 +334,20 @@ try {
 
 	if ($getNew) {
 		$sql = $sql . "AND ToBeProcessed = 1 ";
+
+	} else if ($categoryExists && $startDateExists && $menuItemExists && $searchStrExists) {
+		$sql = $sql . "AND CategoryTags LIKE ? ";
+		$sql = $sql . "AND MenuTags LIKE ? ";
+		$sql = $sql . "AND TakenDateTime >= ? ";
+		$sql = $sql . "AND (UPPER(Name) LIKE ? ";
+		$sql = $sql . "OR UPPER(Title) LIKE ? ";
+		$sql = $sql . "OR UPPER(Description) LIKE ? ";
+		$sql = $sql . "OR UPPER(People) LIKE ?) ";
+	} else if ($categoryExists && $menuItemExists && $startDateExists) {
+		$sql = $sql . "AND CategoryTags LIKE ? ";
+		$sql = $sql . "AND MenuTags LIKE ? ";
+		$sql = $sql . "AND TakenDateTime >= ? ";
+
 	} else if ($categoryExists && $menuItemExists) {
 		$sql = $sql . "AND CategoryTags LIKE ? ";
 		$sql = $sql . "AND MenuTags LIKE ? ";
@@ -355,65 +384,93 @@ try {
 		$sql = $sql . "AND TakenDateTime >= ? ";
 	}
 
-	$sql = $sql . "ORDER BY TakenDateTime,Name LIMIT 100; ";
+	$sql = $sql . "ORDER BY TakenDateTime,Name LIMIT ?; ";
 
 	//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
 	$stmt = $conn->prepare($sql)  or die($mysqli->error);
 
-	if ($categoryExists && $menuItemExists) {
-		$stmt->bind_param("iss",
+	if ($categoryExists && $startDateExists && $searchStrExists) {
+		$stmt->bind_param("isssssssi",
 			$param->MediaFilterMediaType,
 			$wildCategory,
-			$wildMenuItem);
+			$wildMenuItem,
+			$param->MediaFilterStartDate,
+			$wildSearchStr,
+			$wildSearchStr,
+			$wildSearchStr,
+			$wildSearchStr,
+			$maxRows);
+	} else if ($categoryExists && $menuItemExists && $startDateExists) {
+		$stmt->bind_param("isssi",
+			$param->MediaFilterMediaType,
+			$wildCategory,
+			$wildMenuItem,
+			$param->MediaFilterStartDate,
+			$maxRows);
+	} else if ($categoryExists && $menuItemExists) {
+		$stmt->bind_param("issi",
+			$param->MediaFilterMediaType,
+			$wildCategory,
+			$wildMenuItem,
+			$maxRows);
 	} else if ($categoryExists && $startDateExists && $searchStrExists) {
-		$stmt->bind_param("issssss",
+		$stmt->bind_param("issssssi",
 			$param->MediaFilterMediaType,
 			$wildCategory,
 			$param->MediaFilterStartDate,
 			$wildSearchStr,
 			$wildSearchStr,
 			$wildSearchStr,
-			$wildSearchStr);
+			$wildSearchStr,
+			$maxRows);
 	} else if ($categoryExists && $startDateExists) {
-		$stmt->bind_param("iss",
+		$stmt->bind_param("issi",
 			$param->MediaFilterMediaType,
 			$wildCategory,
-			$param->MediaFilterStartDate);
+			$param->MediaFilterStartDate,
+			$maxRows);
 	} else if ($categoryExists && $searchStrExists) {
-		$stmt->bind_param("isssss",
+		$stmt->bind_param("isssssi",
 			$param->MediaFilterMediaType,
 			$wildCategory,
 			$wildSearchStr,
 			$wildSearchStr,
 			$wildSearchStr,
-			$wildSearchStr);
+			$wildSearchStr,
+			$maxRows);
 	} else if ($startDateExists && $searchStrExists) {
-		$stmt->bind_param("isssss",
+		$stmt->bind_param("isssssi",
 			$param->MediaFilterMediaType,
 			$param->MediaFilterStartDate,
 			$wildSearchStr,
 			$wildSearchStr,
 			$wildSearchStr,
-			$wildSearchStr);
+			$wildSearchStr,
+			$maxRows);
 	} else if ($categoryExists) {
-		$stmt->bind_param("is",
+		$stmt->bind_param("isi",
 			$param->MediaFilterMediaType,
-			$wildCategory);
+			$wildCategory,
+			$maxRows);
 	} else if ($searchStrExists) {
-		$stmt->bind_param("issss",
+		$stmt->bind_param("issssi",
 			$param->MediaFilterMediaType,
 			$wildSearchStr,
 			$wildSearchStr,
 			$wildSearchStr,
-			$wildSearchStr);
+			$wildSearchStr,
+			$maxRows);
 	} else if ($startDateExists) {
-		$stmt->bind_param("is",
+		$stmt->bind_param("isi",
 			$param->MediaFilterMediaType,
-			$param->MediaFilterStartDate);
+			$param->MediaFilterStartDate,
+			$maxRows);
 	} else {
-		$stmt->bind_param("i",
-			$param->MediaFilterMediaType);
+		$stmt->bind_param("ii",
+			$param->MediaFilterMediaType,
+			$maxRows);
 	}
+
 
 	$stmt->execute();
 	$result = $stmt->get_result();
@@ -452,7 +509,7 @@ try {
 		}
 
 		//if ($result->num_rows == $maxRows && $param->MediaFilterMediaType == 1) {
-		if ($param->MediaFilterMediaType == 1) {
+		//if ($param->MediaFilterMediaType == 1) {
 				// figure out from 1st and last timestamp if list is multiple years or just 1 year
 			// if multiple, add menu boxes for years, if one add season boxes?
 			// *** No, can just use the first and last from the limited set, have to get "whole" set for
@@ -468,12 +525,11 @@ try {
 			//$tempStartDate = $param->MediaFilterStartDate;
 			//$tempEndDate = $lastTakenDateTime;
 
-			$FilterRec = new FilterRec();
-			$FilterRec->filterName = "Prev";
-			// Just do prev year for now?
 			$tempStartDate = date_parse($firstTakenDateTime);
 			$tempEndDate = strtotime($lastTakenDateTime);
 
+			$FilterRec = new FilterRec();
+			$FilterRec->filterName = "Prev Year";
 			$Year = $tempStartDate["year"] - 1;
 			$FilterRec->startDate = (string)$Year . "-01-01";
 			array_push($mediaInfo->filterList,$FilterRec);
@@ -482,7 +538,31 @@ try {
 			$FilterRec->filterName = "Next";
 			$FilterRec->startDate = date("Y-m-d",$tempEndDate);
 			array_push($mediaInfo->filterList,$FilterRec);
-		}
+
+			// add some hard coded Season buttons - Winter, Spring, Summer, Fall, Winter ?
+			$Year = $tempStartDate["year"];
+			$FilterRec = new FilterRec();
+			$FilterRec->filterName = "Winter";
+			$FilterRec->startDate = (string)$Year . "-01-01";
+			array_push($mediaInfo->filterList,$FilterRec);
+			$FilterRec = new FilterRec();
+			$FilterRec->filterName = "Spring";
+			$FilterRec->startDate = (string)$Year . "-04-01";
+			array_push($mediaInfo->filterList,$FilterRec);
+			$FilterRec = new FilterRec();
+			$FilterRec->filterName = "Summer";
+			$FilterRec->startDate = (string)$Year . "-07-01";
+			array_push($mediaInfo->filterList,$FilterRec);
+			$FilterRec = new FilterRec();
+			$FilterRec->filterName = "Fall";
+			$FilterRec->startDate = (string)$Year . "-10-01";
+			array_push($mediaInfo->filterList,$FilterRec);
+			$FilterRec = new FilterRec();
+			$FilterRec->filterName = "Winter";
+			$FilterRec->startDate = (string)$Year . "-12-01";
+			array_push($mediaInfo->filterList,$FilterRec);
+
+		//}
 	}
 	$stmt->close();
 
