@@ -389,7 +389,7 @@ try {
 	//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
 	$stmt = $conn->prepare($sql)  or die($mysqli->error);
 
-	if ($categoryExists && $startDateExists && $searchStrExists) {
+	if ($categoryExists && $startDateExists && $menuItemExists && $searchStrExists) {
 		$stmt->bind_param("isssssssi",
 			$param->MediaFilterMediaType,
 			$wildCategory,
@@ -539,28 +539,30 @@ try {
 			$FilterRec->startDate = date("Y-m-d",$tempEndDate);
 			array_push($mediaInfo->filterList,$FilterRec);
 
-			// add some hard coded Season buttons - Winter, Spring, Summer, Fall, Winter ?
-			$Year = $tempStartDate["year"];
-			$FilterRec = new FilterRec();
-			$FilterRec->filterName = "Winter";
-			$FilterRec->startDate = (string)$Year . "-01-01";
-			array_push($mediaInfo->filterList,$FilterRec);
-			$FilterRec = new FilterRec();
-			$FilterRec->filterName = "Spring";
-			$FilterRec->startDate = (string)$Year . "-04-01";
-			array_push($mediaInfo->filterList,$FilterRec);
-			$FilterRec = new FilterRec();
-			$FilterRec->filterName = "Summer";
-			$FilterRec->startDate = (string)$Year . "-07-01";
-			array_push($mediaInfo->filterList,$FilterRec);
-			$FilterRec = new FilterRec();
-			$FilterRec->filterName = "Fall";
-			$FilterRec->startDate = (string)$Year . "-10-01";
-			array_push($mediaInfo->filterList,$FilterRec);
-			$FilterRec = new FilterRec();
-			$FilterRec->filterName = "Winter";
-			$FilterRec->startDate = (string)$Year . "-12-01";
-			array_push($mediaInfo->filterList,$FilterRec);
+			if ($param->MediaFilterMediaType == 1 && $cnt > 50) {
+				// add some hard coded Season buttons - Winter, Spring, Summer, Fall, Winter ?
+				$Year = $tempStartDate["year"];
+				$FilterRec = new FilterRec();
+				$FilterRec->filterName = "Winter";
+				$FilterRec->startDate = (string)$Year . "-01-01";
+				array_push($mediaInfo->filterList,$FilterRec);
+				$FilterRec = new FilterRec();
+				$FilterRec->filterName = "Spring";
+				$FilterRec->startDate = (string)$Year . "-04-01";
+				array_push($mediaInfo->filterList,$FilterRec);
+				$FilterRec = new FilterRec();
+				$FilterRec->filterName = "Summer";
+				$FilterRec->startDate = (string)$Year . "-07-01";
+				array_push($mediaInfo->filterList,$FilterRec);
+				$FilterRec = new FilterRec();
+				$FilterRec->filterName = "Fall";
+				$FilterRec->startDate = (string)$Year . "-10-01";
+				array_push($mediaInfo->filterList,$FilterRec);
+				$FilterRec = new FilterRec();
+				$FilterRec->filterName = "Winter";
+				$FilterRec->startDate = (string)$Year . "-12-01";
+				array_push($mediaInfo->filterList,$FilterRec);
+			}
 
 		//}
 	}

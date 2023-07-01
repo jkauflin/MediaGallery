@@ -92,6 +92,7 @@
  *                  photo for all displays
  * 2023-06-13 JJK   Added season buttons to filter requests (before and after
  *                  the thumbnails), and fixed bugs in request queries
+ * 2023-06-17 JJK   Working on right-click menu context for thumbnails
  *============================================================================*/
 var mgallery = (function(){
     'use strict';  // Force declaration of variables before use (among other things)
@@ -226,6 +227,7 @@ var mgallery = (function(){
         })
     }
     */
+    const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
 
     //=================================================================================================================
     // Bind events
@@ -260,12 +262,14 @@ var mgallery = (function(){
         }
     });
 
+    /*
     window.addEventListener('contextmenu', (event) => {
         // *** If I ever want to implement some right-click logic ***
         //console.log(event.button)
         // Prevent other actions for the right-click
         //event.preventDefault()
     })
+    */
 
     // Respond to click on a link-tile-tab button by finding the correct TAB and switching/showing it
     // (These link-tile-tab's also have media-page for creating the Menu, but these handled from the listener on that class)
@@ -414,6 +418,67 @@ var mgallery = (function(){
             }
     });
 
+    //-------------------------------------------------------------------------------------------------------------------
+    // Listen for Right-clicks in the MediaThumbnails container and display context menu
+    //-------------------------------------------------------------------------------------------------------------------
+    thumbnailContainer.addEventListener('contextmenu', (event) => {
+        if (event.target.classList.contains(imgThumbnailClass)) {
+            event.preventDefault()
+            let index = parseInt(event.target.getAttribute('data-index'))
+            if (typeof index !== "undefined" && index !== null) {
+                console.log(">>> Right-Click, index = "+index+", src = "+event.target.getAttribute('src'))
+
+                console.log('mediaType = ', mediaType)
+                console.log('category = ', mediaFilterCategory.value)
+                console.log('startDate = ', mediaFilterStartDate.value)
+                console.log('menuItem = ', queryMenuItem)
+                console.log('searchStr = ', querySearchStr)
+                // Album
+
+                let mediaModalBody = document.getElementById("MediaModalBody")
+                empty(mediaModalBody)
+                
+
+                let img = document.createElement("img");
+                img.setAttribute('onerror', "this.onerror=null; this.remove()")
+                img.setAttribute('src', event.target.getAttribute('src'))
+                //img.setAttribute('data-index', index)
+                mediaModalBody.appendChild(img)
+
+
+                // >>>> build components for modal display
+                // >>>> Maybe add "edit" functions if editMode ???
+
+                // >>> work out "Share" concepts - what do I need to store in the DB?
+
+                mediaModal.show()
+                //mediaModal.hide()
+
+            }
+        }
+    })
+
+    /*
+    el.addEventListener("touchstart", handleStart);
+    el.addEventListener("touchend", handleEnd);
+    el.addEventListener("touchcancel", handleCancel);
+    el.addEventListener("touchmove", handleMove);
+    */
+    /*
+    thumbnailContainer.addEventListener('touchstart', (event) => {
+        if (event.target.classList.contains(imgThumbnailClass)) {
+            event.preventDefault()
+            let index = parseInt(event.target.getAttribute('data-index'))
+            if (typeof index !== "undefined" && index !== null) {
+                console.log(">>> Mouse-down, index = "+index+", src = "+event.target.getAttribute('src'))
+            }
+        }
+    })
+    */
+    /*
+    thumbnailContainer.addEventListener('mousedown', (event) => {
+    })
+    */
 
     //-------------------------------------------------------------------------------------------------------
     // Respond to Filter requests
@@ -1053,8 +1118,20 @@ var mgallery = (function(){
         //----------------------------------------------------------------------------------------------------
         //if (mediaType == 1 && mediaInfo.filterList != null) {
         if (mediaInfo.filterList != null) {
-                for (let index in mediaInfo.filterList) {
+            let buttonColor = 'btn-primary'
+            for (let index in mediaInfo.filterList) {
                 let FilterRec = mediaInfo.filterList[index]
+
+                buttonColor = 'btn-primary'
+                if (FilterRec.filterName == 'Winter') {
+                    buttonColor = 'btn-secondary'
+                } else if (FilterRec.filterName == 'Spring') {
+                    buttonColor = 'btn-success'
+                } else if (FilterRec.filterName == 'Summer') {
+                    buttonColor = 'btn-danger'
+                } else if (FilterRec.filterName == 'Fall') {
+                    buttonColor = 'btn-warning'
+                }
 
                 let button = document.createElement("button")
                 button.setAttribute('type',"button")
@@ -1064,21 +1141,23 @@ var mgallery = (function(){
                 button.setAttribute('data-startDate', FilterRec.startDate)
                 button.setAttribute('data-menuItem', queryMenuItem)
                 button.setAttribute('data-searchStr', querySearchStr)
-                button.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
+                button.classList.add('btn',buttonColor,'btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
                 button.textContent = FilterRec.filterName
                 thumbnailRow1Col1.appendChild(button)
 
-                let button2 = document.createElement("button")
-                button2.setAttribute('type',"button")
-                button2.setAttribute('role',"button")
-                button2.setAttribute('data-MediaType', mediaType)
-                button2.setAttribute('data-category', mediaFilterCategory.value)
-                button2.setAttribute('data-startDate', FilterRec.startDate)
-                button2.setAttribute('data-menuItem', queryMenuItem)
-                button2.setAttribute('data-searchStr', querySearchStr)
-                button2.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
-                button2.textContent = FilterRec.filterName
-                thumbnailRow3Col1.appendChild(button2)
+                if (mediaInfo.fileList.length > 50) {
+                    let button2 = document.createElement("button")
+                    button2.setAttribute('type',"button")
+                    button2.setAttribute('role',"button")
+                    button2.setAttribute('data-MediaType', mediaType)
+                    button2.setAttribute('data-category', mediaFilterCategory.value)
+                    button2.setAttribute('data-startDate', FilterRec.startDate)
+                    button2.setAttribute('data-menuItem', queryMenuItem)
+                    button2.setAttribute('data-searchStr', querySearchStr)
+                    button2.classList.add('btn',buttonColor,'btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
+                    button2.textContent = FilterRec.filterName
+                    thumbnailRow3Col1.appendChild(button2)
+                }
             }
         }
 
@@ -1156,6 +1235,7 @@ var mgallery = (function(){
                         let img = document.createElement("img");
                         img.setAttribute('onerror', "this.onerror=null; this.remove()")
                         img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
+                        img.setAttribute('data-index', index)
                         img.classList.add(imgThumbnailClass)
                         let a = document.createElement("a")
                         a.href = filePath
