@@ -118,7 +118,8 @@ $maxMaxRows = 500;
 $maxRows = 200;
 
 // Default to the 1st day of the current year
-$mediaInfo->startDate = date("Y") . "-01-01";
+//$mediaInfo->startDate = date("Y") . "-01-01";
+$mediaInfo->startDate = date("Y-m-d", strtotime("-2 months"));
 $defaultCategory = "ALL";
 
 try {
@@ -147,9 +148,9 @@ try {
 		$mediaInfo->startDate = "1900-01-01";
 	}
 
-	if ($param->MediaFilterMediaType == 2) {
-		$maxRows = 10;
-	} else {
+	//if ($param->MediaFilterMediaType == 2) {
+	//	$maxRows = 10;
+	//} else {
 		if (!empty($param->MaxRows)) {
 			$maxRows = intval($param->MaxRows);
 			if ($maxRows > $maxMaxRows) {
@@ -157,7 +158,7 @@ try {
 			}
 	
 		}
-	}
+	//}
 	
 	if ($getMenu) {
 		$sql = "SELECT * FROM MediaType t, MediaCategory c, Menu m WHERE ";

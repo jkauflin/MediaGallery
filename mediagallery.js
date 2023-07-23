@@ -93,13 +93,13 @@
  * 2023-06-13 JJK   Added season buttons to filter requests (before and after
  *                  the thumbnails), and fixed bugs in request queries
  * 2023-06-17 JJK   Working on right-click menu context for thumbnails
+ * 2023-07-08 JJK   Working on card and edit displays for all types, and
+ *                  Albums
+ * 2023-07-22 JJK   Working on changing from blueimp lightbox to bs5-lightbox
+ *                  (and conforming to ES6 module standards)
  *============================================================================*/
-var mgallery = (function(){
-    'use strict';  // Force declaration of variables before use (among other things)
 
-    //=================================================================================================================
     // Private variables for the Module
-
     var mediaType = 1
     var mediaInfo
     var menuList = []
@@ -115,9 +115,7 @@ var mgallery = (function(){
     //const webRootPath = tempPath;
 
     // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
-    //var MediaRootDir = webRootPath + "/Media/";
-    //var MediaRootDir = window.location.pathname + "Media/";
-    var MediaRootDir = "Media/";
+    var MediaRootDir = window.location.pathname + "Media/";
     var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
 
     // Playlist array and index (for audio player/playlist diaplay)
@@ -136,15 +134,12 @@ var mgallery = (function(){
     audioPlayer.style.padding = '13px 20px 0 0';
     audioPlayer.style.margin = '0 15px 0 10px';
 
-    var MediaConfigId = "MediaConfig";
-    //var MediaConfigButton = "MediaConfigButton";
-    
     var MediaMenuRequestClass = "MediaMenuRequest";
     var MediaFilterRequestClass = "MediaFilterRequest";
     var MediaPageLinkClass = "media-page";
     var currIndex = 0
-    var imgThumbnailClass = "img-thumbnail"
-    var imgCheckboxClass = "img-checkbox"
+    var imgThumbnailClass = "img-thumbnail-jjk"
+    var thumbCheckboxClass = "thumb-checkbox"
 
     var playlistSongClass = "playlistSong";
     var audioPrevClass = "fa-step-backward";
@@ -154,7 +149,6 @@ var mgallery = (function(){
     // Variables cached from the DOM
 
     var mediaPageContainer = document.getElementById("MediaPage");
-    //var configContainer = document.getElementById(MediaConfigId);
     var filterContainer = document.createElement("div")
     var thumbnailContainer = document.createElement("div")
     var editRow1 = document.createElement("div")
@@ -196,14 +190,12 @@ var mgallery = (function(){
     var querySearchStr = ""
     var queryMenuItem = ""
 
-    // Non-Printable characters - Hex 01 to 1F, and 7F
-    var nonPrintableCharsStr = "[\x01-\x1F\x7F]";
-    // "g" global so it does more than 1 substitution
-    var regexNonPrintableChars = new RegExp(nonPrintableCharsStr, "g");
-    function cleanStr(inStr) {
-        return inStr.replace(regexNonPrintableChars, '');
-    }
-
+    const lightboxToggleClass = "lb-toggle"
+    const lightboxOptions = {
+        keyboard: true,
+        size: 'fullscreen'
+    };
+    
     // Get random photos (within /Media/images) when the page loads
     /*
     var homePhotoElement = document.getElementById("HomePhoto");
@@ -227,7 +219,6 @@ var mgallery = (function(){
         })
     }
     */
-    const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
 
     //=================================================================================================================
     // Bind events
@@ -343,6 +334,8 @@ var mgallery = (function(){
     // *** Have to listen to Body instead of individual containers (because there are more than 1)
     //-------------------------------------------------------------------------------------------------------
     document.body.addEventListener("click", function (event) {
+        //console.log("document.body click, classList = "+event.target.classList)
+
         // Check for specific classes
         if (event.target && event.target.classList.contains(MediaFilterRequestClass)) {
             // If click on a Filter Request (like Next or Prev), query the data and build the thumbnail display
@@ -374,48 +367,38 @@ var mgallery = (function(){
             queryMediaInfo(paramData);
 
             bootstrap.Offcanvas.getOrCreateInstance('#MediaMenuCanvas').hide();
-        }
-    });
 
-    //-------------------------------------------------------------------------------------------------------------------
-    // Listen for clicks in the MediaThumbnails container
-    //-------------------------------------------------------------------------------------------------------------------
-    thumbnailContainer.addEventListener("click", function (event) {
-            event = event || window.event
-            //let target = event.target
-            let target = event.target,
-            link = target.src ? target.parentNode : target,
-            options = { index: link, event: event },
-            links = this.getElementsByTagName('a')
-
-            if (target.classList.contains(imgThumbnailClass)) {
-                //console.log("Clicked on image thumbnail")
-                if (editMode) {
-                    let index = parseInt(target.getAttribute('data-index'))
-                    if (typeof index !== "undefined" && index !== null) {
-                        //console.log(">>> click on thumbnail img class ")
-                        displayFileDetail(index)
-                    }
-                } else {
-                    blueimp.Gallery(links, options);
-                }
-
-            } else if (target.classList.contains(imgCheckboxClass)) {
-                //console.log("Clicked on image checkbox")
-                let index = parseInt(target.getAttribute('data-index'))
+        } else if (event.target && event.target.classList.contains(lightboxToggleClass)) {
+            //console.log("in lightbox click")
+            event.preventDefault();
+            if (editMode) {
+                let index = parseInt(event.target.getAttribute('data-index'))
                 if (typeof index !== "undefined" && index !== null) {
-                    mediaInfo.fileList[index].Selected = true
+                    //console.log(">>> click on thumbnail img class ")
+                    displayFileDetail(index)
                 }
-            } else if (target.classList.contains(audioNextClass)) {
-                nextSong();
-            } else if (target.classList.contains(audioPrevClass)) {
-                prevSong();
-            } else if (target.classList.contains(playlistSongClass)) {
-                let tempAttr = target.getAttribute('data-plIndex');
-                if (typeof tempAttr !== "undefined" && tempAttr !== null) {
-                    loadSong(tempAttr);
-                }
+            } else {
+                const lightbox = new Lightbox(event.target, lightboxOptions);
+                lightbox.show();
             }
+
+        } else if (event.target && event.target.classList.contains(thumbCheckboxClass)) {
+            //console.log("Clicked on image checkbox")
+            let index = parseInt(target.getAttribute('data-index'))
+            if (typeof index !== "undefined" && index !== null) {
+                mediaInfo.fileList[index].Selected = true
+            }
+        } else if (event.target && event.target.classList.contains(audioNextClass)) {
+            nextSong();
+        } else if (event.target && event.target.classList.contains(audioPrevClass)) {
+            prevSong();
+        } else if (event.target && event.target.classList.contains(playlistSongClass)) {
+            let tempAttr = event.target.getAttribute('data-plIndex');
+            if (typeof tempAttr !== "undefined" && tempAttr !== null) {
+                loadSong(tempAttr);
+            }
+        }
+
     });
 
     //-------------------------------------------------------------------------------------------------------------------
@@ -435,16 +418,15 @@ var mgallery = (function(){
                 console.log('searchStr = ', querySearchStr)
                 // Album
 
+                /*
                 let mediaModalBody = document.getElementById("MediaModalBody")
                 empty(mediaModalBody)
                 
-
                 let img = document.createElement("img");
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
                 img.setAttribute('src', event.target.getAttribute('src'))
                 //img.setAttribute('data-index', index)
                 mediaModalBody.appendChild(img)
-
 
                 // >>>> build components for modal display
                 // >>>> Maybe add "edit" functions if editMode ???
@@ -453,7 +435,7 @@ var mgallery = (function(){
 
                 mediaModal.show()
                 //mediaModal.hide()
-
+                */
             }
         }
     })
@@ -509,39 +491,6 @@ var mgallery = (function(){
         nextSong();
     }, true);
 
-
-    // Respond to Config button clicks
-    /*
-    configContainer.addEventListener("click", function (event) {
-        var $this = $(this);
-        //console.log("Click on MediaConfig, data-dir = " + $this.attr('data-dir'));
-        // Create thumbnails and smaller photos for images in a directory
-        $.get(jjkgalleryRoot + "createThumbnails.php", "subPath=" + $this.attr('data-dir'), function (result) {
-            //console.log("createThumbnails, result = " + result);
-        });
-    });
-    */
-
-    //=====================================================================================
-    // Default the blueimp gallery controls to borderless fullscreen with no controls
-    //=====================================================================================
-    /*
-    blueimpGallery.data('useBootstrapModal', false);
-    blueimpGallery.toggleClass('blueimp-gallery-controls', false);
-    blueimpGallery.data('fullScreen', true);
-
-    // Respond to changes in photo gallery configuration
-    $('#borderless-checkbox').on('change', function () {
-        var borderless = $(this).is(':checked')
-        blueimpGallery.data('useBootstrapModal', !borderless)
-        blueimpGallery.toggleClass('blueimp-gallery-controls', borderless)
-    })
-    */
-    /*
-    $('#fullscreen-checkbox').on('change', function () {
-        $('#blueimp-gallery').data('fullScreen', $(this).is(':checked'))
-    })
-    */
 
     //=================================================================================================================
     // Module methods
@@ -949,7 +898,7 @@ var mgallery = (function(){
     }
 
 
-        //------------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------------------------------
     // Create a collapsible menu from a directory structure
     //------------------------------------------------------------------------------------------------------------
     function buildFilterElements(mediaType) {
@@ -1164,87 +1113,111 @@ var mgallery = (function(){
         //-------------------------------------------------------------------------------------------------------------------------
         // Loop through all the files in the current file list
         //-------------------------------------------------------------------------------------------------------------------------
+        let maxRows = 200
+        if (mediaType == 2) {
+            maxRows = 12
+        }
+
         for (let index in mediaInfo.fileList) {
-        let fi = mediaInfo.fileList[index]
+            let fi = mediaInfo.fileList[index]
+            if (index > maxRows-1) {
+                continue
+            }
 
-            if (mediaType == 2) {
-                // VIDEOS
+            if (fi.DirSubPath != '') {
+                filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
+            }
+            else 
+            {
+                filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                fileSubPath = '/' + fi.Name;
+            }
+            //console.log("filePath = " + filePath + ", fileSubPath = " + fileSubPath);
 
-                // Add a table with a title above the iframe
-                let table = document.createElement("table");
-                table.classList.add('float-start')
-                let td = document.createElement("td");
-                td.textContent = fi.DirSubPath
-                let tr = document.createElement("tr");
-                tr.appendChild(td)
-                table.appendChild(tr)
+            periodPos = fi.Name.indexOf(".");
+            if (periodPos >= 0) {
+                fileExt = fi.Name.substr(periodPos + 1).toUpperCase();
+                fileNameNoExt = fi.Name.substr(0,periodPos);
+            }
+
+            // Create a Card to hold the thumbnail of the media object
+            let thumb = document.createElement("div")
+            thumb.classList.add('card','fs-6','w-20','float-start')
+
+            let titleMax = 25
+            if (mediaType == 1) {
+                titleMax = 12
+            }
+
+            if (editMode) {
+                // If EditMode, add a checkbox to the thumb card
+                let cardCheckboxDiv = document.createElement("div")
+                cardCheckboxDiv.classList.add('form-check','mx-1','float-start','shadow-none')
+
+                let cardCheckbox = document.createElement("input")
+                //cardCheckbox.classList.add('form-check-input','mx-1','mb-1','float-end','shadow-none',thumbCheckboxClass)
+                cardCheckbox.classList.add('form-check-input','shadow-none',thumbCheckboxClass)
+                cardCheckbox.id = 'cb' + index
+                cardCheckbox.setAttribute('type', 'checkbox')
+                cardCheckbox.setAttribute('data-index', index)
+                cardCheckbox.checked = fi.Selected
+                cardCheckboxDiv.appendChild(cardCheckbox)
+
+                let cbLabel = document.createElement("label")
+                cbLabel.classList.add('form-check-label')
+                cbLabel.setAttribute('for',cardCheckbox.id)
+                if (fi.Title.length > titleMax) {
+                    cbLabel.textContent = fi.Title.substring(0,titleMax)
+                } else {
+                    cbLabel.textContent = fi.Title
+                }
+                cardCheckboxDiv.appendChild(cbLabel)
+
+                thumb.appendChild(cardCheckboxDiv)
+            }
+
+            //-------------------------------------------------------------------------------------------------------------------
+            // Display thumbnail according to media type (and add event links for lightbox and edit)
+            //-------------------------------------------------------------------------------------------------------------------
+            if (mediaType == 1) {
+                let img = document.createElement("img");
+                // add a class for event click
+                //img.classList.add('m-1',imgThumbnailClass)  // >>>>>>>>>>>>>>>>>  implement Edit click as right-click
+                img.classList.add('m-1','img-fluid',lightboxToggleClass)
+                img.setAttribute('onerror', "this.onerror=null; this.remove()")
+                img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
+                img.setAttribute('data-index', index)
+                img.setAttribute('data-src', filePath)
+                img.setAttribute('data-gallery', "jjk-gallery")
+                thumb.appendChild(img)
+            } else if (mediaType == 2) {
+                if (!editMode) {
+                    let videoLabel = document.createElement("label")
+                    videoLabel.classList.add('mx-1')
+                    if (fi.Title.length > titleMax) {
+                        videoLabel.textContent = fi.Title.substring(0,titleMax)
+                    } else {
+                        videoLabel.textContent = fi.Title
+                    }
+                    thumb.appendChild(videoLabel)
+                }
 
                 let iframe = document.createElement("iframe")
+                iframe.classList.add('m-1')
                 // Use the embed link for iframe (without https so it can be run locally for testing)
-                iframe.setAttribute('src', "//www.youtube.com/embed/" + fi.Name);
-                iframe.setAttribute('allowfullscreen', true);
-                td = document.createElement("td");
-                td.appendChild(iframe);
-                tr = document.createElement("tr");
-                tr.appendChild(td)
-                table.appendChild(tr)
-                thumbnailRow2Col1.appendChild(table)
+                iframe.setAttribute('src', "//www.youtube.com/embed/" + fi.Name)
+                //iframe.setAttribute('src', "https://youtube.be/" + fi.Name)
+                //youtu.be/
+                iframe.setAttribute('allowfullscreen', true)
 
-            } else {
-                if (fi.DirSubPath != '') {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                    fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
-                }
-                else 
-                {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                    fileSubPath = '/' + fi.Name;
-                }
-                //console.log("filePath = " + filePath + ", fileSubPath = " + fileSubPath);
+                iframe.style.width = "230px";
+                iframe.style.height = "140px";
 
-                periodPos = fi.Name.indexOf(".");
-                if (periodPos >= 0) {
-                    fileExt = fi.Name.substr(periodPos + 1).toUpperCase();
-                    fileNameNoExt = fi.Name.substr(0,periodPos);
-                }
+                thumb.appendChild(iframe)
 
-                if (mediaType == 1) {
-                    // PHOTOS
-
-                    if (editMode) {
-                        let card = document.createElement("div")
-                        card.classList.add('card','w-20','float-start')
-                        let cardCheckbox = document.createElement("input")
-                        cardCheckbox.classList.add('form-check-input','shadow-none','mx-1','mb-1',imgCheckboxClass)
-                        cardCheckbox.setAttribute('type', 'checkbox')
-                        cardCheckbox.setAttribute('data-index', index)
-                        cardCheckbox.checked = fi.Selected
-                        card.appendChild(cardCheckbox)
-                  
-                        // Add the photo to the gallery link list
-                        let img = document.createElement("img");
-                        img.classList.add(imgThumbnailClass)
-                        // add a class for event click
-                        img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                        img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
-                        img.setAttribute('data-index', index)
-                        card.appendChild(img)
-                        thumbnailRow2Col1.appendChild(card)
-                    } else {
-                        // Add the photo to the gallery link list
-                        let img = document.createElement("img");
-                        img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                        img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
-                        img.setAttribute('data-index', index)
-                        img.classList.add(imgThumbnailClass)
-                        let a = document.createElement("a")
-                        a.href = filePath
-                        a.title = fi.Name
-                        a.appendChild(img);
-                        thumbnailRow2Col1.appendChild(a)
-                    }
-
-                } else if (mediaType == 3) {
+            } else if (mediaType == 3) {
+                /*
                     // MUSIC
 
                     //console.log("fileNameNoExt = " + fileNameNoExt+", url = "+filePath);
@@ -1264,7 +1237,9 @@ var mgallery = (function(){
                     let tr = document.createElement("tr");
                     tr.appendChild(td);
                     playlistTbody.appendChild(tr)
-                } else if (mediaType == 4) {
+                */
+            } else if (mediaType == 4) {
+                                /*
                     // DOCS
                     
                     //console.log("PDF file = " + fi.Name + ", filePath = " + filePath);
@@ -1279,10 +1254,14 @@ var mgallery = (function(){
                     tr.classList.add("smalltext")
                     tr.appendChild(td);
                     doclistTbody.appendChild(tr)
-                }
+                */
+
             }
 
-        }
+            thumbnailRow2Col1.appendChild(thumb)
+
+        } //   for (let index in mediaInfo.fileList) {
+        
 
         // if there were any docs, build a table of the filelinks and append to the Thumbnails container
         if (docFiles) {
@@ -1346,7 +1325,7 @@ var mgallery = (function(){
                 row.appendChild(col2)
                 */
 
-                thumbnailRow2Col1.appendChild(row)
+                // >>>>>>>>>>>>>>>> thumbnailRow2Col1.appendChild(row)
 
                 // Load and start playing the 1st song in the list
                 //loadSong(0);
@@ -1539,8 +1518,3 @@ var mgallery = (function(){
         }
     }
 
-    // This is what is exposed from this Module
-    return {
-    };
-        
-})(); // var mgallery = (function(){
