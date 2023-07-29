@@ -97,6 +97,8 @@
  *                  Albums
  * 2023-07-22 JJK   Working on changing from blueimp lightbox to bs5-lightbox
  *                  (and conforming to ES6 module standards)
+ * 2023-07-29 JJK   Gave up on bs5-lightbox too and implemented by own simple
+ *                  bs5 modal-based lightbox
  *============================================================================*/
 
     // Private variables for the Module
@@ -190,11 +192,8 @@
     var querySearchStr = ""
     var queryMenuItem = ""
 
-    const lightboxToggleClass = "lb-toggle"
-    const lightboxOptions = {
-        keyboard: true,
-        size: 'fullscreen'
-    };
+    const lightboxClass = "mg-lightbox"
+    const lightboxNextClass = "mg-lb-next"
     
     // Get random photos (within /Media/images) when the page loads
     /*
@@ -347,7 +346,7 @@
             let paramData = {
                 MediaFilterMediaType: mediaType, 
                 getMenu: false,
-                MaxRows: 200,
+                MaxRows: 100,
                 MediaFilterCategory:  event.target.getAttribute('data-category'),
                 MediaFilterStartDate: event.target.getAttribute('data-startDate'),
                 MediaFilterMenuItem: event.target.getAttribute('data-menuItem'),
@@ -368,9 +367,11 @@
 
             bootstrap.Offcanvas.getOrCreateInstance('#MediaMenuCanvas').hide();
 
-        } else if (event.target && event.target.classList.contains(lightboxToggleClass)) {
+        } else if (event.target && event.target.classList.contains(lightboxClass)) {
             //console.log("in lightbox click")
             event.preventDefault();
+
+            /*
             if (editMode) {
                 let index = parseInt(event.target.getAttribute('data-index'))
                 if (typeof index !== "undefined" && index !== null) {
@@ -381,6 +382,55 @@
                 const lightbox = new Lightbox(event.target, lightboxOptions);
                 lightbox.show();
             }
+            */
+
+            let index = parseInt(event.target.getAttribute('data-index'))
+            //console.log("in jjk-lb-img click, index = "+index)
+            let fi = mediaInfo.fileList[index]
+            let filePath = ''
+            if (fi.DirSubPath != '') {
+                filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+            }
+            else 
+            {
+                filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+            }
+
+            let mediaLightboxBody = document.getElementById("MediaLightboxBody")
+            // check if an image is there in the body first?
+            empty(mediaLightboxBody)
+            
+            let img = document.createElement("img");
+            img.setAttribute('onerror', "this.onerror=null; this.remove()")
+            img.classList.add(lightboxNextClass)
+
+            img.setAttribute('src', filePath)
+            img.setAttribute('data-index', index)
+            let tempHeight = window.innerHeight - 40
+            img.style.maxHeight = tempHeight + "px"
+            mediaLightboxBody.appendChild(img)
+
+            const mediaLightbox = new bootstrap.Modal(document.getElementById('MediaLightbox'))
+            mediaLightbox.show()
+
+        } else if (event.target && event.target.classList.contains(lightboxNextClass)) {
+            event.preventDefault();
+            let index = parseInt(event.target.getAttribute('data-index'))
+            //console.log("in jjk-lb-img click, index = "+index)
+            if (index < mediaInfo.fileList.length-1) {
+                index += 1
+                let fi = mediaInfo.fileList[index]
+                let filePath = ''
+                if (fi.DirSubPath != '') {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                }
+                else 
+                {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                }
+                event.target.setAttribute('src', filePath)
+                event.target.setAttribute('data-index', index)
+            }            
 
         } else if (event.target && event.target.classList.contains(thumbCheckboxClass)) {
             //console.log("Clicked on image checkbox")
@@ -400,6 +450,7 @@
         }
 
     });
+
 
     //-------------------------------------------------------------------------------------------------------------------
     // Listen for Right-clicks in the MediaThumbnails container and display context menu
@@ -425,7 +476,10 @@
                 let img = document.createElement("img");
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
                 img.setAttribute('src', event.target.getAttribute('src'))
-                //img.setAttribute('data-index', index)
+                img.classList.add('jjk-lb-img')
+                img.setAttribute('data-index', index)
+                let tempHeight = window.innerHeight - 40
+                img.style.maxHeight = tempHeight + "px"
                 mediaModalBody.appendChild(img)
 
                 // >>>> build components for modal display
@@ -433,9 +487,10 @@
 
                 // >>> work out "Share" concepts - what do I need to store in the DB?
 
+                const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
                 mediaModal.show()
-                //mediaModal.hide()
                 */
+                //mediaModal.hide()
             }
         }
     })
@@ -1113,7 +1168,7 @@
         //-------------------------------------------------------------------------------------------------------------------------
         // Loop through all the files in the current file list
         //-------------------------------------------------------------------------------------------------------------------------
-        let maxRows = 200
+        let maxRows = 100
         if (mediaType == 2) {
             maxRows = 12
         }
@@ -1141,9 +1196,11 @@
                 fileNameNoExt = fi.Name.substr(0,periodPos);
             }
 
+
             // Create a Card to hold the thumbnail of the media object
             let thumb = document.createElement("div")
-            thumb.classList.add('card','fs-6','w-20','float-start')
+            //thumb.classList.add('card','fs-6','w-20','float-start')
+            thumb.classList.add('card','fs-6','vh-75','float-start')
 
             let titleMax = 25
             if (mediaType == 1) {
@@ -1176,7 +1233,7 @@
 
                 thumb.appendChild(cardCheckboxDiv)
             }
-
+            
             //-------------------------------------------------------------------------------------------------------------------
             // Display thumbnail according to media type (and add event links for lightbox and edit)
             //-------------------------------------------------------------------------------------------------------------------
@@ -1184,13 +1241,19 @@
                 let img = document.createElement("img");
                 // add a class for event click
                 //img.classList.add('m-1',imgThumbnailClass)  // >>>>>>>>>>>>>>>>>  implement Edit click as right-click
-                img.classList.add('m-1','img-fluid',lightboxToggleClass)
+                //img.classList.add('m-1','img-fluid',lightboxToggleClass)  imgThumbnailClass
+                img.classList.add('rounded','float-start','mt-2','me-2',lightboxClass)
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
+                //img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
+                img.setAttribute('src', filePath)
                 img.setAttribute('data-index', index)
-                img.setAttribute('data-src', filePath)
-                img.setAttribute('data-gallery', "jjk-gallery")
-                thumb.appendChild(img)
+                //img.setAttribute('data-src', filePath)
+                //img.setAttribute('data-gallery', "jjk-gallery")
+
+                img.height = 110
+                //thumb.appendChild(img)
+                thumb = img
+
             } else if (mediaType == 2) {
                 if (!editMode) {
                     let videoLabel = document.createElement("label")
@@ -1387,6 +1450,7 @@
         // Set the img src to get the smaller version of the image and display it on the screen
         mediaDetailImg.setAttribute('src', filePath)
     }
+
 
     //------------------------------------------------------------------------------------------------------------
     // Create a collapsible menu in an offcanvas pop-out using menu list data

@@ -115,7 +115,7 @@ $mediaInfo->fileList = array();
 $mediaInfo->filterList = array();
 
 $maxMaxRows = 500;
-$maxRows = 200;
+$maxRows = 100;
 
 // Default to the 1st day of the current year
 //$mediaInfo->startDate = date("Y") . "-01-01";
