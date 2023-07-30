@@ -113,16 +113,6 @@
     var albumList = []
     var peopleList = []
 
-    var isLandscape = true
-    var orientationType = window.screen.orientation.type
-    if (orientationType != null) {
-        isLandscape = orientationType.includes('landscape')
-    }
-    window.screen.orientation.addEventListener("change", (event) => {
-        orientationType = window.screen.orientation.type
-        isLandscape = orientationType.includes('landscape')
-    });
-      
     //console.log("window.location.pathname = "+window.location.pathname);
     //var tempPath = window.location.pathname;
     //var strPos = tempPath.indexOf('/vendor/jkauflin');
@@ -418,17 +408,27 @@
                 img.src = filePath
                 img.setAttribute('data-index', index)
 
-                if (isLandscape) {
-                    let tempHeight = window.innerHeight - 40
-                    img.style.maxHeight = tempHeight + "px"
-                } else {
-                    // Portrait (Mobile)
+                if(window.innerHeight > window.innerWidth) {
+                    // Portrait
                     let tempWidth = window.innerWidth - 40
                     img.style.maxWidth = tempWidth + "px"
+                } else {
+                    // Landscape
+                    let tempHeight = window.innerHeight - 40
+                    img.style.maxHeight = tempHeight + "px"
                 }
 
                 empty(mediaLightboxBody)
                 mediaLightboxBody.appendChild(img)
+                
+                 let closeButton = document.createElement("button")
+                closeButton.classList.add('btn','btn-close','float-start','shadow-none','mt-2','me-2')
+                closeButton.setAttribute('type',"button")
+                closeButton.setAttribute('role',"button")
+                closeButton.setAttribute('aria-label',"Close")
+                closeButton.setAttribute('data-bs-dismiss',"modal")
+                mediaLightboxBody.appendChild(closeButton)
+
                 mediaLightbox.show()
     
                 // If there is a NEXT image cache it to increase display speed
