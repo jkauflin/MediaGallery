@@ -113,9 +113,14 @@
     var albumList = []
     var peopleList = []
 
-    var isLandscape = window.screen.orientation.type.includes('landscape')
+    var isLandscape = true
+    var orientationType = window.screen.orientation.type
+    if (orientationType != null) {
+        isLandscape = orientationType.includes('landscape')
+    }
     window.screen.orientation.addEventListener("change", (event) => {
-        isLandscape = event.target.type.includes('landscape')
+        orientationType = window.screen.orientation.type
+        isLandscape = orientationType.includes('landscape')
     });
       
     //console.log("window.location.pathname = "+window.location.pathname);
@@ -414,11 +419,11 @@
                 img.setAttribute('data-index', index)
 
                 if (isLandscape) {
-                    let tempHeight = window.innerHeight - 50
+                    let tempHeight = window.innerHeight - 40
                     img.style.maxHeight = tempHeight + "px"
                 } else {
                     // Portrait (Mobile)
-                    let tempWidth = window.innerWidth - 20
+                    let tempWidth = window.innerWidth - 40
                     img.style.maxWidth = tempWidth + "px"
                 }
 
