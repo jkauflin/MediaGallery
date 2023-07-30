@@ -99,6 +99,9 @@
  *                  (and conforming to ES6 module standards)
  * 2023-07-29 JJK   Gave up on bs5-lightbox too and implemented by own simple
  *                  bs5 modal-based lightbox
+ * 2023-07-30 JJK   Working on differences between desktop and mobile and 
+ *                  browser displays for lightbox image, and looking at 
+ *                  caching strategy for images
  *============================================================================*/
 
     // Private variables for the Module
@@ -110,6 +113,11 @@
     var albumList = []
     var peopleList = []
 
+    var isLandscape = window.screen.orientation.type.contains('landscape')
+    window.screen.orientation.addEventListener("change", (event) => {
+        isLandscape = event.target.type.contains('landscape')
+    });
+      
     //console.log("window.location.pathname = "+window.location.pathname);
     //var tempPath = window.location.pathname;
     //var strPos = tempPath.indexOf('/vendor/jkauflin');
@@ -136,21 +144,26 @@
     audioPlayer.style.padding = '13px 20px 0 0';
     audioPlayer.style.margin = '0 15px 0 10px';
 
-    var MediaMenuRequestClass = "MediaMenuRequest";
-    var MediaFilterRequestClass = "MediaFilterRequest";
-    var MediaPageLinkClass = "media-page";
-    var currIndex = 0
-    var imgThumbnailClass = "img-thumbnail-jjk"
-    var thumbCheckboxClass = "thumb-checkbox"
+    const MediaMenuRequestClass = "MediaMenuRequest";
+    const MediaFilterRequestClass = "MediaFilterRequest";
+    const MediaPageLinkClass = "media-page";
+    const imgThumbnailClass = "img-thumbnail-jjk"
+    const thumbCheckboxClass = "thumb-checkbox"
+    const lightboxNextClass = "mg-lb-next"
 
-    var playlistSongClass = "playlistSong";
-    var audioPrevClass = "fa-step-backward";
-    var audioNextClass = "fa-step-forward";
+    const playlistSongClass = "playlistSong";
+    const audioPrevClass = "fa-step-backward";
+    const audioNextClass = "fa-step-forward";
+
+    var currIndex = 0
 
     //=================================================================================================================
     // Variables cached from the DOM
 
     var mediaPageContainer = document.getElementById("MediaPage");
+    var mediaLightboxBody = document.getElementById("MediaLightboxBody")
+    const mediaLightbox = new bootstrap.Modal(document.getElementById('MediaLightbox'))
+
     var filterContainer = document.createElement("div")
     var thumbnailContainer = document.createElement("div")
     var editRow1 = document.createElement("div")
@@ -192,8 +205,6 @@
     var querySearchStr = ""
     var queryMenuItem = ""
 
-    const lightboxClass = "mg-lightbox"
-    const lightboxNextClass = "mg-lb-next"
     
     // Get random photos (within /Media/images) when the page loads
     /*
@@ -346,7 +357,7 @@
             let paramData = {
                 MediaFilterMediaType: mediaType, 
                 getMenu: false,
-                MaxRows: 100,
+                MaxRows: 200,
                 MediaFilterCategory:  event.target.getAttribute('data-category'),
                 MediaFilterStartDate: event.target.getAttribute('data-startDate'),
                 MediaFilterMenuItem: event.target.getAttribute('data-menuItem'),
@@ -367,7 +378,7 @@
 
             bootstrap.Offcanvas.getOrCreateInstance('#MediaMenuCanvas').hide();
 
-        } else if (event.target && event.target.classList.contains(lightboxClass)) {
+        } else if (event.target && event.target.classList.contains(imgThumbnailClass)) {
             //console.log("in lightbox click")
             event.preventDefault();
 
@@ -385,40 +396,7 @@
             */
 
             let index = parseInt(event.target.getAttribute('data-index'))
-            //console.log("in jjk-lb-img click, index = "+index)
-            let fi = mediaInfo.fileList[index]
-            let filePath = ''
-            if (fi.DirSubPath != '') {
-                filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-            }
-            else 
-            {
-                filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-            }
-
-            let mediaLightboxBody = document.getElementById("MediaLightboxBody")
-            // check if an image is there in the body first?
-            empty(mediaLightboxBody)
-            
-            let img = document.createElement("img");
-            img.setAttribute('onerror', "this.onerror=null; this.remove()")
-            img.classList.add(lightboxNextClass)
-
-            img.setAttribute('src', filePath)
-            img.setAttribute('data-index', index)
-            let tempHeight = window.innerHeight - 40
-            img.style.maxHeight = tempHeight + "px"
-            mediaLightboxBody.appendChild(img)
-
-            const mediaLightbox = new bootstrap.Modal(document.getElementById('MediaLightbox'))
-            mediaLightbox.show()
-
-        } else if (event.target && event.target.classList.contains(lightboxNextClass)) {
-            event.preventDefault();
-            let index = parseInt(event.target.getAttribute('data-index'))
-            //console.log("in jjk-lb-img click, index = "+index)
-            if (index < mediaInfo.fileList.length-1) {
-                index += 1
+            if (typeof index !== "undefined" && index !== null) {
                 let fi = mediaInfo.fileList[index]
                 let filePath = ''
                 if (fi.DirSubPath != '') {
@@ -428,9 +406,62 @@
                 {
                     filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
                 }
-                event.target.setAttribute('src', filePath)
-                event.target.setAttribute('data-index', index)
-            }            
+                
+                let img = document.createElement("img");
+                img.setAttribute('onerror', "this.onerror=null; this.remove()")
+                img.classList.add(lightboxNextClass)
+                img.src = filePath
+                img.setAttribute('data-index', index)
+
+                if (isLandscape) {
+                    let tempHeight = window.innerHeight - 50
+                    img.style.maxHeight = tempHeight + "px"
+                } else {
+                    // Portrait (Mobile)
+                    let tempWidth = window.innerWidth - 20
+                    img.style.maxWidth = tempWidth + "px"
+                }
+
+                empty(mediaLightboxBody)
+                mediaLightboxBody.appendChild(img)
+                mediaLightbox.show()
+    
+                // If there is a NEXT image cache it to increase display speed
+                if (index < mediaInfo.fileList.length-1) {
+                    let fi = mediaInfo.fileList[index+1]
+                    let filePath = ''
+                    if (fi.DirSubPath != '') {
+                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                    }
+                    else 
+                    {
+                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                    }
+                    // Cache the next image
+                    var imgCache = document.createElement('img');
+                    imgCache.src = filePath;        
+                }
+            }
+
+        } else if (event.target && event.target.classList.contains(lightboxNextClass)) {
+            event.preventDefault();
+            let index = parseInt(event.target.getAttribute('data-index'))
+            if (typeof index !== "undefined" && index !== null) {
+                if (index < mediaInfo.fileList.length-1) {
+                    index += 1
+                    let fi = mediaInfo.fileList[index]
+                    let filePath = ''
+                    if (fi.DirSubPath != '') {
+                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                    }
+                    else 
+                    {
+                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                    }
+                    event.target.src = filePath
+                    event.target.setAttribute('data-index', index)
+                }            
+            }
 
         } else if (event.target && event.target.classList.contains(thumbCheckboxClass)) {
             //console.log("Clicked on image checkbox")
@@ -450,6 +481,32 @@
         }
 
     });
+
+    //-------------------------------------------------------------------------------------------------------------------
+    // Listen for Right-clicks in the Media Lightbox image container and display the PREV image
+    //-------------------------------------------------------------------------------------------------------------------
+    mediaLightboxBody.addEventListener('contextmenu', (event) => {
+        if (event.target.classList.contains(lightboxNextClass)) {
+            event.preventDefault()
+            let index = parseInt(event.target.getAttribute('data-index'))
+            if (typeof index !== "undefined" && index !== null) {
+                if (index > 0) {
+                    index -= 1
+                    let fi = mediaInfo.fileList[index]
+                    let filePath = ''
+                    if (fi.DirSubPath != '') {
+                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                    }
+                    else 
+                    {
+                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                    }
+                    event.target.src = filePath
+                    event.target.setAttribute('data-index', index)
+                }            
+            }
+        }
+    })
 
 
     //-------------------------------------------------------------------------------------------------------------------
@@ -1168,7 +1225,7 @@
         //-------------------------------------------------------------------------------------------------------------------------
         // Loop through all the files in the current file list
         //-------------------------------------------------------------------------------------------------------------------------
-        let maxRows = 100
+        let maxRows = 200
         if (mediaType == 2) {
             maxRows = 12
         }
@@ -1240,19 +1297,21 @@
             if (mediaType == 1) {
                 let img = document.createElement("img");
                 // add a class for event click
-                //img.classList.add('m-1',imgThumbnailClass)  // >>>>>>>>>>>>>>>>>  implement Edit click as right-click
-                //img.classList.add('m-1','img-fluid',lightboxToggleClass)  imgThumbnailClass
-                img.classList.add('rounded','float-start','mt-2','me-2',lightboxClass)
+                img.classList.add('rounded','float-start','mt-2','me-2',imgThumbnailClass)
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                //img.setAttribute('src', MediaRootDir + photosThumbsRoot + fileSubPath)
-                img.setAttribute('src', filePath)
+                img.src = MediaRootDir + photosThumbsRoot + fileSubPath
+                //img.src = filePath
                 img.setAttribute('data-index', index)
-                //img.setAttribute('data-src', filePath)
-                //img.setAttribute('data-gallery', "jjk-gallery")
 
                 img.height = 110
                 //thumb.appendChild(img)
                 thumb = img
+
+                // Make sure the 1st image is cached (for the lightbox display)
+                if (index == 0) {
+                    var imgCache = document.createElement('img');
+                    imgCache.src = filePath;        
+                }
 
             } else if (mediaType == 2) {
                 if (!editMode) {
@@ -1400,6 +1459,7 @@
         thumbnailContainer.appendChild(thumbnailRow1)
         thumbnailContainer.appendChild(thumbnailRow2)
         thumbnailContainer.appendChild(thumbnailRow3)
+
     }
 
     //-------------------------------------------------------------------------------------------------------
