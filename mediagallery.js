@@ -113,9 +113,9 @@
     var albumList = []
     var peopleList = []
 
-    var isLandscape = window.screen.orientation.type.contains('landscape')
+    var isLandscape = window.screen.orientation.type.includes('landscape')
     window.screen.orientation.addEventListener("change", (event) => {
-        isLandscape = event.target.type.contains('landscape')
+        isLandscape = event.target.type.includes('landscape')
     });
       
     //console.log("window.location.pathname = "+window.location.pathname);
