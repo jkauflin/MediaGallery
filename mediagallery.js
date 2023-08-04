@@ -8,6 +8,7 @@
  *
  *----------------------------------------------------------------------------
  * Modification History
+
  * 2016-03-12 JJK   Got bootstrap gallery version of blueimp working
     	Extra small devices Phones (<768px)
     	Small devices Tablets (≥768px)
@@ -100,8 +101,9 @@
  * 2023-07-29 JJK   Gave up on bs5-lightbox too and implemented by own simple
  *                  bs5 modal-based lightbox
  * 2023-07-30 JJK   Working on differences between desktop and mobile and 
- *                  browser displays for lightbox image, and looking at 
- *                  caching strategy for images
+ *                  browser displays for lightbox image, and implemented a 
+ *                  caching strategy for the next image
+ * 2023-08-03 JJK   Implemented a Media Modal to display img and file details
  *============================================================================*/
 
     // Private variables for the Module
@@ -233,7 +235,7 @@
         if (event.detail.userLevel >= 9) {
             // If the user is authenticated and has the right security level, add an "Edit" switch
             let editSwitchDiv = document.createElement("div")
-            editSwitchDiv.classList.add('form-check','form-switch','float-end','shadow-none')
+            editSwitchDiv.classList.add('form-check','form-switch','float-end','shadow-none','d-none','d-lg-block')
 
             let editSwitch = document.createElement("input")
             editSwitch.id = "editSwitch"
@@ -257,15 +259,6 @@
             });
         }
     });
-
-    /*
-    window.addEventListener('contextmenu', (event) => {
-        // *** If I ever want to implement some right-click logic ***
-        //console.log(event.button)
-        // Prevent other actions for the right-click
-        //event.preventDefault()
-    })
-    */
 
     // Respond to click on a link-tile-tab button by finding the correct TAB and switching/showing it
     // (These link-tile-tab's also have media-page for creating the Menu, but these handled from the listener on that class)
@@ -376,64 +369,13 @@
         } else if (event.target && event.target.classList.contains(imgThumbnailClass)) {
             //console.log("in lightbox click")
             event.preventDefault();
-
-            /*
-            if (editMode) {
-                let index = parseInt(event.target.getAttribute('data-index'))
-                if (typeof index !== "undefined" && index !== null) {
-                    //console.log(">>> click on thumbnail img class ")
-                    displayFileDetail(index)
-                }
-            } else {
-                const lightbox = new Lightbox(event.target, lightboxOptions);
-                lightbox.show();
-            }
-            */
-
             let index = parseInt(event.target.getAttribute('data-index'))
             if (typeof index !== "undefined" && index !== null) {
-                let fi = mediaInfo.fileList[index]
-                let filePath = ''
-                if (fi.DirSubPath != '') {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                }
-                else 
-                {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                }
-                
-                let img = document.createElement("img");
-                img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                img.classList.add(lightboxNextClass)
-                img.src = filePath
-                img.setAttribute('data-index', index)
-
-                if(window.innerHeight > window.innerWidth) {
-                    // Portrait
-                    let tempWidth = window.innerWidth - 40
-                    img.style.maxWidth = tempWidth + "px"
+                if (editMode) {
+                    displayFileDetail(index)
                 } else {
-                    // Landscape
-                    let tempHeight = window.innerHeight - 40
-                    img.style.maxHeight = tempHeight + "px"
-                }
-
-                empty(mediaLightboxBody)
-                mediaLightboxBody.appendChild(img)
-                
-                 let closeButton = document.createElement("button")
-                closeButton.classList.add('btn','btn-close','float-start','shadow-none','mt-2','me-2')
-                closeButton.setAttribute('type',"button")
-                closeButton.setAttribute('role',"button")
-                closeButton.setAttribute('aria-label',"Close")
-                closeButton.setAttribute('data-bs-dismiss',"modal")
-                mediaLightboxBody.appendChild(closeButton)
-
-                mediaLightbox.show()
-    
-                // If there is a NEXT image cache it to increase display speed
-                if (index < mediaInfo.fileList.length-1) {
-                    let fi = mediaInfo.fileList[index+1]
+                    // Display image in Lightbox
+                    let fi = mediaInfo.fileList[index]
                     let filePath = ''
                     if (fi.DirSubPath != '') {
                         filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
@@ -442,13 +384,56 @@
                     {
                         filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
                     }
-                    // Cache the next image
-                    var imgCache = document.createElement('img');
-                    imgCache.src = filePath;        
+                    
+                    let img = document.createElement("img");
+                    img.setAttribute('onerror', "this.onerror=null; this.remove()")
+                    img.classList.add(lightboxNextClass)
+                    img.src = filePath
+                    img.setAttribute('data-index', index)
+    
+                    if(window.innerHeight > window.innerWidth) {
+                        // Portrait
+                        let tempWidth = window.innerWidth - 40
+                        img.style.maxWidth = tempWidth + "px"
+                    } else {
+                        // Landscape
+                        let tempHeight = window.innerHeight - 40
+                        img.style.maxHeight = tempHeight + "px"
+                    }
+    
+                    empty(mediaLightboxBody)
+                    mediaLightboxBody.appendChild(img)
+                    
+                     let closeButton = document.createElement("button")
+                    closeButton.classList.add('btn','btn-close','float-start','shadow-none','mt-2','me-2')
+                    closeButton.setAttribute('type',"button")
+                    closeButton.setAttribute('role',"button")
+                    closeButton.setAttribute('aria-label',"Close")
+                    closeButton.setAttribute('data-bs-dismiss',"modal")
+                    mediaLightboxBody.appendChild(closeButton)
+    
+                    mediaLightbox.show()
+        
+                    // If there is a NEXT image cache it to increase display speed
+                    if (index < mediaInfo.fileList.length-1) {
+                        let fi = mediaInfo.fileList[index+1]
+                        let filePath = ''
+                        if (fi.DirSubPath != '') {
+                            filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                        }
+                        else 
+                        {
+                            filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                        }
+                        // Cache the next image
+                        var imgCache = document.createElement('img');
+                        imgCache.src = filePath;        
+                    }
                 }
             }
 
         } else if (event.target && event.target.classList.contains(lightboxNextClass)) {
+            // Goto NEXT image in Lightbox
             event.preventDefault();
             let index = parseInt(event.target.getAttribute('data-index'))
             if (typeof index !== "undefined" && index !== null) {
@@ -491,6 +476,7 @@
     // Listen for Right-clicks in the Media Lightbox image container and display the PREV image
     //-------------------------------------------------------------------------------------------------------------------
     mediaLightboxBody.addEventListener('contextmenu', (event) => {
+        // Goto PREV image in Lightbox
         if (event.target.classList.contains(lightboxNextClass)) {
             event.preventDefault()
             let index = parseInt(event.target.getAttribute('data-index'))
@@ -513,7 +499,6 @@
         }
     })
 
-
     //-------------------------------------------------------------------------------------------------------------------
     // Listen for Right-clicks in the MediaThumbnails container and display context menu
     //-------------------------------------------------------------------------------------------------------------------
@@ -522,37 +507,20 @@
             event.preventDefault()
             let index = parseInt(event.target.getAttribute('data-index'))
             if (typeof index !== "undefined" && index !== null) {
+                /*
                 console.log(">>> Right-Click, index = "+index+", src = "+event.target.getAttribute('src'))
-
                 console.log('mediaType = ', mediaType)
                 console.log('category = ', mediaFilterCategory.value)
                 console.log('startDate = ', mediaFilterStartDate.value)
                 console.log('menuItem = ', queryMenuItem)
                 console.log('searchStr = ', querySearchStr)
+                */
                 // Album
 
-                /*
-                let mediaModalBody = document.getElementById("MediaModalBody")
-                empty(mediaModalBody)
-                
-                let img = document.createElement("img");
-                img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                img.setAttribute('src', event.target.getAttribute('src'))
-                img.classList.add('jjk-lb-img')
-                img.setAttribute('data-index', index)
-                let tempHeight = window.innerHeight - 40
-                img.style.maxHeight = tempHeight + "px"
-                mediaModalBody.appendChild(img)
-
-                // >>>> build components for modal display
-                // >>>> Maybe add "edit" functions if editMode ???
-
-                // >>> work out "Share" concepts - what do I need to store in the DB?
+                displayModalDetail(index)
 
                 const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
                 mediaModal.show()
-                */
-                //mediaModal.hide()
             }
         }
     })
@@ -679,6 +647,10 @@
             buildMenuElements(mediaType)
         }
         buildFilterElements(mediaType)
+
+
+        // Build the elements regardless of EDIT or not, then append them where needed????????????????????
+
 
         if (editMode) {
             // Create Row and columns
@@ -823,6 +795,7 @@
             mediaPeopleInput.setAttribute('placeholder',"People filter")
             editRow1Col3.appendChild(mediaPeopleInput);
             // Filter the people list from entered value (checked after every key is typed)
+
             mediaPeopleInput.addEventListener("keyup", function(event) {
                 //console.log("mediaPeopleInput.value = "+mediaPeopleInput.value);
                 let peopleInputVal = ""
@@ -984,7 +957,7 @@
             mediaDetailPeopleList.classList.add('form-control','py-1','mb-1','shadow-none')
             mediaDetailPeopleList.setAttribute('type', "text")
             mediaDetailPeopleList.setAttribute('placeholder', "People list")
-            mediaDetailPeopleList.disabled = true
+            mediaDetailPeopleList.disabled = true  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
             editRow1Col3.appendChild(mediaDetailPeopleList)
 
             // Description
@@ -1146,6 +1119,7 @@
         return !fileInfo.Selected
     }
 
+    
     //===========================================================================================================
     // Display the current list image thumbnails in the thumbnail container (with appropriate class links)
     //===========================================================================================================
@@ -1302,20 +1276,27 @@
             if (mediaType == 1) {
                 let img = document.createElement("img");
                 // add a class for event click
-                img.classList.add('rounded','float-start','mt-2','me-2',imgThumbnailClass)
+                if (editMode) {
+                    img.classList.add('rounded','float-start','m-2',imgThumbnailClass)
+                } else {
+                    img.classList.add('rounded','float-start','mt-2','me-2',imgThumbnailClass)
+                }
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
                 img.src = MediaRootDir + photosThumbsRoot + fileSubPath
                 //img.src = filePath
                 img.setAttribute('data-index', index)
-
                 img.height = 110
-                //thumb.appendChild(img)
-                thumb = img
 
                 // Make sure the 1st image is cached (for the lightbox display)
                 if (index == 0) {
                     var imgCache = document.createElement('img');
                     imgCache.src = filePath;        
+                }
+
+                if (editMode) {
+                    thumb.appendChild(img)
+                } else {
+                    thumb = img
                 }
 
             } else if (mediaType == 2) {
@@ -1344,7 +1325,6 @@
                 thumb.appendChild(iframe)
 
             } else if (mediaType == 3) {
-                /*
                     // MUSIC
 
                     //console.log("fileNameNoExt = " + fileNameNoExt+", url = "+filePath);
@@ -1364,9 +1344,8 @@
                     let tr = document.createElement("tr");
                     tr.appendChild(td);
                     playlistTbody.appendChild(tr)
-                */
+
             } else if (mediaType == 4) {
-                                /*
                     // DOCS
                     
                     //console.log("PDF file = " + fi.Name + ", filePath = " + filePath);
@@ -1381,8 +1360,6 @@
                     tr.classList.add("smalltext")
                     tr.appendChild(td);
                     doclistTbody.appendChild(tr)
-                */
-
             }
 
             thumbnailRow2Col1.appendChild(thumb)
@@ -1516,6 +1493,130 @@
         mediaDetailImg.setAttribute('src', filePath)
     }
 
+    //-------------------------------------------------------------------------------------------------------
+    // Display file information in Medial Modal popup
+    //-------------------------------------------------------------------------------------------------------
+    function displayModalDetail(index) {
+        
+                // >>>>>>>>>>>>>> Display details, or EDIT if edit mode
+                
+                let fi = mediaInfo.fileList[index]
+                let filePath = ''
+                if (fi.DirSubPath != '') {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                }
+                else 
+                {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                }
+
+                let img = document.createElement("img");
+                img.setAttribute('onerror', "this.onerror=null; this.remove()")
+                img.classList.add('img-fluid')
+                img.src = filePath
+                img.setAttribute('data-index', index)
+                if (window.innerHeight > window.innerWidth) {
+                    // Portrait
+                    let tempWidth = window.innerWidth - 350
+                    img.style.maxWidth = tempWidth + "px"
+                } else {
+                    // Landscape
+                    let tempHeight = window.innerHeight - 350
+                    img.style.maxHeight = tempHeight + "px"
+                }
+
+
+                let mediaModalImg = document.getElementById("MediaModalImg")
+                empty(mediaModalImg)
+                mediaModalImg.appendChild(img)
+
+                let mediaModalBody = document.getElementById("MediaModalBody")
+                empty(mediaModalBody)
+
+                // >>>> build components for modal display
+                // >>>> Maybe add "edit" functions if editMode ???
+
+                // >>> work out "Share" concepts - what do I need to store in the DB?
+
+                let mediaModalTitle = document.getElementById("MediaModalTitle")
+                mediaModalTitle.textContent = fi.Name;
+                /*
+                let mediaDetailFilename = document.createElement("div")
+                    mediaDetailFilename.textContent = fi.Name;
+                mediaModalBody.appendChild(mediaDetailFilename)
+                */
+                let mediaDetailTitle = document.createElement("input")
+                mediaDetailTitle.classList.add('form-control','py-1','mb-1','shadow-none')
+                mediaDetailTitle.setAttribute('type', "text")
+                mediaDetailTitle.setAttribute('placeholder', "Title")
+                mediaDetailTitle.disabled = true
+                mediaModalBody.appendChild(mediaDetailTitle)
+        
+                let mediaDetailTaken = document.createElement("input")
+                mediaDetailTaken.classList.add('form-control','py-1','mb-1','shadow-none')
+                mediaDetailTaken.setAttribute('type', "text")
+                mediaDetailTaken.setAttribute('placeholder', "Taken DateTime")
+                mediaDetailTaken.disabled = true
+                mediaModalBody.appendChild(mediaDetailTaken)
+
+
+                // Category Tags
+                let mediaDetailCategoryTags = document.createElement("input")
+                //mediaDetailCategoryTags.id = "MediaDetailCategoryTags"
+                mediaDetailCategoryTags.classList.add('form-control','py-1','mb-1','shadow-none')
+                mediaDetailCategoryTags.setAttribute('type', "text")
+                mediaDetailCategoryTags.setAttribute('placeholder', "Category tags")
+                mediaDetailCategoryTags.disabled = true
+                mediaModalBody.appendChild(mediaDetailCategoryTags)
+
+
+                let mediaDetailMenuTags = document.createElement("input")
+                //mediaDetailMenuTags.id = "MediaDetailMenuTags"
+                mediaDetailMenuTags.classList.add('form-control','py-1','mb-1','shadow-none')
+                mediaDetailMenuTags.setAttribute('type', "text")
+                mediaDetailMenuTags.setAttribute('placeholder', "Menu tags")
+                mediaDetailMenuTags.disabled = true
+                mediaModalBody.appendChild(mediaDetailMenuTags)
+
+                // Album Tags
+                let mediaDetailAlbumTags = document.createElement("input")
+                //mediaDetailAlbumTags.id = "MediaDetailAlbumTags"
+                mediaDetailAlbumTags.classList.add('form-control','py-1','mb-1','shadow-none')
+                mediaDetailAlbumTags.setAttribute('type', "text")
+                mediaDetailAlbumTags.setAttribute('placeholder', "Album tags")
+                mediaDetailAlbumTags.disabled = true
+                mediaModalBody.appendChild(mediaDetailAlbumTags)
+
+                // People List
+                let mediaDetailPeopleList = document.createElement("input")
+                //mediaDetailPeopleList.id = "MediaDetailPeopleList"
+                mediaDetailPeopleList.classList.add('form-control','py-1','mb-1','shadow-none')
+                mediaDetailPeopleList.setAttribute('type', "text")
+                mediaDetailPeopleList.setAttribute('placeholder', "People list")
+                mediaDetailPeopleList.disabled = true  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                mediaModalBody.appendChild(mediaDetailPeopleList)
+
+                // Description
+                let mediaDetailDescription = document.createElement("textarea")
+                //mediaDetailDescription.id = "MediaDetailDescription"
+                mediaDetailDescription.classList.add('form-control','py-1','mb-1','shadow-none')
+                mediaDetailDescription.setAttribute('rows', "6")
+                mediaDetailDescription.setAttribute('placeholder', "Description")
+                mediaDetailDescription.disabled = true
+                //mediaDetailDescription.value = fi.Description
+                mediaModalBody.appendChild(mediaDetailDescription)
+
+
+
+                mediaDetailTitle.value = fi.Title
+                mediaDetailTaken.value = fi.TakenDateTime
+                mediaDetailCategoryTags.value = fi.CategoryTags
+                mediaDetailMenuTags.value = fi.MenuTags
+                mediaDetailAlbumTags.value = fi.AlbumTags
+                mediaDetailPeopleList.value = fi.People
+                mediaDetailDescription.value = fi.Description
+        
+    }
 
     //------------------------------------------------------------------------------------------------------------
     // Create a collapsible menu in an offcanvas pop-out using menu list data
