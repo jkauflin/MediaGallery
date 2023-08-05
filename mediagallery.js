@@ -104,6 +104,7 @@
  *                  browser displays for lightbox image, and implemented a 
  *                  caching strategy for the next image
  * 2023-08-03 JJK   Implemented a Media Modal to display img and file details
+ * 2023-08-04 JJK   Implemented touch and mouse duration check for img modal
  *============================================================================*/
 
     // Private variables for the Module
@@ -500,30 +501,23 @@
     })
 
     //-------------------------------------------------------------------------------------------------------------------
-    // Listen for Right-clicks in the MediaThumbnails container and display context menu
+    // Listen for context menu requests in the MediaThumbnails container
     //-------------------------------------------------------------------------------------------------------------------
     thumbnailContainer.addEventListener('contextmenu', (event) => {
+        displayImgContextMenu(event)
+    })
+
+    function displayImgContextMenu(event) {
         if (event.target.classList.contains(imgThumbnailClass)) {
             event.preventDefault()
             let index = parseInt(event.target.getAttribute('data-index'))
             if (typeof index !== "undefined" && index !== null) {
-                /*
-                console.log(">>> Right-Click, index = "+index+", src = "+event.target.getAttribute('src'))
-                console.log('mediaType = ', mediaType)
-                console.log('category = ', mediaFilterCategory.value)
-                console.log('startDate = ', mediaFilterStartDate.value)
-                console.log('menuItem = ', queryMenuItem)
-                console.log('searchStr = ', querySearchStr)
-                */
-                // Album
-
                 displayModalDetail(index)
-
                 const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
                 mediaModal.show()
             }
         }
-    })
+    }
 
     /*
     el.addEventListener("touchstart", handleStart);
@@ -531,21 +525,47 @@
     el.addEventListener("touchcancel", handleCancel);
     el.addEventListener("touchmove", handleMove);
     */
-    /*
     thumbnailContainer.addEventListener('touchstart', (event) => {
-        if (event.target.classList.contains(imgThumbnailClass)) {
-            event.preventDefault()
-            let index = parseInt(event.target.getAttribute('data-index'))
-            if (typeof index !== "undefined" && index !== null) {
-                console.log(">>> Mouse-down, index = "+index+", src = "+event.target.getAttribute('src'))
+        holdDownStart(event)
+    })
+    thumbnailContainer.addEventListener('touchend', (event) => {
+        holdDownEnd(event)
+    })   
+    thumbnailContainer.addEventListener('touchcancel', (event) => {
+        holdDownEnd(event)
+    })   
+    thumbnailContainer.addEventListener('mousedown', (event) => {
+        holdDownStart(event)
+    })
+    thumbnailContainer.addEventListener('mouseup', (event) => {
+        holdDownEnd(event)
+    })
+
+    var beingHeldDown = false
+    var holdDownStartMs = 0
+    var holdDownDuration = 2000
+
+    function holdDownStart(event) {
+        if (!beingHeldDown) {
+            beingHeldDown = true
+            //Date.now() Return value A number representing the timestamp, in milliseconds
+            holdDownStartMs = Date.now()
+            // Kick off timeout to check at the end of duration
+            setTimeout(function(){ holdDownCheck(event) }, holdDownDuration)
+        }
+    }
+    function holdDownEnd(event) {
+        beingHeldDown = false
+    }
+    function holdDownCheck(event) {
+        // Check at the end of the duration timeout if it is still being held down
+        if (beingHeldDown) {
+            // double check how long it's actually been holding
+            if ((Date.now() - holdDownStartMs) >= holdDownDuration) {
+                displayImgContextMenu(event)
             }
         }
-    })
-    */
-    /*
-    thumbnailContainer.addEventListener('mousedown', (event) => {
-    })
-    */
+    }
 
     //-------------------------------------------------------------------------------------------------------
     // Respond to Filter requests
