@@ -147,7 +147,9 @@
     const MediaPageLinkClass = "media-page";
     const imgThumbnailClass = "img-thumbnail-jjk"
     const thumbCheckboxClass = "thumb-checkbox"
-    const lightboxNextClass = "mg-lb-next"
+    const lightboxImgClass = "mg-lb-img"
+    const lightboxImgNextClass = "mg-lb-img-next"
+    const lightboxImgPrevClass = "mg-lb-img-prev"
 
     const playlistSongClass = "playlistSong";
     const audioPrevClass = "fa-step-backward";
@@ -161,6 +163,7 @@
     var mediaPageContainer = document.getElementById("MediaPage");
     var mediaLightboxBody = document.getElementById("MediaLightboxBody")
     const mediaLightbox = new bootstrap.Modal(document.getElementById('MediaLightbox'))
+    let lightboxImg = document.createElement("img");
 
     var filterContainer = document.createElement("div")
     var thumbnailContainer = document.createElement("div")
@@ -386,24 +389,29 @@
                         filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
                     }
                     
-                    let img = document.createElement("img");
-                    img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                    img.classList.add(lightboxNextClass)
-                    img.src = filePath
-                    img.setAttribute('data-index', index)
+                    lightboxImg = document.createElement("img");
+                    lightboxImg.setAttribute('onerror', "this.onerror=null; this.remove()")
+                    lightboxImg.classList.add(lightboxImgClass)
+                    lightboxImg.src = filePath
+                    lightboxImg.setAttribute('data-index', index)
     
                     if(window.innerHeight > window.innerWidth) {
                         // Portrait
                         let tempWidth = window.innerWidth - 40
-                        img.style.maxWidth = tempWidth + "px"
+                        lightboxImg.style.maxWidth = tempWidth + "px"
+
+                        // add NEXT and PREV buttons to the TOP? of the image
+
                     } else {
                         // Landscape
                         let tempHeight = window.innerHeight - 40
-                        img.style.maxHeight = tempHeight + "px"
+                        lightboxImg.style.maxHeight = tempHeight + "px"
+
+                        // add NEXT and PREV buttons to the Left and Right of the image
                     }
     
                     empty(mediaLightboxBody)
-                    mediaLightboxBody.appendChild(img)
+                    mediaLightboxBody.appendChild(lightboxImg)
                     
                      let closeButton = document.createElement("button")
                     closeButton.classList.add('btn','btn-close','float-start','shadow-none','mt-2','me-2')
@@ -413,6 +421,22 @@
                     closeButton.setAttribute('data-bs-dismiss',"modal")
                     mediaLightboxBody.appendChild(closeButton)
     
+                    let aLeft = document.createElement("a")
+                    //aLeft.href = "#"
+                    aLeft.classList.add('float-start','m-2')
+                    let iconLeft = document.createElement("i")
+                    iconLeft.classList.add('fa','fa-chevron-left','fa-3x',lightboxImgPrevClass)
+                    aLeft.appendChild(iconLeft)
+                    mediaLightboxBody.appendChild(aLeft)
+
+                    let aRight = document.createElement("a")
+                    //aRight.href = "#"
+                    aRight.classList.add('float-end','m-2')
+                    let iconRight = document.createElement("i")
+                    iconRight.classList.add('fa','fa-chevron-right','fa-3x',lightboxImgNextClass)
+                    aRight.appendChild(iconRight)
+                    mediaLightboxBody.appendChild(aRight)
+
                     mediaLightbox.show()
         
                     // If there is a NEXT image cache it to increase display speed
@@ -433,26 +457,14 @@
                 }
             }
 
-        } else if (event.target && event.target.classList.contains(lightboxNextClass)) {
-            // Goto NEXT image in Lightbox
+        } else if (event.target && event.target.classList.contains(lightboxImgNextClass)) {
             event.preventDefault();
-            let index = parseInt(event.target.getAttribute('data-index'))
-            if (typeof index !== "undefined" && index !== null) {
-                if (index < mediaInfo.fileList.length-1) {
-                    index += 1
-                    let fi = mediaInfo.fileList[index]
-                    let filePath = ''
-                    if (fi.DirSubPath != '') {
-                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                    }
-                    else 
-                    {
-                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                    }
-                    event.target.src = filePath
-                    event.target.setAttribute('data-index', index)
-                }            
-            }
+            // expecting event to be the img
+            lightboxNextImg(event)
+
+        } else if (event.target && event.target.classList.contains(lightboxImgPrevClass)) {
+            event.preventDefault();
+            lightboxPrevImg(event)
 
         } else if (event.target && event.target.classList.contains(thumbCheckboxClass)) {
             //console.log("Clicked on image checkbox")
@@ -473,30 +485,54 @@
 
     });
 
+    function lightboxNextImg(event) {
+        let index = parseInt(lightboxImg.getAttribute('data-index'))
+        if (typeof index !== "undefined" && index !== null) {
+            if (index < mediaInfo.fileList.length-1) {
+                index += 1
+                let fi = mediaInfo.fileList[index]
+                let filePath = ''
+                if (fi.DirSubPath != '') {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                }
+                else 
+                {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                }
+                lightboxImg.src = filePath
+                lightboxImg.setAttribute('data-index', index)
+            }            
+        }
+    }
+
+    function lightboxPrevImg(event) {
+        let index = parseInt(lightboxImg.getAttribute('data-index'))
+        if (typeof index !== "undefined" && index !== null) {
+            if (index > 0) {
+                index -= 1
+                let fi = mediaInfo.fileList[index]
+                let filePath = ''
+                if (fi.DirSubPath != '') {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+                }
+                else 
+                {
+                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
+                }
+                lightboxImg.src = filePath
+                lightboxImg.setAttribute('data-index', index)
+            }            
+        }
+    }
+
     //-------------------------------------------------------------------------------------------------------------------
     // Listen for Right-clicks in the Media Lightbox image container and display the PREV image
     //-------------------------------------------------------------------------------------------------------------------
     mediaLightboxBody.addEventListener('contextmenu', (event) => {
         // Goto PREV image in Lightbox
-        if (event.target.classList.contains(lightboxNextClass)) {
+        if (event.target.classList.contains(lightboxImgClass)) {
             event.preventDefault()
-            let index = parseInt(event.target.getAttribute('data-index'))
-            if (typeof index !== "undefined" && index !== null) {
-                if (index > 0) {
-                    index -= 1
-                    let fi = mediaInfo.fileList[index]
-                    let filePath = ''
-                    if (fi.DirSubPath != '') {
-                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                    }
-                    else 
-                    {
-                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                    }
-                    event.target.src = filePath
-                    event.target.setAttribute('data-index', index)
-                }            
-            }
+            lightboxPrevImg(event)
         }
     })
 
@@ -508,61 +544,69 @@
     })
 
     function displayImgContextMenu(event) {
-        if (event.target.classList.contains(imgThumbnailClass)) {
-            event.preventDefault()
-            let index = parseInt(event.target.getAttribute('data-index'))
-            if (typeof index !== "undefined" && index !== null) {
-                displayModalDetail(index)
-                const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
-                mediaModal.show()
-            }
+        let index = parseInt(event.target.getAttribute('data-index'))
+        if (typeof index !== "undefined" && index !== null) {
+            displayModalDetail(index)
+            const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
+            mediaModal.show()
         }
     }
 
-    /*
-    el.addEventListener("touchstart", handleStart);
-    el.addEventListener("touchend", handleEnd);
-    el.addEventListener("touchcancel", handleCancel);
-    el.addEventListener("touchmove", handleMove);
-    */
-    thumbnailContainer.addEventListener('touchstart', (event) => {
+    document.addEventListener('touchstart', (event) => {
         holdDownStart(event)
     })
-    thumbnailContainer.addEventListener('touchend', (event) => {
+    document.addEventListener('touchend', (event) => {
         holdDownEnd(event)
     })   
-    thumbnailContainer.addEventListener('touchcancel', (event) => {
+    document.addEventListener('touchcancel', (event) => {
         holdDownEnd(event)
     })   
-    thumbnailContainer.addEventListener('mousedown', (event) => {
+    document.addEventListener('mousedown', (event) => {
         holdDownStart(event)
     })
-    thumbnailContainer.addEventListener('mouseup', (event) => {
+    document.addEventListener('mouseup', (event) => {
         holdDownEnd(event)
     })
 
     var beingHeldDown = false
     var holdDownStartMs = 0
-    var holdDownDuration = 2000
+    var holdDownDuration = 300
 
     function holdDownStart(event) {
+        //console.log("HOLD DOWN $$$ Start")
         if (!beingHeldDown) {
             beingHeldDown = true
             //Date.now() Return value A number representing the timestamp, in milliseconds
             holdDownStartMs = Date.now()
             // Kick off timeout to check at the end of duration
+            //console.log("   $$$ NOT being Held,    holdDownStartMs = "+holdDownStartMs)
             setTimeout(function(){ holdDownCheck(event) }, holdDownDuration)
         }
     }
     function holdDownEnd(event) {
+        //console.log("HOLD DOWN >>>>> End")
         beingHeldDown = false
     }
     function holdDownCheck(event) {
+        //console.log("HOLD DOWN *** Check ***")
         // Check at the end of the duration timeout if it is still being held down
         if (beingHeldDown) {
             // double check how long it's actually been holding
-            if ((Date.now() - holdDownStartMs) >= holdDownDuration) {
-                displayImgContextMenu(event)
+            let holdDuration = Date.now() - holdDownStartMs
+            //console.log("   *** Being Held, tempDuration = "+tempDuration)
+            //if ((Date.now() - holdDownStartMs) >= holdDownDuration) {
+            if ((holdDuration) >= holdDownDuration) {
+                if (event.target.classList.contains(imgThumbnailClass)) {
+                    event.preventDefault()
+                    displayImgContextMenu(event)
+                } 
+                /*
+                else if (event.target.classList.contains(lightboxImgClass)) {
+                    // Think of something better for mobile PREV
+                    event.preventDefault()
+                    lightboxPrevImg(event)
+                }
+                */
             }
         }
     }
@@ -669,16 +713,13 @@
         buildFilterElements(mediaType)
 
 
-        // Build the elements regardless of EDIT or not, then append them where needed????????????????????
-
-
         if (editMode) {
             // Create Row and columns
             editRow1.classList.add('row')
 
             // Col 1
             let editRow1Col1 = document.createElement("div")
-            editRow1Col1.classList.add('col-sm-5','col-md-5')
+            editRow1Col1.classList.add('col-sm-5','col-md-6')
 
             editRow1Col1.appendChild(thumbnailContainer);
             editRow1.appendChild(editRow1Col1)
@@ -779,7 +820,7 @@
 
             // Col 3
             let editRow1Col3 = document.createElement("div")
-            editRow1Col3.classList.add('col-sm-3','col-md-3')
+            editRow1Col3.classList.add('col-sm-3','col-md-2')
             // Category
             mediaCategorySelect = document.createElement("select")
             mediaCategorySelect.classList.add('form-select','float-start','shadow-none','mt-2','py-1')
@@ -1177,9 +1218,13 @@
         // If there is a filter request list, create Filter Request buttons with the start date
         //----------------------------------------------------------------------------------------------------
         //if (mediaType == 1 && mediaInfo.filterList != null) {
+        const buttonMax = 4
         if (mediaInfo.filterList != null) {
             let buttonColor = 'btn-primary'
             for (let index in mediaInfo.filterList) {
+                if (index > buttonMax) {
+                    continue
+                }
                 let FilterRec = mediaInfo.filterList[index]
 
                 buttonColor = 'btn-primary'
@@ -1297,7 +1342,7 @@
                 let img = document.createElement("img");
                 // add a class for event click
                 if (editMode) {
-                    img.classList.add('rounded','float-start','m-2',imgThumbnailClass)
+                    img.classList.add('rounded','float-start','m-1',imgThumbnailClass)
                 } else {
                     img.classList.add('rounded','float-start','mt-2','me-2',imgThumbnailClass)
                 }
