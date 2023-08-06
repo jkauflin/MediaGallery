@@ -1,14 +1,11 @@
 /*==============================================================================
- * (C) Copyright 2016,2022,2023 John J Kauflin, All rights reserved.
- *----------------------------------------------------------------------------
- * DESCRIPTION:  A general media gallery that can organize and display photos,
- *              auido (MP3s), video (YouTube links), and docs (PDF)
- * 
- * Photo Gallery depends on blueimp for display - https://github.com/blueimp/Gallery
- *
- *----------------------------------------------------------------------------
- * Modification History
-
+(C) Copyright 2016,2023 John J Kauflin, All rights reserved.
+--------------------------------------------------------------------------------
+DESCRIPTION:    A general media gallery that can organize and display photos,
+                auido (MP3s), video (YouTube links), and docs (PDF), using 
+                only HTML 5, vanilla js, and Bootstrap (no external libraries)
+--------------------------------------------------------------------------------
+Modification History
  * 2016-03-12 JJK   Got bootstrap gallery version of blueimp working
     	Extra small devices Phones (<768px)
     	Small devices Tablets (≥768px)
@@ -105,11 +102,17 @@
  *                  caching strategy for the next image
  * 2023-08-03 JJK   Implemented a Media Modal to display img and file details
  * 2023-08-04 JJK   Implemented touch and mouse duration check for img modal
- *============================================================================*/
+
+2023-08-06 JJK  Moving components to ES6 modules and using import to pull in
+================================================================================*/
+import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
+        getFilePath,getThumbsFilePath,getFileName
+    } from './mg-mediainfo.js'
+import {displayElementInLightbox} from './mg-lightbox.js'
 
     // Private variables for the Module
-    var mediaType = 1
-    var mediaInfo
+    //var mediaInfo
+    //var mediaType = 1
     var menuList = []
     var categoryList = []
     var menuFilter = []
@@ -122,8 +125,6 @@
     //const webRootPath = tempPath.substring(0,strPos);
     //const webRootPath = tempPath;
 
-    // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
-    var MediaRootDir = window.location.pathname + "Media/";
     var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
 
     // Playlist array and index (for audio player/playlist diaplay)
@@ -147,10 +148,7 @@
     const MediaPageLinkClass = "media-page";
     const imgThumbnailClass = "img-thumbnail-jjk"
     const thumbCheckboxClass = "thumb-checkbox"
-    const lightboxImgClass = "mg-lb-img"
-    const lightboxImgNextClass = "mg-lb-img-next"
-    const lightboxImgPrevClass = "mg-lb-img-prev"
-
+ 
     const playlistSongClass = "playlistSong";
     const audioPrevClass = "fa-step-backward";
     const audioNextClass = "fa-step-forward";
@@ -161,26 +159,16 @@
     // Variables cached from the DOM
 
     var mediaPageContainer = document.getElementById("MediaPage");
-    var mediaLightboxBody = document.getElementById("MediaLightboxBody")
-    const mediaLightbox = new bootstrap.Modal(document.getElementById('MediaLightbox'))
-    let lightboxImg = document.createElement("img");
-
     var filterContainer = document.createElement("div")
     var thumbnailContainer = document.createElement("div")
     var editRow1 = document.createElement("div")
 
     var mediaAdminMessage
-
     var mediaCategorySelect
     var mediaMenuSelect
     var mediaPeopleInput
     var mediaPeopleSelect
     var mediaPeopleList
-
-    var mediaFilterMediaType
-    var mediaTypeDesc = "Photos"
-    var photosThumbsRoot = mediaTypeDesc + "Thumbs";
-    //var photosSmallerRoot = mediaTypeDesc + "Smaller";
 
     var mediaFilterCategory
     var mediaFilterStartDate
@@ -267,7 +255,7 @@
     // Respond to click on a link-tile-tab button by finding the correct TAB and switching/showing it
     // (These link-tile-tab's also have media-page for creating the Menu, but these handled from the listener on that class)
     document.querySelectorAll(".link-tile-tab").forEach(el => el.addEventListener("click", function (event) {
-        mediaType = event.target.getAttribute('data-MediaType')
+        setMediaType(event.target.getAttribute('data-MediaType'))
         //console.log("link-tile-tab click, mediaType = " + mediaType)
 
         // Get the target tab based on the the MediaType specified, and use the new Bootstrap v5.2 js for showing the tab
@@ -282,7 +270,7 @@
 
     // Respond to click on a media-page link tab by dynamically building the menu display
     document.querySelectorAll("."+MediaPageLinkClass).forEach(el => el.addEventListener("click", function (event) {
-        mediaType = event.target.getAttribute('data-MediaType')
+        setMediaType(event.target.getAttribute('data-MediaType'))
         //console.log("media-page click, mediaType = " + mediaType)
 
         if (typeof mediaType !== "undefined" && mediaType !== null) {
@@ -378,97 +366,13 @@
                 if (editMode) {
                     displayFileDetail(index)
                 } else {
-                    // Display image in Lightbox
-                    let fi = mediaInfo.fileList[index]
-                    let filePath = ''
-                    if (fi.DirSubPath != '') {
-                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                    }
-                    else 
-                    {
-                        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                    }
-                    
-                    lightboxImg = document.createElement("img");
-                    lightboxImg.setAttribute('onerror', "this.onerror=null; this.remove()")
-                    lightboxImg.classList.add(lightboxImgClass)
-                    lightboxImg.src = filePath
-                    lightboxImg.setAttribute('data-index', index)
-    
-                    if(window.innerHeight > window.innerWidth) {
-                        // Portrait
-                        let tempWidth = window.innerWidth - 40
-                        lightboxImg.style.maxWidth = tempWidth + "px"
-
-                        // add NEXT and PREV buttons to the TOP? of the image
-
-                    } else {
-                        // Landscape
-                        let tempHeight = window.innerHeight - 40
-                        lightboxImg.style.maxHeight = tempHeight + "px"
-
-                        // add NEXT and PREV buttons to the Left and Right of the image
-                    }
-    
-                    empty(mediaLightboxBody)
-                    mediaLightboxBody.appendChild(lightboxImg)
-                    
-                     let closeButton = document.createElement("button")
-                    closeButton.classList.add('btn','btn-close','float-start','shadow-none','mt-2','me-2')
-                    closeButton.setAttribute('type',"button")
-                    closeButton.setAttribute('role',"button")
-                    closeButton.setAttribute('aria-label',"Close")
-                    closeButton.setAttribute('data-bs-dismiss',"modal")
-                    mediaLightboxBody.appendChild(closeButton)
-    
-                    let aLeft = document.createElement("a")
-                    //aLeft.href = "#"
-                    aLeft.classList.add('float-start','m-2')
-                    let iconLeft = document.createElement("i")
-                    iconLeft.classList.add('fa','fa-chevron-left','fa-3x',lightboxImgPrevClass)
-                    aLeft.appendChild(iconLeft)
-                    mediaLightboxBody.appendChild(aLeft)
-
-                    let aRight = document.createElement("a")
-                    //aRight.href = "#"
-                    aRight.classList.add('float-end','m-2')
-                    let iconRight = document.createElement("i")
-                    iconRight.classList.add('fa','fa-chevron-right','fa-3x',lightboxImgNextClass)
-                    aRight.appendChild(iconRight)
-                    mediaLightboxBody.appendChild(aRight)
-
-                    mediaLightbox.show()
-        
-                    // If there is a NEXT image cache it to increase display speed
-                    if (index < mediaInfo.fileList.length-1) {
-                        let fi = mediaInfo.fileList[index+1]
-                        let filePath = ''
-                        if (fi.DirSubPath != '') {
-                            filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                        }
-                        else 
-                        {
-                            filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                        }
-                        // Cache the next image
-                        var imgCache = document.createElement('img');
-                        imgCache.src = filePath;        
-                    }
+                    displayElementInLightbox(index)
                 }
             }
 
-        } else if (event.target && event.target.classList.contains(lightboxImgNextClass)) {
-            event.preventDefault();
-            // expecting event to be the img
-            lightboxNextImg(event)
-
-        } else if (event.target && event.target.classList.contains(lightboxImgPrevClass)) {
-            event.preventDefault();
-            lightboxPrevImg(event)
-
         } else if (event.target && event.target.classList.contains(thumbCheckboxClass)) {
             //console.log("Clicked on image checkbox")
-            let index = parseInt(target.getAttribute('data-index'))
+            let index = parseInt(event.target.getAttribute('data-index'))
             if (typeof index !== "undefined" && index !== null) {
                 mediaInfo.fileList[index].Selected = true
             }
@@ -483,63 +387,14 @@
             }
         }
 
-    });
-
-    function lightboxNextImg(event) {
-        let index = parseInt(lightboxImg.getAttribute('data-index'))
-        if (typeof index !== "undefined" && index !== null) {
-            if (index < mediaInfo.fileList.length-1) {
-                index += 1
-                let fi = mediaInfo.fileList[index]
-                let filePath = ''
-                if (fi.DirSubPath != '') {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                }
-                else 
-                {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                }
-                lightboxImg.src = filePath
-                lightboxImg.setAttribute('data-index', index)
-            }            
-        }
-    }
-
-    function lightboxPrevImg(event) {
-        let index = parseInt(lightboxImg.getAttribute('data-index'))
-        if (typeof index !== "undefined" && index !== null) {
-            if (index > 0) {
-                index -= 1
-                let fi = mediaInfo.fileList[index]
-                let filePath = ''
-                if (fi.DirSubPath != '') {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                }
-                else 
-                {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                }
-                lightboxImg.src = filePath
-                lightboxImg.setAttribute('data-index', index)
-            }            
-        }
-    }
-
-    //-------------------------------------------------------------------------------------------------------------------
-    // Listen for Right-clicks in the Media Lightbox image container and display the PREV image
-    //-------------------------------------------------------------------------------------------------------------------
-    mediaLightboxBody.addEventListener('contextmenu', (event) => {
-        // Goto PREV image in Lightbox
-        if (event.target.classList.contains(lightboxImgClass)) {
-            event.preventDefault()
-            lightboxPrevImg(event)
-        }
     })
+
 
     //-------------------------------------------------------------------------------------------------------------------
     // Listen for context menu requests in the MediaThumbnails container
     //-------------------------------------------------------------------------------------------------------------------
     thumbnailContainer.addEventListener('contextmenu', (event) => {
+        event.preventDefault()
         displayImgContextMenu(event)
     })
 
@@ -562,15 +417,19 @@
         holdDownEnd(event)
     })   
     document.addEventListener('mousedown', (event) => {
-        holdDownStart(event)
+        if (event.button == 0) {
+            holdDownStart(event)
+        }
     })
     document.addEventListener('mouseup', (event) => {
-        holdDownEnd(event)
+        if (event.button == 0) {
+            holdDownEnd(event)
+        }
     })
 
     var beingHeldDown = false
     var holdDownStartMs = 0
-    var holdDownDuration = 300
+    var holdDownDuration = 335
 
     function holdDownStart(event) {
         //console.log("HOLD DOWN $$$ Start")
@@ -600,13 +459,6 @@
                     event.preventDefault()
                     displayImgContextMenu(event)
                 } 
-                /*
-                else if (event.target.classList.contains(lightboxImgClass)) {
-                    // Think of something better for mobile PREV
-                    event.preventDefault()
-                    lightboxPrevImg(event)
-                }
-                */
             }
         }
     }
@@ -645,6 +497,7 @@
     // Module methods
 
     // Remove all child nodes from an element
+    /*
     function empty(node) {
         // Could just set the innerHTML to null, but they say removing the children is faster
         // and better for removing any associated events
@@ -653,6 +506,7 @@
             node.removeChild(node.firstChild)
         }
     }
+    */
 
     //------------------------------------------------------------------------------------------------------------
     // Query the database for menu and file information and store in js variables
@@ -667,7 +521,10 @@
         .then(response => response.json())
         .then(responseMediaInfo => {
             // Save the media information in the response
-            mediaInfo = responseMediaInfo
+            //mediaInfo = responseMediaInfo
+            // Save in a variable in a module (that can be imported into other modules)
+            loadMediaInfo(responseMediaInfo)
+
             getMenu = paramData.getMenu
             if (getMenu) {
                 // Save the menu lists
@@ -676,10 +533,6 @@
                 menuFilter = mediaInfo.menuFilter
                 albumList = mediaInfo.albumList
                 peopleList = mediaInfo.peopleList
-
-                // Set the top level variables from the media type descriptions
-                mediaTypeDesc = mediaInfo.menuList[0].mediaTypeDesc
-                photosThumbsRoot = mediaTypeDesc + "Thumbs";
             }
 
             // Save the parameters from the laste query
@@ -711,7 +564,6 @@
             buildMenuElements(mediaType)
         }
         buildFilterElements(mediaType)
-
 
         if (editMode) {
             // Create Row and columns
@@ -1185,10 +1037,7 @@
     // Display the current list image thumbnails in the thumbnail container (with appropriate class links)
     //===========================================================================================================
     function displayCurrFileList() {
-        let periodPos = 0
-        let fileExt = ''
         let filePath = ''
-        let fileSubPath = ''
         let fileNameNoExt = ''
 
         let docFiles = false
@@ -1218,13 +1067,15 @@
         // If there is a filter request list, create Filter Request buttons with the start date
         //----------------------------------------------------------------------------------------------------
         //if (mediaType == 1 && mediaInfo.filterList != null) {
-        const buttonMax = 4
+        //const buttonMax = 4
         if (mediaInfo.filterList != null) {
             let buttonColor = 'btn-primary'
             for (let index in mediaInfo.filterList) {
+                /*
                 if (index > buttonMax) {
                     continue
                 }
+                */
                 let FilterRec = mediaInfo.filterList[index]
 
                 buttonColor = 'btn-primary'
@@ -1280,23 +1131,8 @@
                 continue
             }
 
-            if (fi.DirSubPath != '') {
-                filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
-            }
-            else 
-            {
-                filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                fileSubPath = '/' + fi.Name;
-            }
-            //console.log("filePath = " + filePath + ", fileSubPath = " + fileSubPath);
-
-            periodPos = fi.Name.indexOf(".");
-            if (periodPos >= 0) {
-                fileExt = fi.Name.substr(periodPos + 1).toUpperCase();
-                fileNameNoExt = fi.Name.substr(0,periodPos);
-            }
-
+            filePath = getFilePath(index)
+            fileNameNoExt = getFileName(index)
 
             // Create a Card to hold the thumbnail of the media object
             let thumb = document.createElement("div")
@@ -1347,15 +1183,15 @@
                     img.classList.add('rounded','float-start','mt-2','me-2',imgThumbnailClass)
                 }
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                img.src = MediaRootDir + photosThumbsRoot + fileSubPath
-                //img.src = filePath
+                //img.src = MediaRootDir + photosThumbsRoot + fileSubPath
+                img.src = getThumbsFilePath(index)
                 img.setAttribute('data-index', index)
                 img.height = 110
 
                 // Make sure the 1st image is cached (for the lightbox display)
                 if (index == 0) {
-                    var imgCache = document.createElement('img');
-                    imgCache.src = filePath;        
+                    var imgCache = document.createElement('img')
+                    imgCache.src = filePath
                 }
 
                 if (editMode) {
@@ -1522,20 +1358,6 @@
         mediaDetailFilename.textContent = fi.Name;
         mediaDetailTitle.value = fi.Title
         mediaDetailTaken.value = fi.TakenDateTime
-
-        let filePath = ''
-        let fileSubPath = ''
-        if (fi.DirSubPath != '') {
-            filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-            fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
-        }
-        else 
-        {
-            filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-            fileSubPath = '/' + fi.Name;
-        }
-        //console.log("displayFileDetail, filePath = " + filePath + ", fileSubPath = " + fileSubPath);
-
         mediaDetailCategoryTags.value = fi.CategoryTags
         mediaDetailMenuTags.value = fi.MenuTags
         mediaDetailAlbumTags.value = fi.AlbumTags
@@ -1555,7 +1377,7 @@
         displayCurrFileList()
 
         // Set the img src to get the smaller version of the image and display it on the screen
-        mediaDetailImg.setAttribute('src', filePath)
+        mediaDetailImg.src = getFilePath(index)
     }
 
     //-------------------------------------------------------------------------------------------------------
@@ -1566,19 +1388,11 @@
                 // >>>>>>>>>>>>>> Display details, or EDIT if edit mode
                 
                 let fi = mediaInfo.fileList[index]
-                let filePath = ''
-                if (fi.DirSubPath != '') {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-                }
-                else 
-                {
-                    filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-                }
 
                 let img = document.createElement("img");
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
                 img.classList.add('img-fluid')
-                img.src = filePath
+                img.src = getFilePath(index)
                 img.setAttribute('data-index', index)
                 if (window.innerHeight > window.innerWidth) {
                     // Portrait
