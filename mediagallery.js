@@ -106,7 +106,7 @@ Modification History
 2023-08-06 JJK  Moving components to ES6 modules and using import to pull in
 ================================================================================*/
 import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
-        getFilePath,getThumbsFilePath,getFileName
+        getFilePath,getFileName
     } from './mg-mediainfo.js'
 import {displayElementInLightbox} from './mg-lightbox.js'
 
@@ -1184,7 +1184,7 @@ import {displayElementInLightbox} from './mg-lightbox.js'
                 }
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
                 //img.src = MediaRootDir + photosThumbsRoot + fileSubPath
-                img.src = getThumbsFilePath(index)
+                img.src = getFilePath(index,"Thumbs")
                 img.setAttribute('data-index', index)
                 img.height = 110
 

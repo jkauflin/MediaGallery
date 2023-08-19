@@ -11,6 +11,7 @@ export let mediaInfo
 export let mediaType = 1
 export let mediaTypeDesc = "Photos"
 let photosThumbsRoot = mediaTypeDesc + "Thumbs";
+let photosSmallerRoot = mediaTypeDesc + "Smaller";
 //let photosSmallerRoot = mediaTypeDesc + "Smaller";
 // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
 let MediaRootDir = window.location.pathname + "Media/";
@@ -23,6 +24,7 @@ export function loadMediaInfo(inMediaInfo) {
         if (mediaInfo.menuList.length > 0) {
             mediaTypeDesc = mediaInfo.menuList[0].mediaTypeDesc
             photosThumbsRoot = mediaTypeDesc + "Thumbs";
+            photosSmallerRoot = mediaTypeDesc + "Smaller";
         }
     }
 }
@@ -31,35 +33,37 @@ export function setMediaType(inMediaType) {
     mediaType = inMediaType
 }
 
-export function getFilePath(index) {
+export function getFilePath(index,descMod="") {
+    // descMod could be "Thumbs" or "Smaller"
     let fi = mediaInfo.fileList[index]
-    let filePath = ''
     if (fi.DirSubPath != '') {
-        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
+        // If there is a subPath and it doesn't end in a slash, add it
+        if (fi.DirSubPath.substr(fi.DirSubPath.length-1,1) != "/") {
+            fi.DirSubPath = fi.DirSubPath + '/'
+        }
     }
-    else 
-    {
-        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-    }
-    return filePath
+    return MediaRootDir + mediaTypeDesc + descMod + '/' + fi.DirSubPath + fi.Name;
 }
 
+/*
 export function getThumbsFilePath(index) {
     let fi = mediaInfo.fileList[index]
     let filePath = ''
-    let fileSubPath = ''
     if (fi.DirSubPath != '') {
-        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.DirSubPath + '/' + fi.Name;
-        fileSubPath = '/' + fi.DirSubPath + '/' + fi.Name;
+        if (fi.DirSubPath.substr(fi.DirSubPath.length-1,1) == "/") {
+            filePath = MediaRootDir + photosThumbsRoot + '/' + fi.DirSubPath + fi.Name;
+        } else {
+            filePath = MediaRootDir + photosThumbsRoot + '/' + fi.DirSubPath + '/' + fi.Name;
+        }
     }
     else 
     {
-        filePath = MediaRootDir + mediaTypeDesc + '/' + fi.Name;
-        fileSubPath = '/' + fi.Name;
+        filePath = MediaRootDir + photosThumbsRoot + '/' + fi.Name;
     }
 
-    return MediaRootDir + photosThumbsRoot + fileSubPath
+    return filePath
 }
+*/
 
 export function getFileName(index) {
     let fi = mediaInfo.fileList[index]

@@ -7,7 +7,7 @@ Modification History
 2023-08-06 JJK  Initial version - moved lightbox components to this module
 ================================================================================*/
 import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
-    getFilePath,getThumbsFilePath,getFileName
+    getFilePath,getFileName
 } from './mg-mediainfo.js'
 
 const lightboxImgClass = "mg-lb-img"
@@ -34,7 +34,8 @@ function addImgToModal(index) {
     let lightboxImg = document.createElement("img");
     lightboxImg.setAttribute('onerror', "this.onerror=null; this.remove()")
     lightboxImg.classList.add(lightboxImgClass)
-    lightboxImg.src = getFilePath(index)
+    //lightboxImg.src = getFilePath(index)
+    lightboxImg.src = getFilePath(index,"Smaller")
     lightboxImg.setAttribute('data-index', index)
 
     if (window.innerHeight > window.innerWidth) {
