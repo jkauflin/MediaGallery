@@ -104,6 +104,9 @@ Modification History
  * 2023-08-04 JJK   Implemented touch and mouse duration check for img modal
 
 2023-08-06 JJK  Moving components to ES6 modules and using import to pull in
+2023-08-22 JJK  Switched to using Smaller for lightbox display.  Working on 
+                right-click options for downloading original image
+2023-08-25 JJK  Working on Album concept
 ================================================================================*/
 import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
         getFilePath,getFileName
@@ -111,8 +114,6 @@ import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
 import {displayElementInLightbox} from './mg-lightbox.js'
 
     // Private variables for the Module
-    //var mediaInfo
-    //var mediaType = 1
     var menuList = []
     var categoryList = []
     var menuFilter = []
@@ -359,8 +360,8 @@ import {displayElementInLightbox} from './mg-lightbox.js'
             bootstrap.Offcanvas.getOrCreateInstance('#MediaMenuCanvas').hide();
 
         } else if (event.target && event.target.classList.contains(imgThumbnailClass)) {
-            //console.log("in lightbox click")
             event.preventDefault();
+            // If clicking on a Thumbnail, bring up in Lightbox or FileDetail (for Edit mode)
             let index = parseInt(event.target.getAttribute('data-index'))
             if (typeof index !== "undefined" && index !== null) {
                 if (editMode) {
@@ -371,6 +372,7 @@ import {displayElementInLightbox} from './mg-lightbox.js'
             }
 
         } else if (event.target && event.target.classList.contains(thumbCheckboxClass)) {
+            // Thumbnail card checkbox
             //console.log("Clicked on image checkbox")
             let index = parseInt(event.target.getAttribute('data-index'))
             if (typeof index !== "undefined" && index !== null) {
@@ -913,6 +915,7 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         let filterRow1Col1 = document.createElement("div")
         filterRow1Col1.classList.add('col-3')
 
+
         let menuButton = document.createElement("button")
         menuButton.classList.add('btn','btn-primary','btn-sm','float-start')
         menuButton.setAttribute('type',"button")
@@ -925,8 +928,25 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         icon1.textContent = "Menu"
         menuButton.appendChild(icon1)
         filterRow1Col1.appendChild(menuButton)
+
+        /*
+        let menuButton2 = document.createElement("button")
+        menuButton2.classList.add('btn','btn-success','btn-sm','ms-2','float-start')
+        menuButton2.setAttribute('type',"button")
+        menuButton2.setAttribute('role',"button")
+        menuButton2.setAttribute('data-bs-toggle', "offcanvas")
+        menuButton2.setAttribute('data-bs-target', "#MediaMenuCanvas")
+        //menuButton2.textContent = "Menu"
+        let iconB = document.createElement("i")
+        iconB.classList.add('fa','fa-chevron-right')
+        iconB.textContent = "Albums"
+        menuButton2.appendChild(iconB)
+        filterRow1Col1.appendChild(menuButton2)
+        */
+       
         filterRow1.appendChild(filterRow1Col1)
 
+        //-----------------------------------------------------------------------------
         let filterRow1Col2 = document.createElement("div")
         filterRow1Col2.classList.add('col')
         // Category
@@ -967,13 +987,15 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         filterRow1Col3.classList.add('col-1')
         filterRow1.appendChild(filterRow1Col3)
 
+        //-----------------------------------------------------------------------------------------------------------------------------
         // Row 2
         let filterRow2 = document.createElement("div")
         filterRow2.classList.add('row','mt-2')
         let filterRow2Col1 = document.createElement("div")
         filterRow2Col1.classList.add('col-3','d-none','d-sm-block')
         let header2 = document.createElement("h5")
-        header2.textContent = mediaTypeDesc
+        //header2.textContent = mediaTypeDesc
+        header2.textContent = mediaTypeDesc + filterDesc
         filterRow2Col1.appendChild(header2)
         filterRow2.appendChild(filterRow2Col1)
 
@@ -1191,7 +1213,7 @@ import {displayElementInLightbox} from './mg-lightbox.js'
                 // Make sure the 1st image is cached (for the lightbox display)
                 if (index == 0) {
                     var imgCache = document.createElement('img')
-                    imgCache.src = filePath
+                    imgCache.src = getFilePath(index,"Smaller")
                 }
 
                 if (editMode) {
@@ -1342,7 +1364,6 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         thumbnailContainer.appendChild(thumbnailRow1)
         thumbnailContainer.appendChild(thumbnailRow2)
         thumbnailContainer.appendChild(thumbnailRow3)
-
     }
 
     //-------------------------------------------------------------------------------------------------------
@@ -1377,7 +1398,7 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         displayCurrFileList()
 
         // Set the img src to get the smaller version of the image and display it on the screen
-        mediaDetailImg.src = getFilePath(index)
+        mediaDetailImg.src = getFilePath(index,"Smaller")
     }
 
     //-------------------------------------------------------------------------------------------------------
@@ -1385,116 +1406,110 @@ import {displayElementInLightbox} from './mg-lightbox.js'
     //-------------------------------------------------------------------------------------------------------
     function displayModalDetail(index) {
         
-                // >>>>>>>>>>>>>> Display details, or EDIT if edit mode
+        // >>>>>>>>>>>>>> Display details, or EDIT if edit mode
                 
-                let fi = mediaInfo.fileList[index]
+        let fi = mediaInfo.fileList[index]
 
-                let img = document.createElement("img");
-                img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                img.classList.add('img-fluid')
-                img.src = getFilePath(index)
-                img.setAttribute('data-index', index)
-                if (window.innerHeight > window.innerWidth) {
-                    // Portrait
-                    let tempWidth = window.innerWidth - 350
-                    img.style.maxWidth = tempWidth + "px"
-                } else {
-                    // Landscape
-                    let tempHeight = window.innerHeight - 350
-                    img.style.maxHeight = tempHeight + "px"
-                }
+        let img = document.createElement("img");
+        img.setAttribute('onerror', "this.onerror=null; this.remove()")
+        img.classList.add('img-fluid')
+        img.src = getFilePath(index,"Smaller")
+        img.setAttribute('data-index', index)
+        if (window.innerHeight > window.innerWidth) {
+            // Portrait
+            let tempWidth = window.innerWidth - 350
+            img.style.maxWidth = tempWidth + "px"
+        } else {
+            // Landscape
+            let tempHeight = window.innerHeight - 350
+            img.style.maxHeight = tempHeight + "px"
+        }
 
+        let mediaModalImg = document.getElementById("MediaModalImg")
+        empty(mediaModalImg)
+        mediaModalImg.appendChild(img)
 
-                let mediaModalImg = document.getElementById("MediaModalImg")
-                empty(mediaModalImg)
-                mediaModalImg.appendChild(img)
+        let mediaModalBody = document.getElementById("MediaModalBody")
+        empty(mediaModalBody)
 
-                let mediaModalBody = document.getElementById("MediaModalBody")
-                empty(mediaModalBody)
+        // >>>> build components for modal display
+        // >>>> Maybe add "edit" functions if editMode ???
 
-                // >>>> build components for modal display
-                // >>>> Maybe add "edit" functions if editMode ???
+        // >>> work out "Share" concepts - what do I need to store in the DB?
 
-                // >>> work out "Share" concepts - what do I need to store in the DB?
-
-                let mediaModalTitle = document.getElementById("MediaModalTitle")
-                mediaModalTitle.textContent = fi.Name;
-                /*
-                let mediaDetailFilename = document.createElement("div")
-                    mediaDetailFilename.textContent = fi.Name;
-                mediaModalBody.appendChild(mediaDetailFilename)
-                */
-                let mediaDetailTitle = document.createElement("input")
-                mediaDetailTitle.classList.add('form-control','py-1','mb-1','shadow-none')
-                mediaDetailTitle.setAttribute('type', "text")
-                mediaDetailTitle.setAttribute('placeholder', "Title")
-                mediaDetailTitle.disabled = true
-                mediaModalBody.appendChild(mediaDetailTitle)
+        let mediaModalTitle = document.getElementById("MediaModalTitle")
+        mediaModalTitle.textContent = fi.Name;
+        /*
+        let mediaDetailFilename = document.createElement("div")
+        mediaDetailFilename.textContent = fi.Name;
+        mediaModalBody.appendChild(mediaDetailFilename)
+        */
+        let mediaDetailTitle = document.createElement("input")
+        mediaDetailTitle.classList.add('form-control','py-1','mb-1','shadow-none')
+        mediaDetailTitle.setAttribute('type', "text")
+        mediaDetailTitle.setAttribute('placeholder', "Title")
+        mediaDetailTitle.disabled = true
+        mediaModalBody.appendChild(mediaDetailTitle)
         
-                let mediaDetailTaken = document.createElement("input")
-                mediaDetailTaken.classList.add('form-control','py-1','mb-1','shadow-none')
-                mediaDetailTaken.setAttribute('type', "text")
-                mediaDetailTaken.setAttribute('placeholder', "Taken DateTime")
-                mediaDetailTaken.disabled = true
-                mediaModalBody.appendChild(mediaDetailTaken)
+        let mediaDetailTaken = document.createElement("input")
+        mediaDetailTaken.classList.add('form-control','py-1','mb-1','shadow-none')
+        mediaDetailTaken.setAttribute('type', "text")
+        mediaDetailTaken.setAttribute('placeholder', "Taken DateTime")
+        mediaDetailTaken.disabled = true
+        mediaModalBody.appendChild(mediaDetailTaken)
 
+        // Category Tags
+        let mediaDetailCategoryTags = document.createElement("input")
+        //mediaDetailCategoryTags.id = "MediaDetailCategoryTags"
+        mediaDetailCategoryTags.classList.add('form-control','py-1','mb-1','shadow-none')
+        mediaDetailCategoryTags.setAttribute('type', "text")
+        mediaDetailCategoryTags.setAttribute('placeholder', "Category tags")
+        mediaDetailCategoryTags.disabled = true
+        mediaModalBody.appendChild(mediaDetailCategoryTags)
 
-                // Category Tags
-                let mediaDetailCategoryTags = document.createElement("input")
-                //mediaDetailCategoryTags.id = "MediaDetailCategoryTags"
-                mediaDetailCategoryTags.classList.add('form-control','py-1','mb-1','shadow-none')
-                mediaDetailCategoryTags.setAttribute('type', "text")
-                mediaDetailCategoryTags.setAttribute('placeholder', "Category tags")
-                mediaDetailCategoryTags.disabled = true
-                mediaModalBody.appendChild(mediaDetailCategoryTags)
+        let mediaDetailMenuTags = document.createElement("input")
+        //mediaDetailMenuTags.id = "MediaDetailMenuTags"
+        mediaDetailMenuTags.classList.add('form-control','py-1','mb-1','shadow-none')
+        mediaDetailMenuTags.setAttribute('type', "text")
+        mediaDetailMenuTags.setAttribute('placeholder', "Menu tags")
+        mediaDetailMenuTags.disabled = true
+        mediaModalBody.appendChild(mediaDetailMenuTags)
 
+        // Album Tags
+        let mediaDetailAlbumTags = document.createElement("input")
+        //mediaDetailAlbumTags.id = "MediaDetailAlbumTags"
+        mediaDetailAlbumTags.classList.add('form-control','py-1','mb-1','shadow-none')
+        mediaDetailAlbumTags.setAttribute('type', "text")
+        mediaDetailAlbumTags.setAttribute('placeholder', "Album tags")
+        mediaDetailAlbumTags.disabled = true
+        mediaModalBody.appendChild(mediaDetailAlbumTags)
 
-                let mediaDetailMenuTags = document.createElement("input")
-                //mediaDetailMenuTags.id = "MediaDetailMenuTags"
-                mediaDetailMenuTags.classList.add('form-control','py-1','mb-1','shadow-none')
-                mediaDetailMenuTags.setAttribute('type', "text")
-                mediaDetailMenuTags.setAttribute('placeholder', "Menu tags")
-                mediaDetailMenuTags.disabled = true
-                mediaModalBody.appendChild(mediaDetailMenuTags)
+        // People List
+        let mediaDetailPeopleList = document.createElement("input")
+        //mediaDetailPeopleList.id = "MediaDetailPeopleList"
+        mediaDetailPeopleList.classList.add('form-control','py-1','mb-1','shadow-none')
+        mediaDetailPeopleList.setAttribute('type', "text")
+        mediaDetailPeopleList.setAttribute('placeholder', "People list")
+        mediaDetailPeopleList.disabled = true  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        mediaModalBody.appendChild(mediaDetailPeopleList)
 
-                // Album Tags
-                let mediaDetailAlbumTags = document.createElement("input")
-                //mediaDetailAlbumTags.id = "MediaDetailAlbumTags"
-                mediaDetailAlbumTags.classList.add('form-control','py-1','mb-1','shadow-none')
-                mediaDetailAlbumTags.setAttribute('type', "text")
-                mediaDetailAlbumTags.setAttribute('placeholder', "Album tags")
-                mediaDetailAlbumTags.disabled = true
-                mediaModalBody.appendChild(mediaDetailAlbumTags)
+        // Description
+        let mediaDetailDescription = document.createElement("textarea")
+        //mediaDetailDescription.id = "MediaDetailDescription"
+        mediaDetailDescription.classList.add('form-control','py-1','mb-1','shadow-none')
+        mediaDetailDescription.setAttribute('rows', "6")
+        mediaDetailDescription.setAttribute('placeholder', "Description")
+        mediaDetailDescription.disabled = true
+        //mediaDetailDescription.value = fi.Description
+        mediaModalBody.appendChild(mediaDetailDescription)
 
-                // People List
-                let mediaDetailPeopleList = document.createElement("input")
-                //mediaDetailPeopleList.id = "MediaDetailPeopleList"
-                mediaDetailPeopleList.classList.add('form-control','py-1','mb-1','shadow-none')
-                mediaDetailPeopleList.setAttribute('type', "text")
-                mediaDetailPeopleList.setAttribute('placeholder', "People list")
-                mediaDetailPeopleList.disabled = true  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                mediaModalBody.appendChild(mediaDetailPeopleList)
-
-                // Description
-                let mediaDetailDescription = document.createElement("textarea")
-                //mediaDetailDescription.id = "MediaDetailDescription"
-                mediaDetailDescription.classList.add('form-control','py-1','mb-1','shadow-none')
-                mediaDetailDescription.setAttribute('rows', "6")
-                mediaDetailDescription.setAttribute('placeholder', "Description")
-                mediaDetailDescription.disabled = true
-                //mediaDetailDescription.value = fi.Description
-                mediaModalBody.appendChild(mediaDetailDescription)
-
-
-
-                mediaDetailTitle.value = fi.Title
-                mediaDetailTaken.value = fi.TakenDateTime
-                mediaDetailCategoryTags.value = fi.CategoryTags
-                mediaDetailMenuTags.value = fi.MenuTags
-                mediaDetailAlbumTags.value = fi.AlbumTags
-                mediaDetailPeopleList.value = fi.People
-                mediaDetailDescription.value = fi.Description
-        
+        mediaDetailTitle.value = fi.Title
+        mediaDetailTaken.value = fi.TakenDateTime
+        mediaDetailCategoryTags.value = fi.CategoryTags
+        mediaDetailMenuTags.value = fi.MenuTags
+        mediaDetailAlbumTags.value = fi.AlbumTags
+        mediaDetailPeopleList.value = fi.People
+        mediaDetailDescription.value = fi.Description
     }
 
     //------------------------------------------------------------------------------------------------------------

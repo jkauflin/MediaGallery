@@ -35,6 +35,7 @@ function addImgToModal(index) {
     lightboxImg.setAttribute('onerror', "this.onerror=null; this.remove()")
     lightboxImg.classList.add(lightboxImgClass)
     //lightboxImg.src = getFilePath(index)
+    //console.log("smaller path = "+getFilePath(index,"Smaller"))
     lightboxImg.src = getFilePath(index,"Smaller")
     lightboxImg.setAttribute('data-index', index)
 
