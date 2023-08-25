@@ -994,8 +994,8 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         let filterRow2Col1 = document.createElement("div")
         filterRow2Col1.classList.add('col-3','d-none','d-sm-block')
         let header2 = document.createElement("h5")
-        //header2.textContent = mediaTypeDesc
-        header2.textContent = mediaTypeDesc + filterDesc
+        header2.textContent = mediaTypeDesc
+        //header2.textContent = mediaTypeDesc + filterDesc
         filterRow2Col1.appendChild(header2)
         filterRow2.appendChild(filterRow2Col1)
 
