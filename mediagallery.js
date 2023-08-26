@@ -911,7 +911,7 @@ import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
         let filterRow1 = document.createElement("div")
         filterRow1.classList.add('row','mt-2')
         let filterRow1Col1 = document.createElement("div")
-        filterRow1Col1.classList.add('col-3')
+        filterRow1Col1.classList.add('col-5')
 
 
         let menuButton = document.createElement("button")
