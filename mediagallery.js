@@ -111,10 +111,10 @@ Modification History
 ================================================================================*/
 import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,contentDesc,loadMediaInfo,
         getFilePath,getFileName
-    } from './mg-mediainfo.js'
-import {MediaMenuRequestClass,mediaMenuCanvasId,hideMediaMenuCanvas,setMenuList,buildMenuElements} from './mg-menu.js'
-import {MediaAlbumMenuRequestClass,mediaAlbumMenuCanvasId,hideMediaAlbumMenuCanvas,setAlbumList,buildAlbumMenuElements} from './mg-album.js'
-import {displayElementInLightbox} from './mg-lightbox.js'
+    } from './mg-mediainfo.js?ver=1.020'
+import {MediaMenuRequestClass,mediaMenuCanvasId,hideMediaMenuCanvas,setMenuList,buildMenuElements} from './mg-menu.js?ver=1.020'
+import {MediaAlbumMenuRequestClass,mediaAlbumMenuCanvasId,hideMediaAlbumMenuCanvas,setAlbumList,buildAlbumMenuElements} from './mg-album.js?ver=1.020'
+import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
 
     // Private variables for the Module
     var categoryList = []

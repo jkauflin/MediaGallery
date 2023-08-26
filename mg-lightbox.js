@@ -8,7 +8,7 @@ Modification History
 ================================================================================*/
 import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
     getFilePath,getFileName
-} from './mg-mediainfo.js'
+} from './mg-mediainfo.js?ver=1.020'
 
 const lightboxImgClass = "mg-lb-img"
 //const lightboxImgNextClass = "mg-lb-img-next"
