@@ -10,8 +10,7 @@ Modification History
 export let mediaInfo
 export let mediaType = 1
 export let mediaTypeDesc = "Photos"
-//let photosThumbsRoot = mediaTypeDesc + "Thumbs";
-//let photosSmallerRoot = mediaTypeDesc + "Smaller";
+export let contentDesc = ""
 // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
 let MediaRootDir = window.location.pathname + "Media/";
 
@@ -22,9 +21,14 @@ export function loadMediaInfo(inMediaInfo) {
     if (mediaInfo.menuList != null) {
         if (mediaInfo.menuList.length > 0) {
             mediaTypeDesc = mediaInfo.menuList[0].mediaTypeDesc
-            //photosThumbsRoot = mediaTypeDesc + "Thumbs";
-            //photosSmallerRoot = mediaTypeDesc + "Smaller";
         }
+    }
+
+    contentDesc = mediaTypeDesc
+    if (mediaInfo.currMenu != null && mediaInfo.currMenu != "") {
+        contentDesc = mediaTypeDesc + " - " + mediaInfo.currMenu
+    } else if (mediaInfo.currAlbum != null && mediaInfo.currAlbum != "") {
+        contentDesc = mediaTypeDesc + " - " + mediaInfo.currAlbum
     }
 }
 

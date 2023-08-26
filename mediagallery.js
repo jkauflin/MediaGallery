@@ -107,17 +107,18 @@ Modification History
 2023-08-22 JJK  Switched to using Smaller for lightbox display.  Working on 
                 right-click options for downloading original image
 2023-08-25 JJK  Working on Album concept
+2023-08-26 JJK  Moved menu and album components to modules
 ================================================================================*/
-import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
+import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,contentDesc,loadMediaInfo,
         getFilePath,getFileName
     } from './mg-mediainfo.js'
+import {MediaMenuRequestClass,mediaMenuCanvasId,hideMediaMenuCanvas,setMenuList,buildMenuElements} from './mg-menu.js'
+import {MediaAlbumMenuRequestClass,mediaAlbumMenuCanvasId,hideMediaAlbumMenuCanvas,setAlbumList,buildAlbumMenuElements} from './mg-album.js'
 import {displayElementInLightbox} from './mg-lightbox.js'
 
     // Private variables for the Module
-    var menuList = []
     var categoryList = []
     var menuFilter = []
-    var albumList = []
     var peopleList = []
 
     //console.log("window.location.pathname = "+window.location.pathname);
@@ -144,7 +145,6 @@ import {displayElementInLightbox} from './mg-lightbox.js'
     audioPlayer.style.padding = '13px 20px 0 0';
     audioPlayer.style.margin = '0 15px 0 10px';
 
-    const MediaMenuRequestClass = "MediaMenuRequest";
     const MediaFilterRequestClass = "MediaFilterRequest";
     const MediaPageLinkClass = "media-page";
     const imgThumbnailClass = "img-thumbnail-jjk"
@@ -356,8 +356,19 @@ import {displayElementInLightbox} from './mg-lightbox.js'
                 MediaFilterStartDate: event.target.getAttribute('data-startDate')}
 
             queryMediaInfo(paramData);
+            hideMediaMenuCanvas()
 
-            bootstrap.Offcanvas.getOrCreateInstance('#MediaMenuCanvas').hide();
+        } else if (event.target && event.target.classList.contains(MediaAlbumMenuRequestClass)) {
+            // If click on a album item, query the data and build the thumbnail display
+            let paramData = {
+                MediaFilterMediaType: mediaType, 
+                getMenu: false,
+                MediaFilterCategory:  event.target.getAttribute('data-category'),
+                MediaFilterMenuItem:  event.target.getAttribute('data-menuItem'),
+                MediaFilterStartDate: event.target.getAttribute('data-startDate')}
+
+            queryMediaInfo(paramData);
+            hideMediaAlbumMenuCanvas()
 
         } else if (event.target && event.target.classList.contains(imgThumbnailClass)) {
             event.preventDefault();
@@ -431,7 +442,7 @@ import {displayElementInLightbox} from './mg-lightbox.js'
 
     var beingHeldDown = false
     var holdDownStartMs = 0
-    var holdDownDuration = 335
+    var holdDownDuration = 1000
 
     function holdDownStart(event) {
         //console.log("HOLD DOWN $$$ Start")
@@ -498,18 +509,6 @@ import {displayElementInLightbox} from './mg-lightbox.js'
     //=================================================================================================================
     // Module methods
 
-    // Remove all child nodes from an element
-    /*
-    function empty(node) {
-        // Could just set the innerHTML to null, but they say removing the children is faster
-        // and better for removing any associated events
-        //node.innerHTML = "";
-        while (node.firstChild) {
-            node.removeChild(node.firstChild)
-        }
-    }
-    */
-
     //------------------------------------------------------------------------------------------------------------
     // Query the database for menu and file information and store in js variables
     //------------------------------------------------------------------------------------------------------------
@@ -522,18 +521,16 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         })
         .then(response => response.json())
         .then(responseMediaInfo => {
-            // Save the media information in the response
-            //mediaInfo = responseMediaInfo
-            // Save in a variable in a module (that can be imported into other modules)
+            // Save media information in a variable in a module (that can be imported into other modules)
             loadMediaInfo(responseMediaInfo)
 
             getMenu = paramData.getMenu
             if (getMenu) {
                 // Save the menu lists
-                menuList = mediaInfo.menuList
+                setMenuList(mediaInfo.menuList)
                 categoryList = mediaInfo.categoryList
                 menuFilter = mediaInfo.menuFilter
-                albumList = mediaInfo.albumList
+                setAlbumList(mediaInfo.albumList)
                 peopleList = mediaInfo.peopleList
             }
 
@@ -564,6 +561,7 @@ import {displayElementInLightbox} from './mg-lightbox.js'
 
         if (getMenu) {
             buildMenuElements(mediaType)
+            buildAlbumMenuElements(mediaType)
         }
         buildFilterElements(mediaType)
 
@@ -921,7 +919,7 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         menuButton.setAttribute('type',"button")
         menuButton.setAttribute('role',"button")
         menuButton.setAttribute('data-bs-toggle', "offcanvas")
-        menuButton.setAttribute('data-bs-target', "#MediaMenuCanvas")
+        menuButton.setAttribute('data-bs-target', mediaMenuCanvasId)
         //menuButton.textContent = "Menu"
         let icon1 = document.createElement("i")
         icon1.classList.add('fa','fa-chevron-right')
@@ -929,20 +927,18 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         menuButton.appendChild(icon1)
         filterRow1Col1.appendChild(menuButton)
 
-        /*
         let menuButton2 = document.createElement("button")
         menuButton2.classList.add('btn','btn-success','btn-sm','ms-2','float-start')
         menuButton2.setAttribute('type',"button")
         menuButton2.setAttribute('role',"button")
         menuButton2.setAttribute('data-bs-toggle', "offcanvas")
-        menuButton2.setAttribute('data-bs-target', "#MediaMenuCanvas")
+        menuButton2.setAttribute('data-bs-target', mediaAlbumMenuCanvasId)
         //menuButton2.textContent = "Menu"
         let iconB = document.createElement("i")
         iconB.classList.add('fa','fa-chevron-right')
         iconB.textContent = "Albums"
         menuButton2.appendChild(iconB)
         filterRow1Col1.appendChild(menuButton2)
-        */
        
         filterRow1.appendChild(filterRow1Col1)
 
@@ -993,9 +989,13 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         filterRow2.classList.add('row','mt-2')
         let filterRow2Col1 = document.createElement("div")
         filterRow2Col1.classList.add('col-3','d-none','d-sm-block')
+
         let header2 = document.createElement("h5")
-        header2.textContent = mediaTypeDesc
-        //header2.textContent = mediaTypeDesc + filterDesc
+        if (contentDesc.length > 40) {
+            header2 = document.createElement("h6")
+        }
+        //header2.textContent = mediaTypeDesc
+        header2.textContent = contentDesc
         filterRow2Col1.appendChild(header2)
         filterRow2.appendChild(filterRow2Col1)
 
@@ -1088,16 +1088,17 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         //----------------------------------------------------------------------------------------------------
         // If there is a filter request list, create Filter Request buttons with the start date
         //----------------------------------------------------------------------------------------------------
-        //if (mediaType == 1 && mediaInfo.filterList != null) {
-        //const buttonMax = 4
+        let buttonMax = 20
+        if (window.innerHeight > window.innerWidth) {
+            buttonMax = 4
+        }
+
         if (mediaInfo.filterList != null) {
             let buttonColor = 'btn-primary'
             for (let index in mediaInfo.filterList) {
-                /*
                 if (index > buttonMax) {
                     continue
                 }
-                */
                 let FilterRec = mediaInfo.filterList[index]
 
                 buttonColor = 'btn-primary'
@@ -1512,110 +1513,7 @@ import {displayElementInLightbox} from './mg-lightbox.js'
         mediaDetailDescription.value = fi.Description
     }
 
-    //------------------------------------------------------------------------------------------------------------
-    // Create a collapsible menu in an offcanvas pop-out using menu list data
-    //------------------------------------------------------------------------------------------------------------
-    function buildMenuElements(mediaType) {
-        let MediaOffcanvasMenuId = "MediaOffcanvasMenu"
-        let menuContainer = document.getElementById(MediaOffcanvasMenuId)
-        let mediaMenuCanvasLabel = document.getElementById("MediaMenuCanvasLabel")
-        mediaMenuCanvasLabel.textContent = mediaTypeDesc + " Menu"
 
-        if (menuContainer != null) {
-            empty(menuContainer)
-
-            let menuId = MediaOffcanvasMenuId
-            let accordionId = menuId + "AccordianContainer";
-            let accordianContainer = document.createElement("div")
-            accordianContainer.id = accordionId
-            accordianContainer.classList.add('accordion')
-            accordianContainer.classList.add('accordion-flush')
-    
-            let itemId = ''
-            let accordianItemHeader
-            let accordianItem
-            let accordianItemBody
-            let accordianItemList
-            let collapseState = false
-            let collapseShow = false
-    
-            for (let index in menuList) {
-                let menu = menuList[index]
-    
-                //menuHeader.textContent = mediaTypeDesc
-    
-                // Make the 1st panel item un-collapsed
-                if (index == 0) {
-                    collapseState = false
-                    collapseShow = true
-                } else {
-                    collapseState = true
-                    collapseShow = false
-                }
-    
-                // Create the top level item
-                accordianItem = document.createElement("div")
-                accordianItem.classList.add('accordion-item')
-    
-                // Create the header for the item
-                itemId = menuId + (index + 1)
-                accordianItemHeader = document.createElement("h6")
-                accordianItemHeader.classList.add('accordion-header')
-    
-                let button = document.createElement("button");
-                button.classList.add('m-1','p-1','accordion-button','shadow-none')
-                if (collapseState) {
-                    button.classList.add('collapsed')
-                }
-                button.setAttribute('type',"button")
-                button.setAttribute('role',"button")
-                button.setAttribute('data-bs-toggle','collapse')
-                button.setAttribute('data-bs-target','#' + itemId)
-                button.textContent = menu.category;
-                accordianItemHeader.appendChild(button)
-    
-                // Create the body for the item
-                accordianItemBody = document.createElement("div")
-                accordianItemBody.id = itemId
-                accordianItemBody.classList.add('accordion-collapse','collapse')
-                if (collapseShow) {
-                    accordianItemBody.classList.add('show')
-                }
-                accordianItemBody.setAttribute('data-bs-parent', '#' + accordionId)
-    
-                // Create the list for the body
-                accordianItemList = document.createElement("ul")
-    
-                // Add list entries
-                for (let index2 in menu.subMenuList) {
-                    //console.log("create menu,  filename = "+filename);
-                    // Create a link for the media dir folder
-                    let a = document.createElement("a")
-                    a.setAttribute('href', "#")
-                    a.setAttribute('data-MediaType', mediaType)
-                    a.setAttribute('data-category', menu.category)
-                    a.setAttribute('data-menuItem', menu.subMenuList[index2].menuItem)
-                    a.setAttribute('data-startDate', menu.subMenuList[index2].startDate)
-                    a.setAttribute('data-endDate', menu.subMenuList[index2].endDate)
-                    a.setAttribute('data-searchStr', menu.subMenuList[index2].searchStr)
-                    a.classList.add(MediaMenuRequestClass)
-                    a.textContent = menu.subMenuList[index2].menuItem
-                    let li = document.createElement('li')
-                    li.appendChild(a)
-                    accordianItemList.appendChild(li)
-                }
-    
-                // Append the item list to the panel item, and the panel item to the menu
-                accordianItemBody.appendChild(accordianItemList);
-                accordianItem.appendChild(accordianItemHeader);
-                accordianItem.appendChild(accordianItemBody);
-                accordianContainer.appendChild(accordianItem);
-            }    
-    
-            // Put the created accordian into the Menu DIV on the parent page
-            menuContainer.appendChild(accordianContainer);
-        }
-    }
 
     // Audio 
     function loadSong(index) {

@@ -12,6 +12,8 @@
  * 2023-06-13 JJK   Added max rows as a parameter in all the queries and to
  * 					accept as an input parameter.  Also max the max max
  * 					media type specific
+ * 2023-08-26 JJK	Added menu and album string used in the query to the
+ * 					output structure
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -78,9 +80,7 @@ class FilterRec
 // FileList
 class FileRec
 {
-	//public $filename;
 	public $Name;
-	//public $dirSubPath;
 	public $DirSubPath;
 	public $Selected;
 	public $CategoryTags;
@@ -103,6 +103,8 @@ class MediaInfo
 	public $filterList;
 	public $fileList;
 	public $startDate;
+	public $currMenu;
+	public $currAlbum;
 }
 
 $mediaInfo = new MediaInfo();
@@ -130,6 +132,8 @@ try {
 	// Decode the string to get a JSON object
 	$param = json_decode($json_str);
 
+// save $param
+
 	// Get the database connection
 	$conn = getConn($dbHost, $dbUser, $dbPassword, $dbName);
 
@@ -148,18 +152,15 @@ try {
 		$mediaInfo->startDate = "1900-01-01";
 	}
 
-	//if ($param->MediaFilterMediaType == 2) {
-	//	$maxRows = 10;
-	//} else {
-		if (!empty($param->MaxRows)) {
-			$maxRows = intval($param->MaxRows);
-			if ($maxRows > $maxMaxRows) {
-				$maxRows = $maxMaxRows;
-			}
-	
+	// Check the max rows setting
+	if (!empty($param->MaxRows)) {
+		$maxRows = intval($param->MaxRows);
+		if ($maxRows > $maxMaxRows) {
+			$maxRows = $maxMaxRows;
 		}
-	//}
-	
+
+	}
+
 	if ($getMenu) {
 		$sql = "SELECT * FROM MediaType t, MediaCategory c, Menu m WHERE ";
 		$sql = $sql . " t.MediaTypeId = ? AND c.MediaTypeId = t.MediaTypeId AND m.CategoryId = c.CategoryId ";
@@ -270,9 +271,6 @@ try {
 		$stmt->close();
 	} // if ($param->getMenu) {
 
-	
-	// if Menu - get default Category
-
 
 	//------------------------------------------------------------------------------------------------------------
 	// Check what parameters have been sent and create the appropriate SQL query to get files
@@ -309,14 +307,18 @@ try {
 
 	$menuItemExists = false;
 	$wildMenuItem = "";
+	$mediaInfo->currMenu = "";
 	if (!empty($param->MediaFilterMenuItem)) {
+		$mediaInfo->currMenu = $param->MediaFilterMenuItem;
 		$wildMenuItem = wildCardStrFromTokens($param->MediaFilterMenuItem);
 		$menuItemExists = true;
 	}
 
 	$albumTagExists = false;
 	$wildAlbumTag = "";
+	$mediaInfo->currAlbum = "";
 	if (!empty($param->MediaFilterAlbumTag)) {
+		$mediaInfo->currAlbum = $param->MediaFilterAlbumTag;
 		$wildAlbumTag = wildCardStrFromTokens($param->MediaFilterAlbumTag);
 		$albumTagExists = true;
 	}
@@ -332,6 +334,8 @@ try {
 	if (!empty($param->getNew)) {
 		$getNew = $param->getNew;
 	}
+
+// Where to put $albumTagExists CHECK ???
 
 	if ($getNew) {
 		$sql = $sql . "AND ToBeProcessed = 1 ";
