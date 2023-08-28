@@ -113,7 +113,7 @@ import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,contentDesc,loadMed
         getFilePath,getFileName
     } from './mg-mediainfo.js?ver=1.020'
 import {MediaMenuRequestClass,mediaMenuCanvasId,hideMediaMenuCanvas,setMenuList,buildMenuElements} from './mg-menu.js?ver=1.020'
-import {MediaAlbumMenuRequestClass,mediaAlbumMenuCanvasId,hideMediaAlbumMenuCanvas,setAlbumList,buildAlbumMenuElements} from './mg-album.js?ver=1.020'
+import {MediaAlbumMenuRequestClass,mediaAlbumMenuCanvasId,hideMediaAlbumMenuCanvas,setAlbumList,buildAlbumMenuElements} from './mg-album.js?ver=1.024'
 import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
 
     // Private variables for the Module
@@ -174,8 +174,8 @@ import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
     var mediaFilterCategory
     var mediaFilterStartDate
     var mediaFilterSearchStr
-    var mediaFilterMenuItem
-    var mediaFilterAlbumTag
+    //var mediaFilterMenuItem
+    //var mediaFilterAlbumTag
 
     var mediaDetailFilename
     var mediaDetailTitle
@@ -363,9 +363,8 @@ import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
             let paramData = {
                 MediaFilterMediaType: mediaType, 
                 getMenu: false,
-                MediaFilterCategory:  event.target.getAttribute('data-category'),
-                MediaFilterMenuItem:  event.target.getAttribute('data-menuItem'),
-                MediaFilterStartDate: event.target.getAttribute('data-startDate')}
+                MediaFilterAlbumKey:  event.target.getAttribute('data-albumKey'),
+                MediaFilterAlbumName:  event.target.getAttribute('data-albumName')}
 
             queryMediaInfo(paramData);
             hideMediaAlbumMenuCanvas()

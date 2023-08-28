@@ -35,6 +35,26 @@ export function buildAlbumMenuElements(mediaType) {
     if (menuAlbumContainer != null) {
         empty(menuAlbumContainer)
 
+        let itemList = document.createElement("ul")
+
+        for (let index in albumList) {
+            let albumRec = albumList[index]
+
+            let a = document.createElement("a")
+            a.setAttribute('href', "#")
+            a.setAttribute('data-MediaType', mediaType)
+            a.setAttribute('data-albumKey', albumRec.albumKey)
+            a.setAttribute('data-albumName', albumRec.albumName)
+            a.classList.add(MediaAlbumMenuRequestClass)
+            a.textContent = albumRec.albumName
+
+            let li = document.createElement('li')
+            li.appendChild(a)
+            itemList.appendChild(li)
+        }
+
+        menuAlbumContainer.appendChild(itemList)
+
         /*
             let menuId = MediaOffcanvasAlbumMenuId
             let accordionId = menuId + "AccordianContainer";

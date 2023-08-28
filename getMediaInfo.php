@@ -70,6 +70,13 @@ class SubMenuRec
 	public $searchStr;
 }
 
+class AlbumRec
+{
+	public $albumKey;
+	public $albumName;
+	public $albumDesc;
+}
+
 // array of tiles for years, seasons, prev, next, (with a start Date)
 class FilterRec
 {
@@ -254,7 +261,26 @@ try {
 			}
 		}
 		$stmt->close();
-	
+
+		//-----------------------------------------------------------------------------------
+		// Album
+		//-----------------------------------------------------------------------------------
+		$sql = "SELECT * FROM Album";
+		$sql = $sql . " ORDER BY AlbumId; ";
+		$stmt = $conn->prepare($sql)  or die($mysqli->error);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		if ($result->num_rows > 0) {
+			while($row = $result->fetch_assoc()) {
+				$albumRec = new AlbumRec();
+				$albumRec->albumKey =$row["AlbumKey"];
+				$albumRec->albumName = $row["AlbumName"];
+				$albumRec->albumDesc = $row["AlbumDesc"];
+				array_push($mediaInfo->albumList,$albumRec);
+			}
+		}
+		$stmt->close();
+
 		//-----------------------------------------------------------------------------------
 		// People
 		//-----------------------------------------------------------------------------------
@@ -314,13 +340,14 @@ try {
 		$menuItemExists = true;
 	}
 
-	$albumTagExists = false;
-	$wildAlbumTag = "";
+	// MediaFilterAlbumKey
+	$albumKeyExists = false;
+	$wildAlbumKey = "";
 	$mediaInfo->currAlbum = "";
-	if (!empty($param->MediaFilterAlbumTag)) {
-		$mediaInfo->currAlbum = $param->MediaFilterAlbumTag;
-		$wildAlbumTag = wildCardStrFromTokens($param->MediaFilterAlbumTag);
-		$albumTagExists = true;
+	if (!empty($param->MediaFilterAlbumKey)) {
+		$mediaInfo->currAlbum = $param->MediaFilterAlbumName;
+		$wildAlbumKey = wildCardStrFromTokens($param->MediaFilterAlbumKey);
+		$albumKeyExists = true;
 	}
 
 	$searchStrExists = false;
@@ -335,11 +362,11 @@ try {
 		$getNew = $param->getNew;
 	}
 
-// Where to put $albumTagExists CHECK ???
-
 	if ($getNew) {
 		$sql = $sql . "AND ToBeProcessed = 1 ";
 
+	} else if ($albumKeyExists) {
+		$sql = $sql . "AND AlbumTags LIKE ? ";
 	} else if ($categoryExists && $startDateExists && $menuItemExists && $searchStrExists) {
 		$sql = $sql . "AND CategoryTags LIKE ? ";
 		$sql = $sql . "AND MenuTags LIKE ? ";
@@ -394,7 +421,13 @@ try {
 	//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
 	$stmt = $conn->prepare($sql)  or die($mysqli->error);
 
-	if ($categoryExists && $startDateExists && $menuItemExists && $searchStrExists) {
+	if ($albumKeyExists) {
+	$sql = $sql . "AND AlbumTags LIKE ? ";
+		$stmt->bind_param("isi",
+			$param->MediaFilterMediaType,
+			$wildAlbumKey,
+			$maxRows);
+	} else if ($categoryExists && $startDateExists && $menuItemExists && $searchStrExists) {
 		$stmt->bind_param("isssssssi",
 			$param->MediaFilterMediaType,
 			$wildCategory,
