@@ -14,6 +14,8 @@ export const MediaMenuRequestClass = "MediaMenuRequest"
 export const mediaMenuCanvasId = "#MediaMenuCanvas"
 var menuList = []
 var mediaMenuCanvas = bootstrap.Offcanvas.getOrCreateInstance(mediaMenuCanvasId)
+let MediaOffcanvasMenuId = "MediaOffcanvasMenu"
+export var menuContainer = document.getElementById(MediaOffcanvasMenuId)
 
 export function setMenuList(inMenuList) {
     menuList = inMenuList
@@ -27,8 +29,7 @@ export function hideMediaMenuCanvas() {
 // Create a collapsible menu in an offcanvas pop-out using menu list data
 //------------------------------------------------------------------------------------------------------------
 export function buildMenuElements(mediaType) {
-    let MediaOffcanvasMenuId = "MediaOffcanvasMenu"
-    let menuContainer = document.getElementById(MediaOffcanvasMenuId)
+    //let menuContainer = document.getElementById(MediaOffcanvasMenuId)
     let mediaMenuCanvasLabel = document.getElementById("MediaMenuCanvasLabel")
     mediaMenuCanvasLabel.textContent = mediaTypeDesc + " Menu"
 

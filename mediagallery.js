@@ -108,13 +108,15 @@ Modification History
                 right-click options for downloading original image
 2023-08-25 JJK  Working on Album concept
 2023-08-26 JJK  Moved menu and album components to modules
+2023-09-01 JJK  Moved context menu to module
 ================================================================================*/
 import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,contentDesc,loadMediaInfo,
         getFilePath,getFileName
     } from './mg-mediainfo.js?ver=1.020'
-import {MediaMenuRequestClass,mediaMenuCanvasId,hideMediaMenuCanvas,setMenuList,buildMenuElements} from './mg-menu.js?ver=1.020'
-import {MediaAlbumMenuRequestClass,mediaAlbumMenuCanvasId,hideMediaAlbumMenuCanvas,setAlbumList,buildAlbumMenuElements} from './mg-album.js?ver=1.024'
-import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
+import {MediaMenuRequestClass,mediaMenuCanvasId,hideMediaMenuCanvas,menuContainer,setMenuList,buildMenuElements} from './mg-menu.js?ver=1.021'
+import {MediaAlbumMenuRequestClass,mediaAlbumMenuCanvasId,hideMediaAlbumMenuCanvas,menuAlbumContainer,setAlbumList,buildAlbumMenuElements} from './mg-album.js?ver=1.026'
+import {displayElementInLightbox} from './mg-lightbox.js?ver=1.024'
+import {setContextMenuListeners} from './mg-contextmenu.js?ver=1.020'
 
     // Private variables for the Module
     var categoryList = []
@@ -321,11 +323,39 @@ import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
     */
 
     //-------------------------------------------------------------------------------------------------------
-    // Listen for clicks in the document body
-    // *** Have to listen to Body instead of individual containers (because there are more than 1)
+    // Listen for clicks in containers
     //-------------------------------------------------------------------------------------------------------
-    document.body.addEventListener("click", function (event) {
-        //console.log("document.body click, classList = "+event.target.classList)
+    menuContainer.addEventListener("click", function (event) {
+        if (event.target && event.target.classList.contains(MediaMenuRequestClass)) {
+        // If click on a menu item, query the data and build the thumbnail display
+        let paramData = {
+            MediaFilterMediaType: mediaType, 
+            getMenu: false,
+            MediaFilterCategory:  event.target.getAttribute('data-category'),
+            MediaFilterMenuItem:  event.target.getAttribute('data-menuItem'),
+            MediaFilterStartDate: event.target.getAttribute('data-startDate')}
+
+        queryMediaInfo(paramData);
+        hideMediaMenuCanvas()
+        }
+    })
+
+    menuAlbumContainer.addEventListener("click", function (event) {
+        if (event.target && event.target.classList.contains(MediaAlbumMenuRequestClass)) {
+            // If click on a album item, query the data and build the thumbnail display
+            let paramData = {
+                MediaFilterMediaType: mediaType, 
+                getMenu: false,
+                MediaFilterAlbumKey:  event.target.getAttribute('data-albumKey'),
+                MediaFilterAlbumName:  event.target.getAttribute('data-albumName')}
+
+            queryMediaInfo(paramData);
+            hideMediaAlbumMenuCanvas()
+        }
+    })
+
+    thumbnailContainer.addEventListener("click", function (event) {
+        //console.log("thumbnailContainer click, classList = "+event.target.classList)
 
         // Check for specific classes
         if (event.target && event.target.classList.contains(MediaFilterRequestClass)) {
@@ -345,29 +375,6 @@ import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
                 MediaFilterSearchStr: event.target.getAttribute('data-searchStr')}
 
             queryMediaInfo(paramData);
-
-        } else if (event.target && event.target.classList.contains(MediaMenuRequestClass)) {
-            // If click on a menu item, query the data and build the thumbnail display
-            let paramData = {
-                MediaFilterMediaType: mediaType, 
-                getMenu: false,
-                MediaFilterCategory:  event.target.getAttribute('data-category'),
-                MediaFilterMenuItem:  event.target.getAttribute('data-menuItem'),
-                MediaFilterStartDate: event.target.getAttribute('data-startDate')}
-
-            queryMediaInfo(paramData);
-            hideMediaMenuCanvas()
-
-        } else if (event.target && event.target.classList.contains(MediaAlbumMenuRequestClass)) {
-            // If click on a album item, query the data and build the thumbnail display
-            let paramData = {
-                MediaFilterMediaType: mediaType, 
-                getMenu: false,
-                MediaFilterAlbumKey:  event.target.getAttribute('data-albumKey'),
-                MediaFilterAlbumName:  event.target.getAttribute('data-albumName')}
-
-            queryMediaInfo(paramData);
-            hideMediaAlbumMenuCanvas()
 
         } else if (event.target && event.target.classList.contains(imgThumbnailClass)) {
             event.preventDefault();
@@ -401,80 +408,9 @@ import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
 
     })
 
-
-    //-------------------------------------------------------------------------------------------------------------------
-    // Listen for context menu requests in the MediaThumbnails container
-    //-------------------------------------------------------------------------------------------------------------------
-    thumbnailContainer.addEventListener('contextmenu', (event) => {
-        event.preventDefault()
-        displayImgContextMenu(event)
-    })
-
-    function displayImgContextMenu(event) {
-        let index = parseInt(event.target.getAttribute('data-index'))
-        if (typeof index !== "undefined" && index !== null) {
-            displayModalDetail(index)
-            const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
-            mediaModal.show()
-        }
-    }
-
-    document.addEventListener('touchstart', (event) => {
-        holdDownStart(event)
-    })
-    document.addEventListener('touchend', (event) => {
-        holdDownEnd(event)
-    })   
-    document.addEventListener('touchcancel', (event) => {
-        holdDownEnd(event)
-    })   
-    document.addEventListener('mousedown', (event) => {
-        if (event.button == 0) {
-            holdDownStart(event)
-        }
-    })
-    document.addEventListener('mouseup', (event) => {
-        if (event.button == 0) {
-            holdDownEnd(event)
-        }
-    })
-
-    var beingHeldDown = false
-    var holdDownStartMs = 0
-    var holdDownDuration = 1000
-
-    function holdDownStart(event) {
-        //console.log("HOLD DOWN $$$ Start")
-        if (!beingHeldDown) {
-            beingHeldDown = true
-            //Date.now() Return value A number representing the timestamp, in milliseconds
-            holdDownStartMs = Date.now()
-            // Kick off timeout to check at the end of duration
-            //console.log("   $$$ NOT being Held,    holdDownStartMs = "+holdDownStartMs)
-            setTimeout(function(){ holdDownCheck(event) }, holdDownDuration)
-        }
-    }
-    function holdDownEnd(event) {
-        //console.log("HOLD DOWN >>>>> End")
-        beingHeldDown = false
-    }
-    function holdDownCheck(event) {
-        //console.log("HOLD DOWN *** Check ***")
-        // Check at the end of the duration timeout if it is still being held down
-        if (beingHeldDown) {
-            // double check how long it's actually been holding
-            let holdDuration = Date.now() - holdDownStartMs
-            //console.log("   *** Being Held, tempDuration = "+tempDuration)
-            //if ((Date.now() - holdDownStartMs) >= holdDownDuration) {
-            if ((holdDuration) >= holdDownDuration) {
-                if (event.target.classList.contains(imgThumbnailClass)) {
-                    event.preventDefault()
-                    displayImgContextMenu(event)
-                } 
-            }
-        }
-    }
-
+    // Set the container and class for the contextmenu
+    setContextMenuListeners(thumbnailContainer, imgThumbnailClass)
+    
     //-------------------------------------------------------------------------------------------------------
     // Respond to Filter requests
     //-------------------------------------------------------------------------------------------------------
@@ -1400,118 +1336,6 @@ import {displayElementInLightbox} from './mg-lightbox.js?ver=1.020'
         // Set the img src to get the smaller version of the image and display it on the screen
         mediaDetailImg.src = getFilePath(index,"Smaller")
     }
-
-    //-------------------------------------------------------------------------------------------------------
-    // Display file information in Medial Modal popup
-    //-------------------------------------------------------------------------------------------------------
-    function displayModalDetail(index) {
-        
-        // >>>>>>>>>>>>>> Display details, or EDIT if edit mode
-                
-        let fi = mediaInfo.fileList[index]
-
-        let img = document.createElement("img");
-        img.setAttribute('onerror', "this.onerror=null; this.remove()")
-        img.classList.add('img-fluid')
-        img.src = getFilePath(index,"Smaller")
-        img.setAttribute('data-index', index)
-        if (window.innerHeight > window.innerWidth) {
-            // Portrait
-            let tempWidth = window.innerWidth - 350
-            img.style.maxWidth = tempWidth + "px"
-        } else {
-            // Landscape
-            let tempHeight = window.innerHeight - 350
-            img.style.maxHeight = tempHeight + "px"
-        }
-
-        let mediaModalImg = document.getElementById("MediaModalImg")
-        empty(mediaModalImg)
-        mediaModalImg.appendChild(img)
-
-        let mediaModalBody = document.getElementById("MediaModalBody")
-        empty(mediaModalBody)
-
-        // >>>> build components for modal display
-        // >>>> Maybe add "edit" functions if editMode ???
-
-        // >>> work out "Share" concepts - what do I need to store in the DB?
-
-        let mediaModalTitle = document.getElementById("MediaModalTitle")
-        mediaModalTitle.textContent = fi.Name;
-        /*
-        let mediaDetailFilename = document.createElement("div")
-        mediaDetailFilename.textContent = fi.Name;
-        mediaModalBody.appendChild(mediaDetailFilename)
-        */
-        let mediaDetailTitle = document.createElement("input")
-        mediaDetailTitle.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailTitle.setAttribute('type', "text")
-        mediaDetailTitle.setAttribute('placeholder', "Title")
-        mediaDetailTitle.disabled = true
-        mediaModalBody.appendChild(mediaDetailTitle)
-        
-        let mediaDetailTaken = document.createElement("input")
-        mediaDetailTaken.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailTaken.setAttribute('type', "text")
-        mediaDetailTaken.setAttribute('placeholder', "Taken DateTime")
-        mediaDetailTaken.disabled = true
-        mediaModalBody.appendChild(mediaDetailTaken)
-
-        // Category Tags
-        let mediaDetailCategoryTags = document.createElement("input")
-        //mediaDetailCategoryTags.id = "MediaDetailCategoryTags"
-        mediaDetailCategoryTags.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailCategoryTags.setAttribute('type', "text")
-        mediaDetailCategoryTags.setAttribute('placeholder', "Category tags")
-        mediaDetailCategoryTags.disabled = true
-        mediaModalBody.appendChild(mediaDetailCategoryTags)
-
-        let mediaDetailMenuTags = document.createElement("input")
-        //mediaDetailMenuTags.id = "MediaDetailMenuTags"
-        mediaDetailMenuTags.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailMenuTags.setAttribute('type', "text")
-        mediaDetailMenuTags.setAttribute('placeholder', "Menu tags")
-        mediaDetailMenuTags.disabled = true
-        mediaModalBody.appendChild(mediaDetailMenuTags)
-
-        // Album Tags
-        let mediaDetailAlbumTags = document.createElement("input")
-        //mediaDetailAlbumTags.id = "MediaDetailAlbumTags"
-        mediaDetailAlbumTags.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailAlbumTags.setAttribute('type', "text")
-        mediaDetailAlbumTags.setAttribute('placeholder', "Album tags")
-        mediaDetailAlbumTags.disabled = true
-        mediaModalBody.appendChild(mediaDetailAlbumTags)
-
-        // People List
-        let mediaDetailPeopleList = document.createElement("input")
-        //mediaDetailPeopleList.id = "MediaDetailPeopleList"
-        mediaDetailPeopleList.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailPeopleList.setAttribute('type', "text")
-        mediaDetailPeopleList.setAttribute('placeholder', "People list")
-        mediaDetailPeopleList.disabled = true  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        mediaModalBody.appendChild(mediaDetailPeopleList)
-
-        // Description
-        let mediaDetailDescription = document.createElement("textarea")
-        //mediaDetailDescription.id = "MediaDetailDescription"
-        mediaDetailDescription.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailDescription.setAttribute('rows', "6")
-        mediaDetailDescription.setAttribute('placeholder', "Description")
-        mediaDetailDescription.disabled = true
-        //mediaDetailDescription.value = fi.Description
-        mediaModalBody.appendChild(mediaDetailDescription)
-
-        mediaDetailTitle.value = fi.Title
-        mediaDetailTaken.value = fi.TakenDateTime
-        mediaDetailCategoryTags.value = fi.CategoryTags
-        mediaDetailMenuTags.value = fi.MenuTags
-        mediaDetailAlbumTags.value = fi.AlbumTags
-        mediaDetailPeopleList.value = fi.People
-        mediaDetailDescription.value = fi.Description
-    }
-
 
 
     // Audio 

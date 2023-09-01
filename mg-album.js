@@ -5,6 +5,7 @@ DESCRIPTION:
 --------------------------------------------------------------------------------
 Modification History
 2023-08-26 JJK  Initial version - moved album components to this module
+2023-09-01 JJK  Export container for dedicated event click
 ================================================================================*/
 import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
     getFilePath,getFileName
@@ -14,6 +15,8 @@ export const MediaAlbumMenuRequestClass = "MediaAlbumMenuRequest"
 export const mediaAlbumMenuCanvasId = "#MediaAlbumMenuCanvas"
 var albumList = []
 var mediaAlbumMenuCanvas = bootstrap.Offcanvas.getOrCreateInstance(mediaAlbumMenuCanvasId)
+let MediaOffcanvasAlbumMenuId = "MediaOffcanvasAlbumMenu"
+export var menuAlbumContainer = document.getElementById(MediaOffcanvasAlbumMenuId)
 
 export function setAlbumList(inAlbumList) {
     albumList = inAlbumList
@@ -27,8 +30,6 @@ export function hideMediaAlbumMenuCanvas() {
 // Create a collapsible menu in an offcanvas pop-out using menu list data
 //------------------------------------------------------------------------------------------------------------
 export function buildAlbumMenuElements(mediaType) {
-    let MediaOffcanvasAlbumMenuId = "MediaOffcanvasAlbumMenu"
-    let menuAlbumContainer = document.getElementById(MediaOffcanvasAlbumMenuId)
     let mediaAlbumMenuCanvasLabel = document.getElementById("MediaAlbumMenuCanvasLabel")
     mediaAlbumMenuCanvasLabel.textContent = mediaTypeDesc + " Albums"
 
@@ -46,7 +47,7 @@ export function buildAlbumMenuElements(mediaType) {
             a.setAttribute('data-albumKey', albumRec.albumKey)
             a.setAttribute('data-albumName', albumRec.albumName)
             a.classList.add(MediaAlbumMenuRequestClass)
-            a.textContent = albumRec.albumName
+            a.textContent = albumRec.albumName + " (" + albumRec.albumKey + ")"
 
             let li = document.createElement('li')
             li.appendChild(a)
