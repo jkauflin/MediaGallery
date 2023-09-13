@@ -13,13 +13,13 @@ import {mediaInfo,mediaType,getMenu,
     queryMediaInfo,
     getFilePath,getFileName,
     updateMediaInfo,
-} from './mg-data-repository.js?ver=2.001'
-import {mediaMenuCanvasId,buildMenuElements} from './mg-menu.js?ver=2.001'
-import {mediaAlbumMenuCanvasId,buildAlbumMenuElements} from './mg-album.js?ver=2.001'
-import {setContextMenuListeners} from './mg-contextmenu.js?ver=2.001'
-import {displayElementInLightbox} from './mg-lightbox.js?ver=2.001'
+} from './mg-data-repository.js'
+import {mediaMenuCanvasId,buildMenuElements} from './mg-menu.js'
+import {mediaAlbumMenuCanvasId,buildAlbumMenuElements} from './mg-album.js'
+import {setContextMenuListeners} from './mg-contextmenu.js'
+import {displayElementInLightbox} from './mg-lightbox.js'
 import {playlistSongClass,audioPrevClass,audioNextClass,audioPlayer,setAudioListeners,
-        emptyPlaylist,incrementPlaylistIndex,addSongToPlaylist} from './mg-audio-playlist.js?ver=2.001'
+        emptyPlaylist,incrementPlaylistIndex,addSongToPlaylist} from './mg-audio-playlist.js'
 
 const MediaFilterRequestClass = "MediaFilterRequest";
 const imgThumbnailClass = "img-thumbnail-jjk"
@@ -558,7 +558,10 @@ thumbnailContainer.addEventListener("click", function (event) {
         iconB.classList.add('fa','fa-chevron-right')
         iconB.textContent = "Albums"
         menuButton2.appendChild(iconB)
-        filterRow1Col1.appendChild(menuButton2)
+        // Just display an Albums button for Photos for now (till I figure out Albums for the others)
+        if (mediaType == 1) {
+            filterRow1Col1.appendChild(menuButton2)
+        }
        
         filterRow1.appendChild(filterRow1Col1)
 
@@ -865,7 +868,7 @@ thumbnailContainer.addEventListener("click", function (event) {
                 audioFiles = true;
                 plIndex = incrementPlaylistIndex()
                 addSongToPlaylist({ "title": getFileName(index), "url": getFilePath(index) })
-
+                
                 // add the table rows for the playlist
                 // build a table then append to the thumbnail container
                 let a = document.createElement("a")

@@ -10,9 +10,9 @@ Modification History
 import {mediaInfo,mediaType,mediaTypeDesc,setMediaType,
     queryMediaInfo,
     getFilePath,getFileName
-} from './mg-data-repository.js?ver=2.001'
+} from './mg-data-repository.js'
 
-import {empty} from './mg-create-pages.js?ver=2.001'
+import {empty} from './mg-create-pages.js'
 
 export const MediaAlbumMenuRequestClass = "MediaAlbumMenuRequest"
 export const mediaAlbumMenuCanvasId = "#MediaAlbumMenuCanvas"

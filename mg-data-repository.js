@@ -9,9 +9,9 @@ Modification History
 2023-09-08 JJK  Renamed to DataRepository to show its function
 ================================================================================*/
 
-import {createMediaPage,displayCurrFileList,updateAdminMessage} from './mg-create-pages.js?ver=2.001'
-import {setMenuList} from './mg-menu.js?ver=2.001'
-import {setAlbumList} from './mg-album.js?ver=2.001'
+import {createMediaPage,displayCurrFileList,updateAdminMessage} from './mg-create-pages.js';
+import {setMenuList} from './mg-menu.js';
+import {setAlbumList} from './mg-album.js';
 
 export let mediaInfo
 export let mediaType = 1
@@ -46,14 +46,14 @@ export function setMediaType(inMediaType) {
 export function getFilePath(index,descMod="",fullPath=false) {
     // descMod could be "Thumbs" or "Smaller"
     let fi = mediaInfo.fileList[index]
-    /* 8/22/2023 - Shouldn't need this check anymore - all FilePath fields should be set the right way
+    // 8/22/2023 - Shouldn't need this check anymore - all FilePath fields should be set the right way
+    // 9/13/2023 - *** Found out I need it until the subPath for audio files are updated ***
     if (fi.DirSubPath != '') {
         // If there is a subPath and it doesn't end in a slash, add it
         if (fi.DirSubPath.substr(fi.DirSubPath.length-1,1) != "/") {
             fi.DirSubPath = fi.DirSubPath + '/'
         }
     }
-    */
    if (fullPath) {
       return FullMediaRootDir + mediaTypeDesc + descMod + '/' + fi.DirSubPath + fi.Name;
    } else {
@@ -76,6 +76,7 @@ export function getFileName(index) {
 // Query the database for menu and file information and store in js variables
 //------------------------------------------------------------------------------------------------------------
 export function queryMediaInfo(paramData) {
+    //console.log("$$$ in the QueryMediaInfo")
     let url = jjkgalleryRoot + "getMediaInfo.php"
     fetch(url, {
         method: 'POST',
