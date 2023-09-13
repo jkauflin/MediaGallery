@@ -7,9 +7,12 @@ Modification History
 2023-08-26 JJK  Initial version - moved album components to this module
 2023-09-01 JJK  Export container for dedicated event click
 ================================================================================*/
-import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
+import {mediaInfo,mediaType,mediaTypeDesc,setMediaType,
+    queryMediaInfo,
     getFilePath,getFileName
-} from './mg-mediainfo.js?ver=1.020'
+} from './mg-DataRepository.js?ver=2.000'
+
+import {empty} from './mg-CreatePages.js?ver=2.000'
 
 export const MediaAlbumMenuRequestClass = "MediaAlbumMenuRequest"
 export const mediaAlbumMenuCanvasId = "#MediaAlbumMenuCanvas"
@@ -25,6 +28,22 @@ export function setAlbumList(inAlbumList) {
 export function hideMediaAlbumMenuCanvas() {
     mediaAlbumMenuCanvas.hide();
 }
+
+menuAlbumContainer.addEventListener("click", function (event) {
+    if (event.target && event.target.classList.contains(MediaAlbumMenuRequestClass)) {
+        // If click on a album item, query the data and build the thumbnail display
+        let paramData = {
+            MediaFilterMediaType: mediaType, 
+            getMenu: false,
+            MediaFilterAlbumKey:  event.target.getAttribute('data-albumKey'),
+            MediaFilterAlbumName:  event.target.getAttribute('data-albumName')}
+
+        queryMediaInfo(paramData);
+        hideMediaAlbumMenuCanvas()
+    }
+})
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Create a collapsible menu in an offcanvas pop-out using menu list data

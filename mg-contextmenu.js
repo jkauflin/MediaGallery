@@ -6,9 +6,11 @@ DESCRIPTION:
 Modification History
 2023-09-01 JJK  Initial version - moved contextmenu components to this module
 ================================================================================*/
-import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
+import {mediaInfo,mediaType,mediaTypeDesc,setMediaType,
     getFilePath,getFileName
-} from './mg-mediainfo.js?ver=1.020'
+} from './mg-DataRepository.js?ver=2.000'
+
+import {empty} from './mg-CreatePages.js?ver=2.000'
 
 var listenClass = ""
 export function setContextMenuListeners(listenContainer, inClass) {
@@ -22,6 +24,8 @@ export function setContextMenuListeners(listenContainer, inClass) {
         displayImgContextMenu(event)
     })
 }
+
+
 
     function displayImgContextMenu(event) {
         let index = parseInt(event.target.getAttribute('data-index'))
@@ -54,7 +58,7 @@ export function setContextMenuListeners(listenContainer, inClass) {
 
     var beingHeldDown = false
     var holdDownStartMs = 0
-    var holdDownDuration = 1000
+    var holdDownDuration = 900
 
     function holdDownStart(event) {
         //console.log("HOLD DOWN $$$ Start")
@@ -97,28 +101,6 @@ export function setContextMenuListeners(listenContainer, inClass) {
                 
         let fi = mediaInfo.fileList[index]
 
-        let img = document.createElement("img");
-        img.setAttribute('onerror', "this.onerror=null; this.remove()")
-        img.classList.add('img-fluid')
-        img.src = getFilePath(index,"Smaller")
-        img.setAttribute('data-index', index)
-        if (window.innerHeight > window.innerWidth) {
-            // Portrait
-            let tempWidth = window.innerWidth - 350
-            img.style.maxWidth = tempWidth + "px"
-        } else {
-            // Landscape
-            let tempHeight = window.innerHeight - 350
-            img.style.maxHeight = tempHeight + "px"
-        }
-
-        let mediaModalImg = document.getElementById("MediaModalImg")
-        empty(mediaModalImg)
-        mediaModalImg.appendChild(img)
-
-        let mediaModalBody = document.getElementById("MediaModalBody")
-        empty(mediaModalBody)
-
         // >>>> build components for modal display
         // >>>> Maybe add "edit" functions if editMode ???
 
@@ -126,77 +108,205 @@ export function setContextMenuListeners(listenContainer, inClass) {
 
         let mediaModalTitle = document.getElementById("MediaModalTitle")
         mediaModalTitle.textContent = fi.Name;
+
+
+        let mediaModalBody = document.getElementById("MediaModalBody")
+        empty(mediaModalBody)
+
+        let topRow = document.createElement("div");
+        topRow.classList.add('row')
+
+        let col1 = document.createElement("div");
+        col1.classList.add('col-sm-4')
+        let img = document.createElement("img");
+        img.setAttribute('onerror', "this.onerror=null; this.remove()")
+        img.classList.add('img-fluid','rounded')
+        img.src = getFilePath(index,"Smaller")
+        img.setAttribute('data-index', index)
         /*
-        let mediaDetailFilename = document.createElement("div")
-        mediaDetailFilename.textContent = fi.Name;
-        mediaModalBody.appendChild(mediaDetailFilename)
+        if (window.innerHeight > window.innerWidth) {
+            // Portrait
+            let tempWidth = window.innerWidth - 100
+            img.style.maxWidth = tempWidth + "px"
+        } else {
+            // Landscape
+            let tempHeight = window.innerHeight - 100  // 350
+            img.style.maxHeight = tempHeight + "px"
+        }
         */
-        let mediaDetailTitle = document.createElement("input")
-        mediaDetailTitle.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailTitle.setAttribute('type', "text")
-        mediaDetailTitle.setAttribute('placeholder', "Title")
-        mediaDetailTitle.disabled = true
-        mediaModalBody.appendChild(mediaDetailTitle)
-        
-        let mediaDetailTaken = document.createElement("input")
-        mediaDetailTaken.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailTaken.setAttribute('type', "text")
-        mediaDetailTaken.setAttribute('placeholder', "Taken DateTime")
-        mediaDetailTaken.disabled = true
-        mediaModalBody.appendChild(mediaDetailTaken)
+        col1.appendChild(img)
+        let itemList = document.createElement("ul")
+        itemList.classList.add("list-group","mt-3")
+        let a = document.createElement("a")
+        a.setAttribute('href', getFilePath(index,"",true))
+        a.classList.add("list-group-item","list-group-item-action")
+        a.target = '_blank'
+        a.textContent = "Open FULL image in new tab"
+        itemList.appendChild(a)
+        a = document.createElement("a")
+        a.setAttribute('href', getFilePath(index,"",true))
+        a.download = getFileName(index)
+        a.classList.add("list-group-item","list-group-item-action")
+        a.textContent = "Save (Download) FULL image"
+        itemList.appendChild(a)
+        /*
+        a = document.createElement("a")
+        a.setAttribute('href', "#")
+        a.classList.add("list-group-item","list-group-item-action")
+        a.textContent = "Share..."
+        itemList.appendChild(a)
+        */
+        col1.appendChild(itemList)
 
-        // Category Tags
-        let mediaDetailCategoryTags = document.createElement("input")
-        //mediaDetailCategoryTags.id = "MediaDetailCategoryTags"
-        mediaDetailCategoryTags.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailCategoryTags.setAttribute('type', "text")
-        mediaDetailCategoryTags.setAttribute('placeholder', "Category tags")
-        mediaDetailCategoryTags.disabled = true
-        mediaModalBody.appendChild(mediaDetailCategoryTags)
+        //----------------------------------------------------------------------------------
+        // File detail fields in Col 2
+        //----------------------------------------------------------------------------------
+        let col2 = document.createElement("div");
+        col2.classList.add('col-sm')
 
-        let mediaDetailMenuTags = document.createElement("input")
-        //mediaDetailMenuTags.id = "MediaDetailMenuTags"
-        mediaDetailMenuTags.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailMenuTags.setAttribute('type', "text")
-        mediaDetailMenuTags.setAttribute('placeholder', "Menu tags")
-        mediaDetailMenuTags.disabled = true
-        mediaModalBody.appendChild(mediaDetailMenuTags)
+        let row = document.createElement("div");
+        row.classList.add('row')
+        let rowCol1 = document.createElement("div");
+        rowCol1.classList.add('col-sm-2')
+        rowCol1.textContent = "Title"
+        let rowCol2 = document.createElement("div");
+        rowCol2.classList.add('col-sm')
+            // Title
+            let mediaDetailTitle = document.createElement("input")
+            mediaDetailTitle.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailTitle.setAttribute('type', "text")
+            //mediaDetailTitle.setAttribute('placeholder', "Title")
+            mediaDetailTitle.disabled = true
+            mediaDetailTitle.value = fi.Title
+        rowCol2.appendChild(mediaDetailTitle)
+        row.appendChild(rowCol1)
+        row.appendChild(rowCol2)
+        col2.appendChild(row)
 
-        // Album Tags
-        let mediaDetailAlbumTags = document.createElement("input")
-        //mediaDetailAlbumTags.id = "MediaDetailAlbumTags"
-        mediaDetailAlbumTags.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailAlbumTags.setAttribute('type', "text")
-        mediaDetailAlbumTags.setAttribute('placeholder', "Album tags")
-        mediaDetailAlbumTags.disabled = true
-        mediaModalBody.appendChild(mediaDetailAlbumTags)
+        row = document.createElement("div");
+        row.classList.add('row')
+        rowCol1 = document.createElement("div");
+        rowCol1.classList.add('col-sm-2')
+        rowCol1.textContent = "Taken"
+        rowCol2 = document.createElement("div");
+        rowCol2.classList.add('col-sm')
+            // Taken
+            let mediaDetailTaken = document.createElement("input")
+            mediaDetailTaken.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailTaken.setAttribute('type', "text")
+            //mediaDetailTaken.setAttribute('placeholder', "Taken DateTime")
+            mediaDetailTaken.disabled = true
+            mediaDetailTaken.value = fi.TakenDateTime
+        rowCol2.appendChild(mediaDetailTaken)
+        row.appendChild(rowCol1)
+        row.appendChild(rowCol2)
+        col2.appendChild(row)
 
-        // People List
-        let mediaDetailPeopleList = document.createElement("input")
-        //mediaDetailPeopleList.id = "MediaDetailPeopleList"
-        mediaDetailPeopleList.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailPeopleList.setAttribute('type', "text")
-        mediaDetailPeopleList.setAttribute('placeholder', "People list")
-        mediaDetailPeopleList.disabled = true  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        mediaModalBody.appendChild(mediaDetailPeopleList)
+        row = document.createElement("div");
+        row.classList.add('row')
+        rowCol1 = document.createElement("div");
+        rowCol1.classList.add('col-sm-2')
+        rowCol1.textContent = "Category tags"
+        rowCol2 = document.createElement("div");
+        rowCol2.classList.add('col-sm')
+            // Category Tags
+            let mediaDetailCategoryTags = document.createElement("input")
+            //mediaDetailCategoryTags.id = "MediaDetailCategoryTags"
+            mediaDetailCategoryTags.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailCategoryTags.setAttribute('type', "text")
+            //mediaDetailCategoryTags.setAttribute('placeholder', "Category tags")
+            mediaDetailCategoryTags.disabled = true
+            mediaDetailCategoryTags.value = fi.CategoryTags
+        rowCol2.appendChild(mediaDetailCategoryTags)
+        row.appendChild(rowCol1)
+        row.appendChild(rowCol2)
+        col2.appendChild(row)
 
-        // Description
-        let mediaDetailDescription = document.createElement("textarea")
-        //mediaDetailDescription.id = "MediaDetailDescription"
-        mediaDetailDescription.classList.add('form-control','py-1','mb-1','shadow-none')
-        mediaDetailDescription.setAttribute('rows', "6")
-        mediaDetailDescription.setAttribute('placeholder', "Description")
-        mediaDetailDescription.disabled = true
-        //mediaDetailDescription.value = fi.Description
-        mediaModalBody.appendChild(mediaDetailDescription)
+        row = document.createElement("div");
+        row.classList.add('row')
+        rowCol1 = document.createElement("div");
+        rowCol1.classList.add('col-sm-2')
+        rowCol1.textContent = "Menu tags"
+        rowCol2 = document.createElement("div");
+        rowCol2.classList.add('col-sm')
+            // Menu Tags
+            let mediaDetailMenuTags = document.createElement("input")
+            //mediaDetailMenuTags.id = "MediaDetailMenuTags"
+            mediaDetailMenuTags.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailMenuTags.setAttribute('type', "text")
+            mediaDetailMenuTags.setAttribute('placeholder', "Menu tags")
+            mediaDetailMenuTags.disabled = true
+            mediaDetailMenuTags.value = fi.MenuTags
+        rowCol2.appendChild(mediaDetailMenuTags)
+        row.appendChild(rowCol1)
+        row.appendChild(rowCol2)
+        col2.appendChild(row)
 
-        mediaDetailTitle.value = fi.Title
-        mediaDetailTaken.value = fi.TakenDateTime
-        mediaDetailCategoryTags.value = fi.CategoryTags
-        mediaDetailMenuTags.value = fi.MenuTags
-        mediaDetailAlbumTags.value = fi.AlbumTags
-        mediaDetailPeopleList.value = fi.People
-        mediaDetailDescription.value = fi.Description
+        row = document.createElement("div");
+        row.classList.add('row')
+        rowCol1 = document.createElement("div");
+        rowCol1.classList.add('col-sm-2')
+        rowCol1.textContent = "Album tags"
+        rowCol2 = document.createElement("div");
+        rowCol2.classList.add('col-sm')
+            // Album Tags
+            let mediaDetailAlbumTags = document.createElement("input")
+            //mediaDetailAlbumTags.id = "MediaDetailAlbumTags"
+            mediaDetailAlbumTags.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailAlbumTags.setAttribute('type', "text")
+            //mediaDetailAlbumTags.setAttribute('placeholder', "Album tags")
+            mediaDetailAlbumTags.disabled = true
+            mediaDetailAlbumTags.value = fi.AlbumTags
+        rowCol2.appendChild(mediaDetailAlbumTags)
+        row.appendChild(rowCol1)
+        row.appendChild(rowCol2)
+        col2.appendChild(row)
+
+        row = document.createElement("div");
+        row.classList.add('row')
+        rowCol1 = document.createElement("div");
+        rowCol1.classList.add('col-sm-2')
+        rowCol1.textContent = "People"
+        rowCol2 = document.createElement("div");
+        rowCol2.classList.add('col-sm')
+            // People List
+            let mediaDetailPeopleList = document.createElement("input")
+            //mediaDetailPeopleList.id = "MediaDetailPeopleList"
+            mediaDetailPeopleList.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailPeopleList.setAttribute('type', "text")
+            //mediaDetailPeopleList.setAttribute('placeholder', "People list")
+            mediaDetailPeopleList.disabled = true  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            mediaDetailPeopleList.value = fi.People
+        rowCol2.appendChild(mediaDetailPeopleList)
+        row.appendChild(rowCol1)
+        row.appendChild(rowCol2)
+        col2.appendChild(row)
+
+        row = document.createElement("div");
+        row.classList.add('row')
+        rowCol1 = document.createElement("div");
+        rowCol1.classList.add('col-sm-2')
+        rowCol1.textContent = "Description"
+        rowCol2 = document.createElement("div");
+        rowCol2.classList.add('col-sm')
+            // Description
+            let mediaDetailDescription = document.createElement("textarea")
+            //mediaDetailDescription.id = "MediaDetailDescription"
+            mediaDetailDescription.classList.add('form-control','py-1','mb-1','shadow-none')
+            mediaDetailDescription.setAttribute('rows', "6")
+            mediaDetailDescription.setAttribute('placeholder', "Description")
+            mediaDetailDescription.disabled = true
+            mediaDetailDescription.value = fi.Description
+        rowCol2.appendChild(mediaDetailDescription)
+        row.appendChild(rowCol1)
+        row.appendChild(rowCol2)
+        col2.appendChild(row)
+
+
+        topRow.appendChild(col1)
+        topRow.appendChild(col2)
+        mediaModalBody.appendChild(topRow)
+
     }
 
 

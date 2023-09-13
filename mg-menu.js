@@ -6,9 +6,12 @@ DESCRIPTION:
 Modification History
 2023-08-26 JJK  Initial version - moved menu components to this module
 ================================================================================*/
-import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
+import {mediaInfo,mediaType,mediaTypeDesc,setMediaType,
+    queryMediaInfo,
     getFilePath,getFileName
-} from './mg-mediainfo.js?ver=1.020'
+} from './mg-DataRepository.js?ver=2.000'
+
+import {empty} from './mg-CreatePages.js?ver=2.000'
 
 export const MediaMenuRequestClass = "MediaMenuRequest"
 export const mediaMenuCanvasId = "#MediaMenuCanvas"
@@ -24,6 +27,21 @@ export function setMenuList(inMenuList) {
 export function hideMediaMenuCanvas() {
     mediaMenuCanvas.hide();
 }
+
+menuContainer.addEventListener("click", function (event) {
+    if (event.target && event.target.classList.contains(MediaMenuRequestClass)) {
+    // If click on a menu item, query the data and build the thumbnail display
+    let paramData = {
+        MediaFilterMediaType: mediaType, 
+        getMenu: false,
+        MediaFilterCategory:  event.target.getAttribute('data-category'),
+        MediaFilterMenuItem:  event.target.getAttribute('data-menuItem'),
+        MediaFilterStartDate: event.target.getAttribute('data-startDate')}
+
+    queryMediaInfo(paramData);
+    hideMediaMenuCanvas()
+    }
+})
 
 //------------------------------------------------------------------------------------------------------------
 // Create a collapsible menu in an offcanvas pop-out using menu list data

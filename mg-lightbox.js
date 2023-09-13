@@ -8,9 +8,11 @@ Modification History
 2023-08-31 JJK  Attached click event to individual elements rather than 
                 tracking clicks on the whole body and looking for a class
 ================================================================================*/
-import {empty,mediaInfo,mediaType,mediaTypeDesc,setMediaType,loadMediaInfo,
+import {mediaInfo,mediaType,mediaTypeDesc,setMediaType,
     getFilePath,getFileName
-} from './mg-mediainfo.js?ver=1.020'
+} from './mg-DataRepository.js?ver=2.000'
+
+import {empty} from './mg-CreatePages.js?ver=2.000'
 
 const mediaLightbox = new bootstrap.Modal(document.getElementById('MediaLightbox'))
 var mediaLightboxBody = document.getElementById("MediaLightboxBody")
@@ -23,7 +25,7 @@ export function displayElementInLightbox(index) {
     // If there is a NEXT image cache it to increase display speed
     if (index < mediaInfo.fileList.length-1) {
         var imgCache = document.createElement('img')
-        imgCache.src = getFilePath(index+1)
+        imgCache.src = getFilePath(index+1,"Smaller")
     }
 }
 
