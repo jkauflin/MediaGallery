@@ -6,12 +6,6 @@ DESCRIPTION:
 Modification History
 2023-09-08 JJK  Initial version - moved audio playlist components to this module
 ================================================================================*/
-import {mediaInfo,mediaType,mediaTypeDesc,setMediaType,
-    getFilePath,getFileName
-} from './mg-DataRepository.js?ver=2.000'
-
-import {empty} from './mg-CreatePages.js?ver=2.000'
-
 export const playlistSongClass = "playlistSong"
 export const audioPrevClass = "fa-step-backward"
 export const audioNextClass = "fa-step-forward"

@@ -9,9 +9,9 @@ Modification History
 2023-09-08 JJK  Renamed to DataRepository to show its function
 ================================================================================*/
 
-import {createMediaPage,displayCurrFileList,updateAdminMessage} from './mg-CreatePages.js?ver=2.000'
-import {setMenuList} from './mg-menu.js?ver=2.000'
-import {setAlbumList} from './mg-album.js?ver=2.000'
+import {createMediaPage,displayCurrFileList,updateAdminMessage} from './mg-create-pages.js?ver=2.001'
+import {setMenuList} from './mg-menu.js?ver=2.001'
+import {setAlbumList} from './mg-album.js?ver=2.001'
 
 export let mediaInfo
 export let mediaType = 1

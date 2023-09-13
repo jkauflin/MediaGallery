@@ -8,9 +8,9 @@ Modification History
 ================================================================================*/
 import {mediaInfo,mediaType,mediaTypeDesc,setMediaType,
     getFilePath,getFileName
-} from './mg-DataRepository.js?ver=2.000'
+} from './mg-data-repository.js?ver=2.001'
 
-import {empty} from './mg-CreatePages.js?ver=2.000'
+import {empty} from './mg-create-pages.js?ver=2.001'
 
 var listenClass = ""
 export function setContextMenuListeners(listenContainer, inClass) {

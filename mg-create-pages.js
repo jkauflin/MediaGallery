@@ -13,13 +13,13 @@ import {mediaInfo,mediaType,getMenu,
     queryMediaInfo,
     getFilePath,getFileName,
     updateMediaInfo,
-} from './mg-DataRepository.js?ver=2.000'
-import {mediaMenuCanvasId,buildMenuElements} from './mg-menu.js?ver=2.000'
-import {mediaAlbumMenuCanvasId,buildAlbumMenuElements} from './mg-album.js?ver=2.000'
-import {setContextMenuListeners} from './mg-contextmenu.js?ver=2.000'
-import {displayElementInLightbox} from './mg-lightbox.js?ver=2.000'
+} from './mg-data-repository.js?ver=2.001'
+import {mediaMenuCanvasId,buildMenuElements} from './mg-menu.js?ver=2.001'
+import {mediaAlbumMenuCanvasId,buildAlbumMenuElements} from './mg-album.js?ver=2.001'
+import {setContextMenuListeners} from './mg-contextmenu.js?ver=2.001'
+import {displayElementInLightbox} from './mg-lightbox.js?ver=2.001'
 import {playlistSongClass,audioPrevClass,audioNextClass,audioPlayer,setAudioListeners,
-        emptyPlaylist,incrementPlaylistIndex,addSongToPlaylist} from './mg-audioPlaylist.js?ver=2.000'
+        emptyPlaylist,incrementPlaylistIndex,addSongToPlaylist} from './mg-audio-playlist.js?ver=2.001'
 
 const MediaFilterRequestClass = "MediaFilterRequest";
 const imgThumbnailClass = "img-thumbnail-jjk"

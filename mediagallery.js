@@ -111,7 +111,7 @@ Modification History
 2023-09-01 JJK  Moved context menu to module (working on edit functions)
 2023-09-08 JJK  Moved DB access and create pages to modules
 ================================================================================*/
-import {mediaType,setMediaType,queryMediaInfo} from './mg-DataRepository.js?ver=2.000'
+import {mediaType,setMediaType,queryMediaInfo} from './mg-data-repository.js?ver=2.001'
 
 const MediaPageLinkClass = "media-page";
 
