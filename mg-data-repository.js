@@ -12,6 +12,7 @@ Modification History
 import {createMediaPage,displayCurrFileList,updateAdminMessage} from './mg-create-pages.js';
 import {setMenuList} from './mg-menu.js';
 import {setAlbumList} from './mg-album.js';
+import {updateMessage} from './mg-contextmenu.js';
 
 export let mediaInfo
 export let mediaType = 1
@@ -129,12 +130,21 @@ export function queryMediaInfo(paramData) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Update the media info in the database table
+// Update the media info in the database table (Batch)
 //------------------------------------------------------------------------------------------------------------
-export function updateMediaInfo(overrideIndividualFileInfo) {
+export function updateMediaInfo(inIndex) {
+    let index = -1
+    if (inIndex != null && inIndex >= 0) {
+        index = inIndex
+    }
+
     // Assume current values and selected files in the mediaInfo.fileList are what we want updated
-    let paramData = {MediaFilterMediaType: mediaType,
-        mediaInfoFileList: mediaInfo.fileList}
+    // unless the index is set, which indicates an individual update
+    let paramData = {
+        MediaFilterMediaType: mediaType,
+        mediaInfoFileList: mediaInfo.fileList,
+        index: index
+    }
 
     let url = jjkgalleryRoot + "updateMediaInfo.php"
     fetch(url, {
@@ -145,9 +155,17 @@ export function updateMediaInfo(overrideIndividualFileInfo) {
     .then(response => response.text())
     .then(returnMsg => {
         //console.log("returnMsg = "+returnMsg)
-        updateAdminMessage(returnMsg)
-        // Filter out the Selected files (that were updated)
-        mediaInfo.fileList = mediaInfo.fileList.filter(checkSelected);
+
+        if (index >= 0) {
+            updateMessage(returnMsg)
+            // If individual index-based update, just de-Select but leave it in the file list
+            mediaInfo.fileList[index].Selected = false
+        } else {
+            // Filter out the Selected files (that were updated)
+            updateAdminMessage(returnMsg)
+            mediaInfo.fileList = mediaInfo.fileList.filter(checkSelected);
+        }
+
         displayCurrFileList()
     }); // End of Fetch
 }
@@ -155,4 +173,3 @@ export function updateMediaInfo(overrideIndividualFileInfo) {
 function checkSelected(fileInfo) {
     return !fileInfo.Selected
 }
-

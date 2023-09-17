@@ -7,15 +7,24 @@ Modification History
 2023-09-01 JJK  Initial version - moved contextmenu components to this module
 ================================================================================*/
 import {mediaInfo,mediaType,mediaTypeDesc,setMediaType,
-    getFilePath,getFileName
+    getFilePath,getFileName,updateMediaInfo
 } from './mg-data-repository.js'
 
 import {empty} from './mg-create-pages.js'
 
+const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
+var mediaDetailTitle
+var mediaDetailTaken
+var mediaDetailCategoryTags
+var mediaDetailMenuTags
+var mediaDetailAlbumTags
+var mediaDetailPeopleList
+var mediaDetailDescription
+var updateMessageDisplay
+
 var listenClass = ""
 export function setContextMenuListeners(listenContainer, inClass) {
     listenClass = inClass
-
     //-------------------------------------------------------------------------------------------------------------------
     // Listen for context menu requests in the container
     //-------------------------------------------------------------------------------------------------------------------
@@ -25,16 +34,22 @@ export function setContextMenuListeners(listenContainer, inClass) {
     })
 }
 
-
-
-    function displayImgContextMenu(event) {
-        let index = parseInt(event.target.getAttribute('data-index'))
-        if (typeof index !== "undefined" && index !== null) {
-            displayModalDetail(index)
-            const mediaModal = new bootstrap.Modal(document.getElementById('MediaModal'))
-            mediaModal.show()
-        }
+var editMode = false
+var jjkloginEventElement = document.getElementById("jjkloginEventElement")
+jjkloginEventElement.addEventListener('userJJKLoginAuth', function (event) {
+    if (event.detail.userLevel >= 9) {
+        editMode = true
     }
+});
+
+
+function displayImgContextMenu(event) {
+    let index = parseInt(event.target.getAttribute('data-index'))
+    if (typeof index !== "undefined" && index !== null) {
+        displayModalDetail(index)
+        mediaModal.show()
+    }
+}
 
     document.addEventListener('touchstart', (event) => {
         holdDownStart(event)
@@ -92,17 +107,12 @@ export function setContextMenuListeners(listenContainer, inClass) {
         }
     }
 
-    //-------------------------------------------------------------------------------------------------------
-    // Display file information in Medial Modal popup
-    //-------------------------------------------------------------------------------------------------------
-    function displayModalDetail(index) {
+//-------------------------------------------------------------------------------------------------------
+// Display file information in Medial Modal popup
+//-------------------------------------------------------------------------------------------------------
+function displayModalDetail(index) {
         
-        // >>>>>>>>>>>>>> Display details, or EDIT if edit mode
-                
-        let fi = mediaInfo.fileList[index]
-
-        // >>>> build components for modal display
-        // >>>> Maybe add "edit" functions if editMode ???
+    let fi = mediaInfo.fileList[index]
 
         // >>> work out "Share" concepts - what do I need to store in the DB?
 
@@ -172,11 +182,15 @@ export function setContextMenuListeners(listenContainer, inClass) {
         let rowCol2 = document.createElement("div");
         rowCol2.classList.add('col-sm')
             // Title
-            let mediaDetailTitle = document.createElement("input")
+            mediaDetailTitle = document.createElement("input")
             mediaDetailTitle.classList.add('form-control','py-1','mb-1','shadow-none')
             mediaDetailTitle.setAttribute('type', "text")
             //mediaDetailTitle.setAttribute('placeholder', "Title")
-            mediaDetailTitle.disabled = true
+            if (editMode) {
+                mediaDetailTitle.disabled = false
+            } else {
+                mediaDetailTitle.disabled = true
+            }
             mediaDetailTitle.value = fi.Title
         rowCol2.appendChild(mediaDetailTitle)
         row.appendChild(rowCol1)
@@ -191,11 +205,15 @@ export function setContextMenuListeners(listenContainer, inClass) {
         rowCol2 = document.createElement("div");
         rowCol2.classList.add('col-sm')
             // Taken
-            let mediaDetailTaken = document.createElement("input")
+            mediaDetailTaken = document.createElement("input")
             mediaDetailTaken.classList.add('form-control','py-1','mb-1','shadow-none')
             mediaDetailTaken.setAttribute('type', "text")
             //mediaDetailTaken.setAttribute('placeholder', "Taken DateTime")
-            mediaDetailTaken.disabled = true
+            if (editMode) {
+                mediaDetailTaken.disabled = false
+            } else {
+                mediaDetailTaken.disabled = true
+            }
             mediaDetailTaken.value = fi.TakenDateTime
         rowCol2.appendChild(mediaDetailTaken)
         row.appendChild(rowCol1)
@@ -210,12 +228,16 @@ export function setContextMenuListeners(listenContainer, inClass) {
         rowCol2 = document.createElement("div");
         rowCol2.classList.add('col-sm')
             // Category Tags
-            let mediaDetailCategoryTags = document.createElement("input")
+            mediaDetailCategoryTags = document.createElement("input")
             //mediaDetailCategoryTags.id = "MediaDetailCategoryTags"
             mediaDetailCategoryTags.classList.add('form-control','py-1','mb-1','shadow-none')
             mediaDetailCategoryTags.setAttribute('type', "text")
             //mediaDetailCategoryTags.setAttribute('placeholder', "Category tags")
-            mediaDetailCategoryTags.disabled = true
+            if (editMode) {
+                mediaDetailCategoryTags.disabled = false
+            } else {
+                mediaDetailCategoryTags.disabled = true
+            }
             mediaDetailCategoryTags.value = fi.CategoryTags
         rowCol2.appendChild(mediaDetailCategoryTags)
         row.appendChild(rowCol1)
@@ -230,12 +252,16 @@ export function setContextMenuListeners(listenContainer, inClass) {
         rowCol2 = document.createElement("div");
         rowCol2.classList.add('col-sm')
             // Menu Tags
-            let mediaDetailMenuTags = document.createElement("input")
+            mediaDetailMenuTags = document.createElement("input")
             //mediaDetailMenuTags.id = "MediaDetailMenuTags"
             mediaDetailMenuTags.classList.add('form-control','py-1','mb-1','shadow-none')
             mediaDetailMenuTags.setAttribute('type', "text")
             mediaDetailMenuTags.setAttribute('placeholder', "Menu tags")
-            mediaDetailMenuTags.disabled = true
+            if (editMode) {
+                mediaDetailMenuTags.disabled = false
+            } else {
+                mediaDetailMenuTags.disabled = true
+            }
             mediaDetailMenuTags.value = fi.MenuTags
         rowCol2.appendChild(mediaDetailMenuTags)
         row.appendChild(rowCol1)
@@ -250,12 +276,16 @@ export function setContextMenuListeners(listenContainer, inClass) {
         rowCol2 = document.createElement("div");
         rowCol2.classList.add('col-sm')
             // Album Tags
-            let mediaDetailAlbumTags = document.createElement("input")
+            mediaDetailAlbumTags = document.createElement("input")
             //mediaDetailAlbumTags.id = "MediaDetailAlbumTags"
             mediaDetailAlbumTags.classList.add('form-control','py-1','mb-1','shadow-none')
             mediaDetailAlbumTags.setAttribute('type', "text")
             //mediaDetailAlbumTags.setAttribute('placeholder', "Album tags")
-            mediaDetailAlbumTags.disabled = true
+            if (editMode) {
+                mediaDetailAlbumTags.disabled = false
+            } else {
+                mediaDetailAlbumTags.disabled = true
+            }
             mediaDetailAlbumTags.value = fi.AlbumTags
         rowCol2.appendChild(mediaDetailAlbumTags)
         row.appendChild(rowCol1)
@@ -270,12 +300,16 @@ export function setContextMenuListeners(listenContainer, inClass) {
         rowCol2 = document.createElement("div");
         rowCol2.classList.add('col-sm')
             // People List
-            let mediaDetailPeopleList = document.createElement("input")
+            mediaDetailPeopleList = document.createElement("input")
             //mediaDetailPeopleList.id = "MediaDetailPeopleList"
             mediaDetailPeopleList.classList.add('form-control','py-1','mb-1','shadow-none')
             mediaDetailPeopleList.setAttribute('type', "text")
             //mediaDetailPeopleList.setAttribute('placeholder', "People list")
-            mediaDetailPeopleList.disabled = true  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            if (editMode) {
+                mediaDetailPeopleList.disabled = false
+            } else {
+                mediaDetailPeopleList.disabled = true
+            }
             mediaDetailPeopleList.value = fi.People
         rowCol2.appendChild(mediaDetailPeopleList)
         row.appendChild(rowCol1)
@@ -287,6 +321,53 @@ export function setContextMenuListeners(listenContainer, inClass) {
         rowCol1 = document.createElement("div");
         rowCol1.classList.add('col-sm-2')
         rowCol1.textContent = "Description"
+        // Add a SAVE button under the Description label
+        if (editMode) {
+            let editSaveButton = document.createElement("button")
+            editSaveButton.classList.add('btn','btn-success','btn-sm','float-start','shadow-none','mt-3','me-2','mb-3')
+            editSaveButton.setAttribute('type',"button")
+            editSaveButton.setAttribute('role',"button")
+            editSaveButton.textContent = "Update"
+            rowCol1.appendChild(editSaveButton)
+            editSaveButton.addEventListener("click", function () {
+                fi.Title = mediaDetailTitle.value
+                fi.TakenDateTime = mediaDetailTaken.value
+                fi.CategoryTags = mediaDetailCategoryTags.value
+                fi.MenuTags = mediaDetailMenuTags.value
+                fi.AlbumTags = mediaDetailAlbumTags.value
+                fi.People = mediaDetailPeopleList.value
+                fi.Description = mediaDetailDescription.value
+                updateMediaInfo(index)
+                //mediaModal.hide()
+            });
+        }
+            // Prev
+            let detailPrevButton = document.createElement("button")
+            //detailPrevButton.id = "MediaAdminSelectAllButton"
+            detailPrevButton.classList.add('btn','btn-warning','btn-sm','float-start','shadow-none','me-2','my-0')
+            detailPrevButton.setAttribute('type',"button")
+            detailPrevButton.setAttribute('role',"button")
+            detailPrevButton.textContent = "Prev"
+            rowCol1.appendChild(detailPrevButton)
+            detailPrevButton.addEventListener("click", function () {
+                if (index > 0) {
+                    displayModalDetail(index-1)
+                }            
+            });
+            // Next
+            let detailNextButton = document.createElement("button")
+            //detailNextButton.id = "MediaAdminGetNewButton"
+            detailNextButton.classList.add('btn','btn-info','btn-sm','float-start','shadow-none','me-2','my-1')
+            detailNextButton.setAttribute('type',"button")
+            detailNextButton.setAttribute('role',"button")
+            detailNextButton.textContent = "Next"
+            rowCol1.appendChild(detailNextButton)
+            detailNextButton.addEventListener("click", function () {
+                if (index < mediaInfo.fileList.length-1) {
+                    displayModalDetail(index+1)
+                }            
+            });
+        
         rowCol2 = document.createElement("div");
         rowCol2.classList.add('col-sm')
             // Description
@@ -295,18 +376,42 @@ export function setContextMenuListeners(listenContainer, inClass) {
             mediaDetailDescription.classList.add('form-control','py-1','mb-1','shadow-none')
             mediaDetailDescription.setAttribute('rows', "6")
             mediaDetailDescription.setAttribute('placeholder', "Description")
-            mediaDetailDescription.disabled = true
+            if (editMode) {
+                mediaDetailDescription.disabled = false
+            } else {
+                mediaDetailDescription.disabled = true
+            }
             mediaDetailDescription.value = fi.Description
         rowCol2.appendChild(mediaDetailDescription)
         row.appendChild(rowCol1)
         row.appendChild(rowCol2)
         col2.appendChild(row)
 
+        if (editMode) {
+            row = document.createElement("div");
+            row.classList.add('row')
+            rowCol1 = document.createElement("div");
+            rowCol1.classList.add('col-sm-2')
+            //rowCol1.textContent = ""
+            rowCol2 = document.createElement("div");
+            rowCol2.classList.add('col-sm')
+            updateMessageDisplay = document.createElement("div")
+            updateMessageDisplay.textContent = "."
+            rowCol2.appendChild(updateMessageDisplay)
+            row.appendChild(rowCol1)
+            row.appendChild(rowCol2)
+            col2.appendChild(row)
+        }
 
         topRow.appendChild(col1)
         topRow.appendChild(col2)
         mediaModalBody.appendChild(topRow)
+}
 
+
+
+export function updateMessage(displayMessage) {
+    if (updateMessageDisplay != null) {
+        updateMessageDisplay.textContent = displayMessage
     }
-
-
+}

@@ -77,9 +77,17 @@ try {
 	$sql = "UPDATE FileInfo SET CategoryTags=?,MenuTags=?,AlbumTags=?,TakenDateTime=?,Title=?,Description=?,People=?,ToBeProcessed=0 WHERE Name=? ";
 	$stmt = $conn->prepare($sql);
 	$updCnt = 0;
+	$tempIndex = -1;
 	foreach ($param->mediaInfoFileList as $fi) {
-		if (!$fi->Selected) {
-			continue;
+		$tempIndex++;
+		if ($param->index >= 0) {
+			if ($tempIndex != $param->index) {
+				continue;
+			}
+		} else {
+			if (!$fi->Selected) {
+				continue;
+			}
 		}
 
     	$stmt->bind_param("ssssssss",$fi->CategoryTags,$fi->MenuTags,$fi->AlbumTags,$fi->TakenDateTime,$fi->Title,$fi->Description,$fi->People,$fi->Name);
