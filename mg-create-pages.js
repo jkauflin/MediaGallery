@@ -7,7 +7,7 @@ Modification History
 2023-09-08 JJK  Initial version - moved create page components to this module
 ================================================================================*/
 import {mediaInfo,mediaType,getMenu,
-    queryCategory,querySearchStr,queryMenuItem,
+    queryCategory,querySearchStr,queryMenuItem,queryAlbumKey,
     categoryList,menuFilter,peopleList,
     contentDesc,
     queryMediaInfo,
@@ -125,6 +125,7 @@ thumbnailContainer.addEventListener("click", function (event) {
                 MediaFilterCategory:  event.target.getAttribute('data-category'),
                 MediaFilterStartDate: event.target.getAttribute('data-startDate'),
                 MediaFilterMenuItem: event.target.getAttribute('data-menuItem'),
+                MediaFilterAlbumKey: event.target.getAttribute('data-albumKey'),
                 MediaFilterSearchStr: event.target.getAttribute('data-searchStr')}
 
             queryMediaInfo(paramData);
@@ -735,6 +736,7 @@ thumbnailContainer.addEventListener("click", function (event) {
                 button.setAttribute('data-category', mediaFilterCategory.value)
                 button.setAttribute('data-startDate', FilterRec.startDate)
                 button.setAttribute('data-menuItem', queryMenuItem)
+                button.setAttribute('data-albumKey', queryAlbumKey)
                 button.setAttribute('data-searchStr', querySearchStr)
                 button.classList.add('btn',buttonColor,'btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
                 button.textContent = FilterRec.filterName
@@ -748,6 +750,7 @@ thumbnailContainer.addEventListener("click", function (event) {
                     button2.setAttribute('data-category', mediaFilterCategory.value)
                     button2.setAttribute('data-startDate', FilterRec.startDate)
                     button2.setAttribute('data-menuItem', queryMenuItem)
+                    button2.setAttribute('data-albumKey', queryAlbumKey)
                     button2.setAttribute('data-searchStr', querySearchStr)
                     button2.classList.add('btn',buttonColor,'btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
                     button2.textContent = FilterRec.filterName

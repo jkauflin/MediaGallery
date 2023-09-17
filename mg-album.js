@@ -36,14 +36,13 @@ menuAlbumContainer.addEventListener("click", function (event) {
             MediaFilterMediaType: mediaType, 
             getMenu: false,
             MediaFilterAlbumKey:  event.target.getAttribute('data-albumKey'),
-            MediaFilterAlbumName:  event.target.getAttribute('data-albumName')}
+            MediaFilterAlbumName:  event.target.getAttribute('data-albumName')
+        }
 
         queryMediaInfo(paramData);
         hideMediaAlbumMenuCanvas()
     }
 })
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // Create a collapsible menu in an offcanvas pop-out using menu list data

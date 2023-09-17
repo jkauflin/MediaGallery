@@ -14,6 +14,7 @@
  * 					media type specific
  * 2023-08-26 JJK	Added menu and album string used in the query to the
  * 					output structure
+ * 2023-09-17 JJK	Removed currMenu and currAlbum, got AlbumKey working
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -110,8 +111,6 @@ class MediaInfo
 	public $filterList;
 	public $fileList;
 	public $startDate;
-	public $currMenu;
-	public $currAlbum;
 }
 
 $mediaInfo = new MediaInfo();
@@ -138,8 +137,6 @@ try {
 	$json_str = file_get_contents('php://input');
 	// Decode the string to get a JSON object
 	$param = json_decode($json_str);
-
-// save $param
 
 	// Get the database connection
 	$conn = getConn($dbHost, $dbUser, $dbPassword, $dbName);
@@ -333,19 +330,14 @@ try {
 
 	$menuItemExists = false;
 	$wildMenuItem = "";
-	$mediaInfo->currMenu = "";
 	if (!empty($param->MediaFilterMenuItem)) {
-		$mediaInfo->currMenu = $param->MediaFilterMenuItem;
 		$wildMenuItem = wildCardStrFromTokens($param->MediaFilterMenuItem);
 		$menuItemExists = true;
 	}
 
-	// MediaFilterAlbumKey
 	$albumKeyExists = false;
 	$wildAlbumKey = "";
-	$mediaInfo->currAlbum = "";
 	if (!empty($param->MediaFilterAlbumKey)) {
-		$mediaInfo->currAlbum = $param->MediaFilterAlbumName;
 		$wildAlbumKey = wildCardStrFromTokens($param->MediaFilterAlbumKey);
 		$albumKeyExists = true;
 	}
@@ -365,6 +357,9 @@ try {
 	if ($getNew) {
 		$sql = $sql . "AND ToBeProcessed = 1 ";
 
+	} else if ($albumKeyExists && $startDateExists) {
+		$sql = $sql . "AND AlbumTags LIKE ? ";
+		$sql = $sql . "AND TakenDateTime >= ? ";
 	} else if ($albumKeyExists) {
 		$sql = $sql . "AND AlbumTags LIKE ? ";
 	} else if ($categoryExists && $startDateExists && $menuItemExists && $searchStrExists) {
@@ -421,8 +416,13 @@ try {
 	//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
 	$stmt = $conn->prepare($sql)  or die($mysqli->error);
 
-	if ($albumKeyExists) {
-	$sql = $sql . "AND AlbumTags LIKE ? ";
+	if ($albumKeyExists && $startDateExists) {
+		$stmt->bind_param("issi",
+			$param->MediaFilterMediaType,
+			$wildAlbumKey,
+			$param->MediaFilterStartDate,
+			$maxRows);
+	} else if ($albumKeyExists) {
 		$stmt->bind_param("isi",
 			$param->MediaFilterMediaType,
 			$wildAlbumKey,
@@ -508,7 +508,6 @@ try {
 			$param->MediaFilterMediaType,
 			$maxRows);
 	}
-
 
 	$stmt->execute();
 	$result = $stmt->get_result();
@@ -612,7 +611,7 @@ try {
 }
 catch (Exception $e) {
 	//error_log(date('[Y-m-d H:i] '). 'Exception = ' . $e->message . PHP_EOL, 3, 'getDirList.log');
-	error_log(date('[Y-m-d H:i] '). 'Exception = ' . $e . PHP_EOL, 3, 'getDirList.log');
+	error_log(date('[Y-m-d H:i] '). 'Exception = ' . $e . PHP_EOL, 3, LOG_FILE);
 }
 
 echo json_encode($mediaInfo);

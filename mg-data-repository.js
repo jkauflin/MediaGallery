@@ -23,6 +23,7 @@ export var getMenu = false
 export var queryCategory = ""
 export var querySearchStr = ""
 export var queryMenuItem = ""
+export var queryAlbumKey = ""
 
 export var categoryList = []
 export var menuFilter = []
@@ -124,6 +125,13 @@ export function queryMediaInfo(paramData) {
         if (paramData.MediaFilterMenuItem != null & paramData.MediaFilterMenuItem != "") {
             queryMenuItem = paramData.MediaFilterMenuItem
         }
+        queryAlbumKey = ""
+        if (paramData.MediaFilterAlbumKey != null & paramData.MediaFilterAlbumKey != "") {
+            queryAlbumKey = paramData.MediaFilterAlbumKey
+        }
+
+        //MediaFilterAlbumKey
+        //queryAlbumKey
 
         createMediaPage()
     });
