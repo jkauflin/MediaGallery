@@ -7,6 +7,7 @@ DESCRIPTION:  Main module to handle interactions with database and file system
 Modification History
 2023-08-06 JJK  Initial version - moved MediaInfo components to this module
 2023-09-08 JJK  Renamed to DataRepository to show its function
+2023-09-30 JJK  Adjusted location parameters for albumKey handling
 ================================================================================*/
 
 import {createMediaPage,displayCurrFileList,updateAdminMessage} from './mg-create-pages.js';
@@ -29,16 +30,11 @@ export var categoryList = []
 export var menuFilter = []
 export var peopleList = []
 
-//console.log("window.location.pathname = "+window.location.pathname);
-//var tempPath = window.location.pathname;
-//var strPos = tempPath.indexOf('/vendor/jkauflin');
-//const webRootPath = tempPath.substring(0,strPos);
-//const webRootPath = tempPath;
 var jjkgalleryRoot = "vendor/jkauflin/jjkgallery/";
 
 // MediaRootDir is appended to the front of all URI paths (that limits the PHP work to files under Media as well)
-let MediaRootDir = window.location.pathname + "Media/";
-let FullMediaRootDir = window.location + "Media/";
+let MediaRootDir = window.location.pathname + "Media/"
+let FullMediaRootDir = window.location.origin + MediaRootDir
 
 
 export function setMediaType(inMediaType) {

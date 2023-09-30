@@ -110,6 +110,7 @@ Modification History
 2023-08-26 JJK  Moved menu and album components to modules
 2023-09-01 JJK  Moved context menu to module (working on edit functions)
 2023-09-08 JJK  Moved DB access and create pages to modules
+2023-09-30 JJK  Added handling for an albumKey passed in the URI
 ================================================================================*/
 import {mediaType,setMediaType,queryMediaInfo} from './mg-data-repository.js'
 
@@ -153,36 +154,34 @@ const MediaPageLinkClass = "media-page";
 
 
     // If there is a data-dir parameter, build and display the page
-    /*
-    var dataDirName = 'data-dir';
+    var paramName = 'albumKey';
     // Look for parameters on the url
-    var results = new RegExp('[\?&]' + dataDirName + '=([^&#]*)').exec(window.location.href);
+    var results = new RegExp('[\?&]' + paramName + '=([^&#]*)').exec(window.location.search);
     if (results != null) {
-        var dirName = results[1] || 0;
-        //console.log(">>>>> mediaURI dirName = " + dirName);
-        dirName = decodeURIComponent(dirName);
-        var firstSlashPos = dirName.indexOf("/");
-        var mediaTypeDesc = dirName;
-        if (firstSlashPos >= 0) {
-            mediaTypeDesc = dirName.substring(0, firstSlashPos);
-        }
-        //displayThumbnails(dirName);
-        //createMenu(mediaTypeDesc);
+        let albumKey = results[1] || 0;
+        //console.log(">>>>> mediaURI albumKey = " + albumKey);
+        albumKey = decodeURIComponent(albumKey);
+        setMediaType(1)
 
-        let targetTabElement = document.querySelector(`.navbar-nav a[data-dir="${mediaTypeDesc}"]`);
-        // Find the target tab element
+        let paramData = {
+            MediaFilterMediaType: mediaType, 
+            getMenu: true,
+            MaxRows: 200,
+            MediaFilterAlbumKey: albumKey}
+        queryMediaInfo(paramData);
+
+        // Get the target tab based on the the MediaType specified, and use the new Bootstrap v5.2 js for showing the tab
+        // the link ('a') with the correct MediaType, within the ".navbar-nav" list
+        let targetTabElement = document.querySelector(`.navbar-nav a[data-MediaType="${mediaType}"]`);
+
+        // If the target tab element is found, create a Tab object and call the show() method
         if (typeof targetTabElement !== "undefined" && targetTabElement !== null) {
-            // Remove the active class on the current active tab
-            document.querySelector(".nav-link.active").classList.remove("active");
-            // Show the target tab page
-            new bootstrap.Tab(targetTabElement).show();
-            // Make the target tab page active (by adding the class)
-            targetTabElement.classList.add("active");
+            bootstrap.Tab.getOrCreateInstance(targetTabElement).show();
         }
     }
-    */
 
-        // Get random photos (within /Media/images) when the page loads
+
+    // Get random photos (within /Media/images) when the page loads
     /*
     var homePhotoElement = document.getElementById("HomePhoto");
     if (typeof homePhotoElement !== "undefined" && homePhotoElement !== null) {

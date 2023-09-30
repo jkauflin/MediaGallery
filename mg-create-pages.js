@@ -22,7 +22,7 @@ import {playlistSongClass,audioPrevClass,audioNextClass,audioPlayer,setAudioList
         emptyPlaylist,incrementPlaylistIndex,addSongToPlaylist} from './mg-audio-playlist.js'
 
 const MediaFilterRequestClass = "MediaFilterRequest";
-const imgThumbnailClass = "img-thumbnail-jjk"
+const imgThumbnailClass = "img-thumbnail-jjk"  // Want my own thumbnail formatting instead of bootstrap border
 const thumbCheckboxClass = "thumb-checkbox"
 
 var mediaPageContainer = document.getElementById("MediaPage");
