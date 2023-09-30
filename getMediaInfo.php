@@ -123,7 +123,7 @@ $mediaInfo->fileList = array();
 $mediaInfo->filterList = array();
 
 $maxMaxRows = 500;
-$maxRows = 100;
+$maxRows = 200;
 
 // Default to the 1st day of the current year
 //$mediaInfo->startDate = date("Y") . "-01-01";
@@ -576,7 +576,7 @@ try {
 			$FilterRec->startDate = date("Y-m-d",$tempEndDate);
 			array_push($mediaInfo->filterList,$FilterRec);
 
-			if ($param->MediaFilterMediaType == 1 && $cnt > 50) {
+			if ($param->MediaFilterMediaType == 1 && !$albumKeyExists && $cnt > 50) {
 				// add some hard coded Season buttons - Winter, Spring, Summer, Fall, Winter ?
 				$Year = $tempStartDate["year"];
 				$FilterRec = new FilterRec();

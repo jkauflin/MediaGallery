@@ -766,11 +766,13 @@ thumbnailContainer.addEventListener("click", function (event) {
         if (mediaType == 2) {
             maxRows = 12
         }
-
         for (let index in mediaInfo.fileList) {
             let fi = mediaInfo.fileList[index]
-            if (index > maxRows-1) {
-                continue
+
+            if (mediaType == 2) {
+                if (index >= maxRows) {
+                    continue
+                }
             }
 
             // Create a Card to hold the thumbnail of the media object
@@ -822,8 +824,8 @@ thumbnailContainer.addEventListener("click", function (event) {
                     img.classList.add('rounded','float-start','mt-2','me-2',imgThumbnailClass)
                 }
                 img.setAttribute('onerror', "this.onerror=null; this.remove()")
-                //img.src = MediaRootDir + photosThumbsRoot + fileSubPath
-                img.src = getFilePath(index,"Thumbs")
+                //img.src = getFilePath(index,"Thumbs")
+                img.src = getFilePath(index,"Smaller")
                 img.setAttribute('data-index', index)
                 img.height = 110
 
