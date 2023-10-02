@@ -757,6 +757,17 @@ thumbnailContainer.addEventListener("click", function (event) {
                     thumbnailRow3Col1.appendChild(button2)
                 }
             }
+            if (mediaType == 1 && mediaInfo.fileList.length > 50) {
+                let buttonTop = document.createElement("button")
+                buttonTop.setAttribute('type',"button")
+                buttonTop.setAttribute('role',"button")
+                buttonTop.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','my-2')
+                buttonTop.textContent = "Top"
+                thumbnailRow3Col1.appendChild(buttonTop)
+                buttonTop.addEventListener("click", function () {
+                    window.scrollTo(0, 0)
+                });
+            }
         }
 
         //-------------------------------------------------------------------------------------------------------------------------
