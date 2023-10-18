@@ -163,6 +163,9 @@ const MediaPageLinkClass = "media-page";
         albumKey = decodeURIComponent(albumKey);
         setMediaType(1)
 
+        // Clear the parameters from the url
+        window.history.replaceState({}, document.title, "/home/");
+
         let paramData = {
             MediaFilterMediaType: mediaType, 
             getMenu: true,
