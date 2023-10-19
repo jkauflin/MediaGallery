@@ -888,7 +888,7 @@ thumbnailContainer.addEventListener("click", function (event) {
                 // add the table rows for the playlist
                 // build a table then append to the thumbnail container
                 let a = document.createElement("a")
-                a.href = "#"
+                //a.href = "#"
                 a.classList.add('class', `${playlistSongClass}`)
                 a.setAttribute('data-plIndex', plIndex);
                 a.textContent = getFileName(index)
@@ -942,7 +942,7 @@ thumbnailContainer.addEventListener("click", function (event) {
                 i.classList.add('fa',`${audioPrevClass}`,'fa-3x')
                 let a = document.createElement("a")
                 a.id = "AudioPrev"
-                a.href = "#"
+                //a.href = "#"
                 a.appendChild(i)
                 thumbnailRow2Col1.appendChild(a)
 
@@ -950,7 +950,7 @@ thumbnailContainer.addEventListener("click", function (event) {
                 i.classList.add('fa',`${audioNextClass}`,'fa-3x','mx-2')
                 a = document.createElement("a")
                 a.id = "AudioNext"
-                a.href = "#"
+                //a.href = "#"
                 a.appendChild(i)
                 thumbnailRow2Col1.appendChild(a)
 
