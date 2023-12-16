@@ -111,6 +111,8 @@ Modification History
 2023-09-01 JJK  Moved context menu to module (working on edit functions)
 2023-09-08 JJK  Moved DB access and create pages to modules
 2023-09-30 JJK  Added handling for an albumKey passed in the URI
+2023-12-16 JJK  Removed the MaxRows parameter for query - just put the logic
+                in the service with an override if a parameter is included
 ================================================================================*/
 import {mediaType,setMediaType,queryMediaInfo} from './mg-data-repository.js'
 
@@ -169,7 +171,6 @@ const MediaPageLinkClass = "media-page";
         let paramData = {
             MediaFilterMediaType: mediaType, 
             getMenu: true,
-            MaxRows: 200,
             MediaFilterAlbumKey: albumKey}
         queryMediaInfo(paramData);
 

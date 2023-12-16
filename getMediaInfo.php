@@ -15,6 +15,8 @@
  * 2023-08-26 JJK	Added menu and album string used in the query to the
  * 					output structure
  * 2023-09-17 JJK	Removed currMenu and currAlbum, got AlbumKey working
+ * 2023-12-16 JJK	Added logic for MaxRows per media type, but still 
+ * 					allowing an included parameter to override
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -156,13 +158,16 @@ try {
 		$mediaInfo->startDate = "1900-01-01";
 	}
 
-	// Check the max rows setting
+	//  If media type is Videos, set the max display thumbnails to less than other thumbnail max
+	if ($param->MediaFilterMediaType == 2) {
+		$maxRows = 12;
+	}
+	// Check the max rows setting from parameters to override the default
 	if (!empty($param->MaxRows)) {
 		$maxRows = intval($param->MaxRows);
 		if ($maxRows > $maxMaxRows) {
 			$maxRows = $maxMaxRows;
 		}
-
 	}
 
 	if ($getMenu) {

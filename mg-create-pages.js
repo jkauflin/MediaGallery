@@ -121,7 +121,6 @@ thumbnailContainer.addEventListener("click", function (event) {
             let paramData = {
                 MediaFilterMediaType: mediaType, 
                 getMenu: false,
-                MaxRows: 200,
                 MediaFilterCategory:  event.target.getAttribute('data-category'),
                 MediaFilterStartDate: event.target.getAttribute('data-startDate'),
                 MediaFilterMenuItem: event.target.getAttribute('data-menuItem'),
@@ -702,89 +701,26 @@ thumbnailContainer.addEventListener("click", function (event) {
         thumbnailRow2Col1.classList.add('col','my-2')
         thumbnailRow3Col1.classList.add('col')
 
-        //----------------------------------------------------------------------------------------------------
-        // If there is a filter request list, create Filter Request buttons with the start date
-        //----------------------------------------------------------------------------------------------------
-        let buttonMax = 20
-        if (window.innerHeight > window.innerWidth) {
-            buttonMax = 4
-        }
-
-        if (mediaInfo.filterList != null) {
-            let buttonColor = 'btn-primary'
-            for (let index in mediaInfo.filterList) {
-                if (index > buttonMax) {
-                    continue
-                }
-                let FilterRec = mediaInfo.filterList[index]
-
-                buttonColor = 'btn-primary'
-                if (FilterRec.filterName == 'Winter') {
-                    buttonColor = 'btn-secondary'
-                } else if (FilterRec.filterName == 'Spring') {
-                    buttonColor = 'btn-success'
-                } else if (FilterRec.filterName == 'Summer') {
-                    buttonColor = 'btn-danger'
-                } else if (FilterRec.filterName == 'Fall') {
-                    buttonColor = 'btn-warning'
-                }
-
-                let button = document.createElement("button")
-                button.setAttribute('type',"button")
-                button.setAttribute('role',"button")
-                button.setAttribute('data-MediaType', mediaType)
-                button.setAttribute('data-category', mediaFilterCategory.value)
-                button.setAttribute('data-startDate', FilterRec.startDate)
-                button.setAttribute('data-menuItem', queryMenuItem)
-                button.setAttribute('data-albumKey', queryAlbumKey)
-                button.setAttribute('data-searchStr', querySearchStr)
-                button.classList.add('btn',buttonColor,'btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
-                button.textContent = FilterRec.filterName
-                thumbnailRow1Col1.appendChild(button)
-
-                if (mediaType == 1 && mediaInfo.fileList.length > 50) {
-                    let button2 = document.createElement("button")
-                    button2.setAttribute('type',"button")
-                    button2.setAttribute('role',"button")
-                    button2.setAttribute('data-MediaType', mediaType)
-                    button2.setAttribute('data-category', mediaFilterCategory.value)
-                    button2.setAttribute('data-startDate', FilterRec.startDate)
-                    button2.setAttribute('data-menuItem', queryMenuItem)
-                    button2.setAttribute('data-albumKey', queryAlbumKey)
-                    button2.setAttribute('data-searchStr', querySearchStr)
-                    button2.classList.add('btn',buttonColor,'btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
-                    button2.textContent = FilterRec.filterName
-                    thumbnailRow3Col1.appendChild(button2)
-                }
-            }
-            if (mediaType == 1 && mediaInfo.fileList.length > 50) {
-                let buttonTop = document.createElement("button")
-                buttonTop.setAttribute('type',"button")
-                buttonTop.setAttribute('role',"button")
-                buttonTop.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','my-2')
-                buttonTop.textContent = "Top"
-                thumbnailRow3Col1.appendChild(buttonTop)
-                buttonTop.addEventListener("click", function () {
-                    window.scrollTo(0, 0)
-                });
-            }
-        }
 
         //-------------------------------------------------------------------------------------------------------------------------
         // Loop through all the files in the current file list
         //-------------------------------------------------------------------------------------------------------------------------
+        /*
         let maxRows = 200
         if (mediaType == 2) {
             maxRows = 12
         }
+        */
         for (let index in mediaInfo.fileList) {
             let fi = mediaInfo.fileList[index]
 
+            /*
             if (mediaType == 2) {
                 if (index >= maxRows) {
                     continue
                 }
             }
+            */
 
             // Create a Card to hold the thumbnail of the media object
             let thumb = document.createElement("div")
@@ -970,6 +906,78 @@ thumbnailContainer.addEventListener("click", function (event) {
  
             thumbnailRow2Col1.appendChild(row)
         }
+
+
+        //----------------------------------------------------------------------------------------------------
+        // If there is a filter request list, create Filter Request buttons with the start date
+        //----------------------------------------------------------------------------------------------------
+        let buttonMax = 20
+        if (window.innerHeight > window.innerWidth) {
+            buttonMax = 4
+        }
+
+        if (mediaInfo.filterList != null) {
+            let buttonColor = 'btn-primary'
+            for (let index in mediaInfo.filterList) {
+                if (index > buttonMax) {
+                    continue
+                }
+                let FilterRec = mediaInfo.filterList[index]
+
+                buttonColor = 'btn-primary'
+                if (FilterRec.filterName == 'Winter') {
+                    buttonColor = 'btn-secondary'
+                } else if (FilterRec.filterName == 'Spring') {
+                    buttonColor = 'btn-success'
+                } else if (FilterRec.filterName == 'Summer') {
+                    buttonColor = 'btn-danger'
+                } else if (FilterRec.filterName == 'Fall') {
+                    buttonColor = 'btn-warning'
+                }
+
+                let button = document.createElement("button")
+                button.setAttribute('type',"button")
+                button.setAttribute('role',"button")
+                button.setAttribute('data-MediaType', mediaType)
+                button.setAttribute('data-category', mediaFilterCategory.value)
+                button.setAttribute('data-startDate', FilterRec.startDate)
+                button.setAttribute('data-menuItem', queryMenuItem)
+                button.setAttribute('data-albumKey', queryAlbumKey)
+                button.setAttribute('data-searchStr', querySearchStr)
+                button.classList.add('btn',buttonColor,'btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
+                button.textContent = FilterRec.filterName
+                thumbnailRow1Col1.appendChild(button)
+
+                // If too many thumbnails, duplicate button at the bottom
+                if (mediaInfo.fileList.length > 50) {
+                    let button2 = document.createElement("button")
+                    button2.setAttribute('type',"button")
+                    button2.setAttribute('role',"button")
+                    button2.setAttribute('data-MediaType', mediaType)
+                    button2.setAttribute('data-category', mediaFilterCategory.value)
+                    button2.setAttribute('data-startDate', FilterRec.startDate)
+                    button2.setAttribute('data-menuItem', queryMenuItem)
+                    button2.setAttribute('data-albumKey', queryAlbumKey)
+                    button2.setAttribute('data-searchStr', querySearchStr)
+                    button2.classList.add('btn',buttonColor,'btn-sm','shadow-none','me-2','my-2',MediaFilterRequestClass)
+                    button2.textContent = FilterRec.filterName
+                    thumbnailRow3Col1.appendChild(button2)
+                }
+            }
+            if (mediaType == 1 && mediaInfo.fileList.length > 50) {
+                let buttonTop = document.createElement("button")
+                buttonTop.setAttribute('type',"button")
+                buttonTop.setAttribute('role',"button")
+                buttonTop.classList.add('btn','btn-primary','btn-sm','shadow-none','me-2','my-2')
+                buttonTop.textContent = "Top"
+                thumbnailRow3Col1.appendChild(buttonTop)
+                buttonTop.addEventListener("click", function () {
+                    window.scrollTo(0, 0)
+                });
+            }
+        }
+
+
 
         thumbnailRow1.appendChild(thumbnailRow1Col1)
         thumbnailRow2.appendChild(thumbnailRow2Col1)
