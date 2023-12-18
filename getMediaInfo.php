@@ -160,7 +160,8 @@ try {
 
 	//  If media type is Videos, set the max display thumbnails to less than other thumbnail max
 	if ($param->MediaFilterMediaType == 2) {
-		$maxRows = 12;
+		//$maxRows = 12;
+		$maxRows = 18;
 	}
 	// Check the max rows setting from parameters to override the default
 	if (!empty($param->MaxRows)) {
@@ -174,7 +175,7 @@ try {
 		$sql = "SELECT * FROM MediaType t, MediaCategory c, Menu m WHERE ";
 		$sql = $sql . " t.MediaTypeId = ? AND c.MediaTypeId = t.MediaTypeId AND m.CategoryId = c.CategoryId ";
 		$sql = $sql . " ORDER BY c.CategoryOrder, m.MenuId; ";
-		//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, 'php.log');
+		//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
 	
 		$stmt = $conn->prepare($sql) or die($mysqli->error);
 		$stmt->bind_param("i", $param->MediaFilterMediaType);
@@ -416,7 +417,11 @@ try {
 		$sql = $sql . "AND TakenDateTime >= ? ";
 	}
 
-	$sql = $sql . "ORDER BY TakenDateTime,Name LIMIT ?; ";
+	if ($param->MediaFilterMediaType == 2) {
+		$sql = $sql . "ORDER BY TakenDateTime,Title LIMIT ?; ";
+	} else {
+		$sql = $sql . "ORDER BY TakenDateTime,Name LIMIT ?; ";
+	}
 
 	//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
 	$stmt = $conn->prepare($sql)  or die($mysqli->error);
