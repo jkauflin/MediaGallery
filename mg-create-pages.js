@@ -13,6 +13,7 @@ import {mediaInfo,mediaType,getMenu,
     queryMediaInfo,
     getFilePath,getFileName,
     updateMediaInfo,
+    newVideosMediaInfo
 } from './mg-data-repository.js'
 import {mediaMenuCanvasId,buildMenuElements} from './mg-menu.js'
 import {mediaAlbumMenuCanvasId,buildAlbumMenuElements} from './mg-album.js'
@@ -53,6 +54,9 @@ var mediaDetailMenuTags
 var mediaDetailAlbumTags
 var mediaDetailPeopleList
 var mediaDetailDescription
+// NEW ones
+var mediaDetailVideoList
+
 
 var currIndex = 0
 var editMode = false
@@ -134,11 +138,14 @@ thumbnailContainer.addEventListener("click", function (event) {
             // If clicking on a Thumbnail, bring up in Lightbox or FileDetail (for Edit mode)
             let index = parseInt(event.target.getAttribute('data-index'))
             if (typeof index !== "undefined" && index !== null) {
+                /*
                 if (editMode) {
                     displayFileDetail(index)
                 } else {
                     displayElementInLightbox(index)
                 }
+                */
+                displayElementInLightbox(index)
             }
 
     } else if (event.target && event.target.classList.contains(thumbCheckboxClass)) {
@@ -146,7 +153,15 @@ thumbnailContainer.addEventListener("click", function (event) {
             //console.log("Clicked on image checkbox")
             let index = parseInt(event.target.getAttribute('data-index'))
             if (typeof index !== "undefined" && index !== null) {
-                mediaInfo.fileList[index].Selected = true
+                if (mediaInfo.fileList[index].Selected) {
+                    mediaInfo.fileList[index].Selected = false
+                } else {
+                    mediaInfo.fileList[index].Selected = true
+
+                    if (editMode) {
+                        displayFileDetail(index)
+                    }
+                }
             }
     }
 })
@@ -295,13 +310,46 @@ thumbnailContainer.addEventListener("click", function (event) {
             mediaDetailTaken.setAttribute('placeholder', "Taken DateTime")
             editRow1Col2.appendChild(mediaDetailTaken)
     
-            mediaDetailImg = document.createElement("img")
-            mediaDetailImg.classList.add('img-fluid','rounded','mx-auto','d-block')
-            //mediaDetailImg.setAttribute('onerror', "this.onerror=null; this.remove()")
-            mediaDetailImg.setAttribute('onerror', "this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';")
-            editRow1Col2.appendChild(mediaDetailImg)
 
+            if (mediaType == 1) {
+                mediaDetailImg = document.createElement("img")
+                mediaDetailImg.classList.add('img-fluid','rounded','mx-auto','d-block')
+                //mediaDetailImg.setAttribute('onerror', "this.onerror=null; this.remove()")
+                mediaDetailImg.setAttribute('onerror', "this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';")
+                editRow1Col2.appendChild(mediaDetailImg)
+
+            } else if (mediaType == 2) {
+                //-----------------------------------------------------------------------------------------
+                // Build a UI to add new videos
+                //-----------------------------------------------------------------------------------------
+                let newVideosButton = document.createElement("button")
+                newVideosButton.classList.add('btn','btn-danger','btn-sm','float-start','shadow-none','me-2','my-2')
+                newVideosButton.setAttribute('type',"button")
+                newVideosButton.setAttribute('role',"button")
+                newVideosButton.textContent = "Add NEW Videos"
+                editRow1Col2.appendChild(newVideosButton)
+
+                mediaDetailVideoList = document.createElement("textarea")
+                mediaDetailVideoList.classList.add('form-control','py-1','mb-1','shadow-none')
+                mediaDetailVideoList.setAttribute('rows', "12")
+                mediaDetailVideoList.setAttribute('placeholder', "List of new video id's (and titles)")
+                editRow1Col2.appendChild(mediaDetailVideoList)
+                
+                newVideosButton.addEventListener("click", function () {
+                    let paramData = {
+                        MediaFilterMediaType: mediaType, 
+                        newVideos: true,
+                        mediaCategoryName: mediaCategorySelect.value,
+                        videoMenuItem: mediaDetailTitle.value,
+                        videoTaken: mediaDetailTaken.value,
+                        videoList: mediaDetailVideoList.value,
+                        videoDescription: mediaDetailDescription.value
+                    }
+                    newVideosMediaInfo(paramData)
+                });
+            }
             editRow1.appendChild(editRow1Col2)
+
 
             // Col 3
             let editRow1Col3 = document.createElement("div")
@@ -705,27 +753,16 @@ thumbnailContainer.addEventListener("click", function (event) {
         //-------------------------------------------------------------------------------------------------------------------------
         // Loop through all the files in the current file list
         //-------------------------------------------------------------------------------------------------------------------------
-        /*
-        let maxRows = 200
-        if (mediaType == 2) {
-            maxRows = 12
-        }
-        */
         for (let index in mediaInfo.fileList) {
             let fi = mediaInfo.fileList[index]
 
-            /*
-            if (mediaType == 2) {
-                if (index >= maxRows) {
-                    continue
-                }
-            }
-            */
-
             // Create a Card to hold the thumbnail of the media object
             let thumb = document.createElement("div")
-            //thumb.classList.add('card','fs-6','w-20','float-start')
+            //thumb.classList.add('card','fs-6','vh-75','float-start')
             thumb.classList.add('card','fs-6','vh-75','float-start')
+
+//            img.classList.add('rounded','float-start','m-1',imgThumbnailClass)
+
 
             let titleMax = 25
             if (mediaType == 1) {
@@ -1008,13 +1045,15 @@ thumbnailContainer.addEventListener("click", function (event) {
         mediaDetailDescription.value = fi.Description
 
         // Set only the selected file in the thumbnail list
+        /*
         for (let index2 in mediaInfo.fileList) {
             if (index2 == index) {
                 mediaInfo.fileList[index2].Selected = true
             } else {
                 mediaInfo.fileList[index2].Selected = false
             }
-        }    
+        }
+        */    
         
         // Re-display the file list to show the correct selected image
         displayCurrFileList()

@@ -16,7 +16,7 @@
  * 					output structure
  * 2023-09-17 JJK	Removed currMenu and currAlbum, got AlbumKey working
  * 2023-12-16 JJK	Added logic for MaxRows per media type, but still 
- * 					allowing an included parameter to override
+ * 					allowing an included parameter to override (test)
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");

@@ -174,6 +174,54 @@ export function updateMediaInfo(inIndex) {
     }); // End of Fetch
 }
 
+//------------------------------------------------------------------------------------------------------------
+// Add new media info records in the database for new videos
+//------------------------------------------------------------------------------------------------------------
+export function newVideosMediaInfo(paramData) {
+
+    /*
+    let index = -1
+    if (inIndex != null && inIndex >= 0) {
+        index = inIndex
+    }
+
+    // Assume current values and selected files in the mediaInfo.fileList are what we want updated
+    // unless the index is set, which indicates an individual update
+    let paramData = {
+        MediaFilterMediaType: mediaType,
+        mediaInfoFileList: mediaInfo.fileList,
+        index: index
+    }
+    */
+
+    let url = jjkgalleryRoot + "updateMediaInfo.php"
+    fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(paramData)
+    })
+    .then(response => response.text())
+    .then(returnMsg => {
+        //console.log("returnMsg = "+returnMsg)
+
+        /*
+        if (index >= 0) {
+            updateMessage(returnMsg)
+            // If individual index-based update, just de-Select but leave it in the file list
+            mediaInfo.fileList[index].Selected = false
+        } else {
+            // Filter out the Selected files (that were updated)
+            updateAdminMessage(returnMsg)
+            mediaInfo.fileList = mediaInfo.fileList.filter(checkSelected);
+        }
+        */
+
+        updateAdminMessage(returnMsg)
+
+        displayCurrFileList()
+    }); // End of Fetch
+}
+
 function checkSelected(fileInfo) {
     return !fileInfo.Selected
 }

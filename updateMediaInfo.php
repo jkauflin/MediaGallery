@@ -7,6 +7,7 @@
  * Modification History
  * 2023-04-06 JJK 	Initial version to update file info in database
  * 2023-05-24 JJK	Updated for new file list
+ * 2023-12-18 JJK	Added insert of new video menu and titles
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -74,27 +75,93 @@ try {
 	//error_log(date('[Y-m-d H:i] '). '$sql = ' . $sql . PHP_EOL, 3, LOG_FILE);
 	$conn = getConn($dbHost, $dbUser, $dbPassword, $dbName);
 
-	$sql = "UPDATE FileInfo SET CategoryTags=?,MenuTags=?,AlbumTags=?,TakenDateTime=?,Title=?,Description=?,People=?,ToBeProcessed=0 WHERE Name=? ";
-	$stmt = $conn->prepare($sql);
+	$newVideos = false;
+	if (!empty($param->newVideos)) {
+		$newVideos = $param->newVideos;
+	}
+
+	$sql = "";
 	$updCnt = 0;
 	$tempIndex = -1;
-	foreach ($param->mediaInfoFileList as $fi) {
-		$tempIndex++;
-		if ($param->index >= 0) {
-			if ($tempIndex != $param->index) {
-				continue;
-			}
-		} else {
-			if (!$fi->Selected) {
-				continue;
+	$categoryId = 0;
+	$videoMenuItem = "";
+	$videoTitle = "";
+	$videoTaken = "";
+	$videoDesc = "";
+	$videoId = "";
+	$currDate = date('[Y-m-d H:i] ');
+	$nullDate = "0001-01-01";
+	$blankStr = "";
+	$pos = -1;
+	if ($newVideos) {
+		//error_log(date('[Y-m-d H:i] '). 'mediaCategory = ' . $param->mediaCategoryName . PHP_EOL, 3, LOG_FILE);
+		//error_log(date('[Y-m-d H:i] '). 'videoMenuItem = ' . $param->videoMenuItem . PHP_EOL, 3, LOG_FILE);
+
+		$videoMenuItem = trim($param->videoMenuItem); 
+		$videoTaken = trim($param->videoTaken); 
+		$videoDesc = trim($param->videoDescription);
+
+		// Get the CategoryId from the media type and CategoryName
+		$sql = "SELECT CategoryId FROM MediaCategory WHERE MediaTypeId = ? AND CategoryName = ?; ";
+		$stmt = $conn->prepare($sql)  or die($mysqli->error);
+		$stmt->bind_param("is",$param->MediaFilterMediaType,$param->mediaCategoryName);
+		$stmt->execute();
+		$result = $stmt->get_result();
+		$row = $result->fetch_assoc();
+		$categoryId = $row["CategoryId"];
+		$stmt->close();
+
+		// Insert Menu Item for the new video
+		$sql = 'INSERT INTO Menu (CategoryId,MenuItem,StartDate,EndDate,SearchStr) VALUES(?,?,?,?,?); ';
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param("issss",$categoryId,$videoMenuItem,$nullDate,$nullDate,$blankStr);
+		$stmt->execute();
+		$stmt->close();
+
+		// Insert Media Info records for the videos in the list
+		foreach(explode("\n",$param->videoList) as $video) {
+			if (!empty($video)) {
+				$videoId = trim($video);
+				$videoTitle = $videoMenuItem; 
+				$pos = strpos($video,":");
+				if ($pos) {
+					$videoTitle = trim(substr($video,0,$pos));
+					$videoId = trim(substr($video,$pos+1));
+				}
+
+				$sql = 'INSERT INTO FileInfo (Name,MediaTypeId,CategoryTags,MenuTags,AlbumTags,FullNameLocal,NameAndPath,FilePath,CreateDateTime,LastModified,'
+				.'TakenDateTime,Title,Description,People) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?); ';
+				$stmt = $conn->prepare($sql);
+				$stmt->bind_param("sissssssssssss",
+					$videoId,$param->MediaFilterMediaType,$param->mediaCategoryName,$videoMenuItem,
+					$blankStr,$blankStr,$blankStr,$blankStr,$currDate,$currDate,$videoTaken,$videoTitle,$videoDesc,$blankStr);
+				$stmt->execute();
+				$stmt->close();
+				$updCnt++;
 			}
 		}
 
-    	$stmt->bind_param("ssssssss",$fi->CategoryTags,$fi->MenuTags,$fi->AlbumTags,$fi->TakenDateTime,$fi->Title,$fi->Description,$fi->People,$fi->Name);
-    	$stmt->execute();
-		$updCnt++;
+	} else {
+		$sql = "UPDATE FileInfo SET CategoryTags=?,MenuTags=?,AlbumTags=?,TakenDateTime=?,Title=?,Description=?,People=?,ToBeProcessed=0 WHERE Name=? ";
+		$stmt = $conn->prepare($sql);
+		foreach ($param->mediaInfoFileList as $fi) {
+			$tempIndex++;
+			if ($param->index >= 0) {
+				if ($tempIndex != $param->index) {
+					continue;
+				}
+			} else {
+				if (!$fi->Selected) {
+					continue;
+				}
+			}
+	
+			$stmt->bind_param("ssssssss",$fi->CategoryTags,$fi->MenuTags,$fi->AlbumTags,$fi->TakenDateTime,$fi->Title,$fi->Description,$fi->People,$fi->Name);
+			$stmt->execute();
+			$updCnt++;
+		}
+		$stmt->close();
 	}
-	$stmt->close();
 
 	$conn->close();
 	$returnMsg = "Number of records saved = " . $updCnt;
