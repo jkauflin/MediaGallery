@@ -8,6 +8,7 @@
  * 2023-04-06 JJK 	Initial version to update file info in database
  * 2023-05-24 JJK	Updated for new file list
  * 2023-12-18 JJK	Added insert of new video menu and titles
+ * 2023-12-19 JJK   Added check for existing MenuItem
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -111,12 +112,26 @@ try {
 		$categoryId = $row["CategoryId"];
 		$stmt->close();
 
-		// Insert Menu Item for the new video
-		$sql = 'INSERT INTO Menu (CategoryId,MenuItem,StartDate,EndDate,SearchStr) VALUES(?,?,?,?,?); ';
-		$stmt = $conn->prepare($sql);
-		$stmt->bind_param("issss",$categoryId,$videoMenuItem,$nullDate,$nullDate,$blankStr);
+		// Check if the MenuItem already exists
+		$menuItemFound = false;
+		$sql = "SELECT * FROM Menu WHERE CategoryId = ? AND MenuItem = ?; ";
+		$stmt = $conn->prepare($sql)  or die($mysqli->error);
+		$stmt->bind_param("is",$categoryId,$videoMenuItem);
 		$stmt->execute();
+		$result = $stmt->get_result();
+		if ($result->num_rows > 0) {
+			$menuItemFound = true;
+		}
 		$stmt->close();
+
+		// Insert Menu Item for the new video
+		if (!$menuItemFound) {
+			$sql = 'INSERT INTO Menu (CategoryId,MenuItem,StartDate,EndDate,SearchStr) VALUES(?,?,?,?,?); ';
+			$stmt = $conn->prepare($sql);
+			$stmt->bind_param("issss",$categoryId,$videoMenuItem,$nullDate,$nullDate,$blankStr);
+			$stmt->execute();
+			$stmt->close();
+		}
 
 		// Insert Media Info records for the videos in the list
 		foreach(explode("\n",$param->videoList) as $video) {
