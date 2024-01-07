@@ -108,7 +108,11 @@ export function queryMediaInfo(paramData) {
             categoryList = mediaInfo.categoryList
             menuFilter = mediaInfo.menuFilter
             setAlbumList(mediaInfo.albumList)
+            
             peopleList = mediaInfo.peopleList
+
+            // Build people UI objects???
+            
         }
 
         // Save the parameters from the laste query

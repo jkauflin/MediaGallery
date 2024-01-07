@@ -426,10 +426,24 @@ thumbnailContainer.addEventListener("click", function (event) {
 
             editRow1Col3.appendChild(mediaPeopleSelect);
 
+            /*
+            >>>>> original code
             mediaPeopleList = document.createElement("input")
             mediaPeopleList.classList.add('form-control','shadow-none','py-1')
             mediaPeopleList.setAttribute('type',"text")
             mediaPeopleList.setAttribute('placeholder',"People list")
+            */
+            mediaPeopleList = document.createElement("input")
+            mediaPeopleList.classList.add('form-control','shadow-none','py-1')
+            mediaPeopleList.setAttribute('type',"text")
+            mediaPeopleList.setAttribute('placeholder',"People list")
+
+/*
+<div class="input-group mb-3">
+  <input type="text" class="form-control" placeholder="Recipient's username">
+  <button class="btn btn-outline-secondary" type="button" id="button-addon2">Button</button>
+</div>
+*/
 
             let replacePeopleButton = document.createElement("button")
             replacePeopleButton.classList.add('btn','btn-primary','btn-sm','float-start','shadow-none','me-2','my-1')
