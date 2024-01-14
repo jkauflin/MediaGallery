@@ -5,7 +5,6 @@ DESCRIPTION:
 --------------------------------------------------------------------------------
 Modification History
 2023-09-08 JJK  Initial version - moved audio playlist components to this module
-
 ================================================================================*/
 export const playlistSongClass = "playlistSong"
 export const audioPrevClass = "fa-step-backward"
@@ -64,30 +63,37 @@ export function addSongToPlaylist(song) {
     playlist.push(song)
 }
 
+// Audio 
+export function initSong(index) {
+    // Load the song and give back the name, but don't start playing
+    plIndex = index;
+    audioPlayer.setAttribute('src', playlist[plIndex].url);
+    audioPlayer.pause();
+    audioPlayer.load();//suspends and restores all audio element
+    return playlist[plIndex].title
+} // function initSong(index) {
 
+function loadSong(index) {
+    plIndex = index;
+    let songTitle = document.getElementById("SongTitle");
+    songTitle.textContent = playlist[plIndex].title;
+    audioPlayer.setAttribute('src', playlist[plIndex].url);
+    audioPlayer.pause();
+    audioPlayer.load();//suspends and restores all audio element
+    //console.log("loaded audio, plIndex = "+plIndex);
+    audioPlayer.oncanplaythrough = audioPlayer.play();
+} // function loadSong(index) {
 
-    // Audio 
-    function loadSong(index) {
-        plIndex = index;
-        let songTitle = document.getElementById("SongTitle");
-        songTitle.textContent = playlist[plIndex].title;
-        audioPlayer.setAttribute('src', playlist[plIndex].url);
-        audioPlayer.pause();
-        audioPlayer.load();//suspends and restores all audio element
-        //console.log("loaded audio, plIndex = "+plIndex);
-        audioPlayer.oncanplaythrough = audioPlayer.play();
-    } // function loadSong(index) {
-
-    function nextSong() {
-        if (playlist != null) {
-            if (plIndex < playlist.length - 1) {
-                loadSong(++plIndex);
-            }
+function nextSong() {
+    if (playlist != null) {
+        if (plIndex < playlist.length - 1) {
+            loadSong(++plIndex);
         }
     }
-    function prevSong() {
-        if (plIndex > 0) {
-            loadSong(--plIndex);
-        }
+}
+function prevSong() {
+    if (plIndex > 0) {
+        loadSong(--plIndex);
     }
+}
 

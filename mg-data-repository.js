@@ -12,7 +12,7 @@ Modification History
 
 import {createMediaPage,displayCurrFileList,updateAdminMessage} from './mg-create-pages.js';
 import {setMenuList} from './mg-menu.js';
-import {setAlbumList} from './mg-album.js';
+import {setAlbumList,getAlbumName} from './mg-album.js';
 import {updateMessage} from './mg-contextmenu.js';
 
 export let mediaInfo
@@ -128,6 +128,10 @@ export function queryMediaInfo(paramData) {
         queryAlbumKey = ""
         if (paramData.MediaFilterAlbumKey != null & paramData.MediaFilterAlbumKey != "") {
             queryAlbumKey = paramData.MediaFilterAlbumKey
+            // Get the Album Name if not included
+            if (mediaInfo.menuOrAlbumName == "") {
+                mediaInfo.menuOrAlbumName = getAlbumName(queryAlbumKey)
+            }
         }
 
         //MediaFilterAlbumKey

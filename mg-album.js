@@ -6,6 +6,7 @@ DESCRIPTION:
 Modification History
 2023-08-26 JJK  Initial version - moved album components to this module
 2023-09-01 JJK  Export container for dedicated event click
+2024-01-14 JJK  Added getAlbumName
 ================================================================================*/
 import {mediaInfo,mediaType,mediaTypeDesc,setMediaType,
     queryMediaInfo,
@@ -43,6 +44,16 @@ menuAlbumContainer.addEventListener("click", function (event) {
         hideMediaAlbumMenuCanvas()
     }
 })
+
+export function getAlbumName(inAlbumKey) {
+    let retAlbumName = ""
+    for (let index in albumList) {
+        if (albumList[index].albumKey == inAlbumKey) {
+            retAlbumName = albumList[index].albumName
+        }
+    }
+    return retAlbumName
+}
 
 //------------------------------------------------------------------------------------------------------------
 // Create a collapsible menu in an offcanvas pop-out using menu list data

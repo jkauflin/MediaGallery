@@ -17,6 +17,7 @@
  * 2023-09-17 JJK	Removed currMenu and currAlbum, got AlbumKey working
  * 2023-12-16 JJK	Added logic for MaxRows per media type, but still 
  * 					allowing an included parameter to override (test)
+ * 2024-01-14 JJK	Added menuOrAlbumName to MediaInfo
  *============================================================================*/
 // Define a super global constant for the log file (this will be in scope for all functions)
 define("LOG_FILE", "./php.log");
@@ -113,6 +114,7 @@ class MediaInfo
 	public $filterList;
 	public $fileList;
 	public $startDate;
+	public $menuOrAlbumName;
 }
 
 $mediaInfo = new MediaInfo();
@@ -130,6 +132,7 @@ $maxRows = 200;
 // Default to the 1st day of the current year
 //$mediaInfo->startDate = date("Y") . "-01-01";
 $mediaInfo->startDate = date("Y-m-d", strtotime("-2 months"));
+$mediaInfo->menuOrAlbumName = "";
 $defaultCategory = "ALL";
 
 try {
@@ -339,6 +342,7 @@ try {
 	if (!empty($param->MediaFilterMenuItem)) {
 		$wildMenuItem = wildCardStrFromTokens($param->MediaFilterMenuItem);
 		$menuItemExists = true;
+		$mediaInfo->menuOrAlbumName = $param->MediaFilterMenuItem;
 	}
 
 	$albumKeyExists = false;
@@ -346,6 +350,10 @@ try {
 	if (!empty($param->MediaFilterAlbumKey)) {
 		$wildAlbumKey = wildCardStrFromTokens($param->MediaFilterAlbumKey);
 		$albumKeyExists = true;
+
+		if (!empty($param->MediaFilterAlbumName)) {
+			$mediaInfo->menuOrAlbumName = $param->MediaFilterAlbumName;
+		}
 	}
 
 	$searchStrExists = false;

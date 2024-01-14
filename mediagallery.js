@@ -171,7 +171,9 @@ const MediaPageLinkClass = "media-page";
         let paramData = {
             MediaFilterMediaType: mediaType, 
             getMenu: true,
-            MediaFilterAlbumKey: albumKey}
+            MediaFilterAlbumKey: albumKey
+        }
+
         queryMediaInfo(paramData);
 
         // Get the target tab based on the the MediaType specified, and use the new Bootstrap v5.2 js for showing the tab

@@ -20,7 +20,7 @@ import {mediaAlbumMenuCanvasId,buildAlbumMenuElements} from './mg-album.js'
 import {setContextMenuListeners} from './mg-contextmenu.js'
 import {displayElementInLightbox} from './mg-lightbox.js'
 import {playlistSongClass,audioPrevClass,audioNextClass,audioPlayer,setAudioListeners,
-        emptyPlaylist,incrementPlaylistIndex,addSongToPlaylist} from './mg-audio-playlist.js'
+        emptyPlaylist,incrementPlaylistIndex,addSongToPlaylist,initSong} from './mg-audio-playlist.js'
 
 const MediaFilterRequestClass = "MediaFilterRequest";
 const imgThumbnailClass = "img-thumbnail-jjk"  // Want my own thumbnail formatting instead of bootstrap border
@@ -754,7 +754,7 @@ thumbnailContainer.addEventListener("click", function (event) {
         let thumbnailRow3 = document.createElement("div")
         thumbnailRow1.classList.add('row')
         thumbnailRow2.classList.add('row')
-        thumbnailRow2.classList.add('row')
+        thumbnailRow3.classList.add('row')
 
         let thumbnailRow1Col1 = document.createElement("div")
         let thumbnailRow2Col1 = document.createElement("div")
@@ -762,7 +762,6 @@ thumbnailContainer.addEventListener("click", function (event) {
         thumbnailRow1Col1.classList.add('col')
         thumbnailRow2Col1.classList.add('col','my-2')
         thumbnailRow3Col1.classList.add('col')
-
 
         //-------------------------------------------------------------------------------------------------------------------------
         // Loop through all the files in the current file list
@@ -772,11 +771,7 @@ thumbnailContainer.addEventListener("click", function (event) {
 
             // Create a Card to hold the thumbnail of the media object
             let thumb = document.createElement("div")
-            //thumb.classList.add('card','fs-6','vh-75','float-start')
             thumb.classList.add('card','fs-6','vh-75','float-start')
-
-//            img.classList.add('rounded','float-start','m-1',imgThumbnailClass)
-
 
             let titleMax = 25
             if (mediaType == 1) {
@@ -917,10 +912,10 @@ thumbnailContainer.addEventListener("click", function (event) {
             empty(thumbnailRow2Col1);
 
                 // if there were any MP3's, build a player with the playlist of MP3's
-                let h5 = document.createElement("h5");
-                h5.id = 'SongTitle'
-                h5.classList.add('font-weight-bold')
-                thumbnailRow2Col1.appendChild(h5)
+                let h6 = document.createElement("h6");
+                h6.id = 'SongTitle'
+                h6.textContent = initSong(0)
+                thumbnailRow2Col1.appendChild(h6)
 
                 // Append the audioPlayer element
                 thumbnailRow2Col1.appendChild(audioPlayer);
@@ -934,7 +929,7 @@ thumbnailContainer.addEventListener("click", function (event) {
                 thumbnailRow2Col1.appendChild(a)
 
                 i = document.createElement("i");
-                i.classList.add('fa',`${audioNextClass}`,'fa-3x','mx-2')
+                i.classList.add('fa',`${audioNextClass}`,'fa-3x','mx-3')
                 a = document.createElement("a")
                 a.id = "AudioNext"
                 //a.href = "#"
@@ -1028,7 +1023,18 @@ thumbnailContainer.addEventListener("click", function (event) {
             }
         }
 
-
+        // Add the Menu or Album name as row 0 (if it is non-blank)
+        if (mediaInfo.menuOrAlbumName != null && mediaInfo.menuOrAlbumName != "") {
+            let thumbnailRow0 = document.createElement("div")
+            thumbnailRow0.classList.add('row')
+            let thumbnailRow0Col1 = document.createElement("div")
+            thumbnailRow0Col1.classList.add('col','mt-2','ms-1')
+            let headerText = document.createElement("h6");
+            headerText.textContent = mediaInfo.menuOrAlbumName
+            thumbnailRow0Col1.appendChild(headerText)
+            thumbnailRow0.appendChild(thumbnailRow0Col1)
+            thumbnailContainer.appendChild(thumbnailRow0)
+        }
 
         thumbnailRow1.appendChild(thumbnailRow1Col1)
         thumbnailRow2.appendChild(thumbnailRow2Col1)
